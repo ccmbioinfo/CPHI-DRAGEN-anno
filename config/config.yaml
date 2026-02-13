@@ -1,0 +1,11 @@
+run:
+  family: "FAM-000000"
+  participants: participants.tsv
+  units: units.tsv
+  hpo: "" # proband-specific HPO terms
+  ped: ""
+
+tools:
+  cphi-dragen-anno: "~/CPHI-DRAGEN-anno/"
+
+  
