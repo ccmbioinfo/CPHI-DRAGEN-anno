@@ -1,0 +1,16 @@
+from snakemake.utils import min_version
+import pandas as pd
+
+##### set minimum snakemake version #####
+min_version("9.16.2")
+
+##### load rules #####
+include: "rules/common.smk"
+include: "rules/annotate_STRs.smk"
+
+
+family = config["run"]["family"]
+participants = pd.read_table(config["run"]["participants"], dtype=str).set_index("participant", drop=False)
+
+rule all:
+    input: "STRs/{family}.repeats.tsv"
