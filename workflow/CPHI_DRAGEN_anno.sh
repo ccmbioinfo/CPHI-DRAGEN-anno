@@ -5,7 +5,7 @@
 #SBATCH --mem=4G
 #SBATCH --output=logs/%x-%j.out
 
-module load anaconda3/4.4.0
+source /hpf/largeprojects/ccm_dccforge/dccdipg/Common/miniconda3/bin/activate
 conda activate /hpf/largeprojects/ccm_dccforge/dccdipg/Common/conda_envs/snakemake9.16.2
 
 
