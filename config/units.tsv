@@ -1,2 +1,2 @@
-family  sequence_variant_vcf	SV_vcf	CNV_vcf	repeat_VCF_dir	VNTR_VCF_dir
-FAM-000000	/path/to/sequence_variant_vcf	/path/to/SV_vcf /path/to/CNV_vcf	/path/to/repeat_VCF_dir	/path/to/VNTR_VCF_dir
+family	sequence_variant_vcf	SV_vcf	CNV_vcf	repeat_VCF_dir	VNTR_VCF_dir
+FAM-000000	/path/to/sequence_variant_vcf	/path/to/SV_vcf	/path/to/CNV_vcf	/path/to/repeat_VCF_dir	/path/to/VNTR_VCF_dir
