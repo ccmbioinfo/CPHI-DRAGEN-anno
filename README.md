@@ -2,7 +2,7 @@
 
 ## Installation
 - The steps below are not required if running on the SickKids HPC
-Create Snakemake environment: `conda create -c conda-forge -c bioconda -n snakemake9.16.2 snakemake=9.16.2`
+- Create Snakemake environment: `conda create -c conda-forge -c bioconda -n snakemake9.16.2 snakemake=9.16.2`
 - Activate conda environment: `conda activate snakemake9.16.2`
 - Install slurm plugin: `pip install snakemake-executor-plugin-slurm`
 
