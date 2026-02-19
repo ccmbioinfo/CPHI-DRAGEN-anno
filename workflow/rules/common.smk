@@ -7,7 +7,7 @@ from datetime import date
 min_version("9.16.2")
 
 
-participants = pd.read_table(config["run"]["participants"], dtype=str).set_index("participant", drop=False)
+samples = pd.read_table(config["run"]["samples"], dtype=str).set_index("sample", drop=False)
 units = pd.read_table(config["run"]["units"], dtype=str).set_index(["family"], drop=False)
 family = config["run"]["family"]
 
