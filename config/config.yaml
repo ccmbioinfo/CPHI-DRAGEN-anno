@@ -8,4 +8,5 @@ run:
 tools:
   cphi-dragen-anno: "~/CPHI-DRAGEN-anno/"
 
-  
+annotation:
+  str_disease_thresholds: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation/ExpansionHunter/tandem_repeat_disease_loci_v1.1.3.tsv
