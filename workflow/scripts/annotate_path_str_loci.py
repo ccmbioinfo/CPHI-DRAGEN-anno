@@ -71,6 +71,8 @@ def main(repeat_tsv, disease_thresholds, output_file):
     for col in disease_pred_cols:
         repeat_pivot_with_thresholds.drop(col, axis=1, inplace=True)
     # format for export
+    cov_cols = repeat_pivot_with_thresholds.columns[repeat_pivot_with_thresholds.columns.str.contains("LC")]
+    repeat_pivot_with_thresholds[cov_cols] = repeat_pivot_with_thresholds[cov_cols].astype(float).round(2)
     sample_cols = repeat_pivot_with_thresholds.columns[repeat_pivot_with_thresholds.columns.str.contains("EXP")]
     report_cols = (
         [
