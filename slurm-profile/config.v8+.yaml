@@ -23,7 +23,3 @@ set-resources:
 default-resources:
   - mem_mb=20000
   - runtime=20h
-
-slurm:
-  job-name: "{rule}"
-  output: "smk-{rule}-{wildcards}"
