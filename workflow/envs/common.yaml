@@ -5,3 +5,4 @@ channels:
 dependencies:
   - bcftools=1.23
   - tabix=1.11
+  - bedtools==2.31.1
