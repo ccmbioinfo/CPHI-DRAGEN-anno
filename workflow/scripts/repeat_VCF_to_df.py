@@ -5,6 +5,14 @@ import pandas as pd
 import numpy as np
 from pysam import VariantFile
 
+def recode_gt(gt):
+    alleles = []
+    for allele in gt:
+        if allele is None:
+            alleles.append(".")
+        else:
+            alleles.append(str(allele))
+    return "/".join(alleles)
 
 def main(repeat_vcf_dir, output_file):
     with open(output_file, "w") as f:
@@ -19,7 +27,8 @@ def main(repeat_vcf_dir, output_file):
                 RU = rec.info["RU"]  # Repeat unit in the reference orientation
                 # Sample fields:
                 for sample in samples:
-                    GT = rec.samples[sample]["GT"]
+                    GT = rec.samples[sample]["GT"]  # Genotype of the sample at the variant
+                    GT = recode_gt(GT)
                     SO = rec.samples[sample]["SO"]  # Type of reads that support the allele. Values can be SPANNING, FLANKING, or INREPEAT. These values indicate if the reads span, flank, or are fully contained in the repeat.
                     REPCN = rec.samples[sample]["REPCN"]  # Number of repeat units spanned by the allele
                     REPCI = rec.samples[sample]["REPCI"]  # Confidence interval for REPCN

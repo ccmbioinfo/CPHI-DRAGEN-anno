@@ -1,10 +1,12 @@
 import argparse
 from datetime import date
 import pandas as pd
+import numpy as np
+
 
 def pivot_repeat_df(repeat_df):
     # convert repeat dataframe long to wide format
-    repeat_pivot = repeat_df.pivot(columns=["SAMPLE"], values=["GT", "SO", "REPCN", "REPCI", "ADSP", "ADFL", "ADIR", "LC"])
+    repeat_pivot = repeat_df.pivot(columns=["SAMPLE"], values=["GT", "SO", "motif_count", "REPCI", "ADSP", "ADFL", "ADIR", "coverage"])
     # collapse multi-level index 
     repeat_pivot = repeat_pivot.reset_index()
     cols = repeat_pivot.columns
@@ -39,7 +41,7 @@ def is_disease(motif_count, gene, threshold):
 
 
 def main(repeat_tsv, disease_thresholds, output_file):
-    repeat_df = pd.read_csv(repeat_tsv, sep="\t", names=["SAMPLE", "CHROM", "POS", "VARID", "REF", "RL", "RU", "GT", "SO", "REPCN", "REPCI", "ADSP", "ADFL", "ADIR", "LC"])
+    repeat_df = pd.read_csv(repeat_tsv, sep="\t", names=["SAMPLE", "CHROM", "POS", "VARID", "REF", "RL", "RU", "GT", "SO", "motif_count", "REPCI", "ADSP", "ADFL", "ADIR", "coverage"])
     repeat_df.set_index(["CHROM", "POS", "VARID", "REF", "RL", "RU"], inplace=True)
     samples = repeat_df["SAMPLE"].unique()
     # convert repeat dataframe long to wide format
@@ -54,7 +56,7 @@ def main(repeat_tsv, disease_thresholds, output_file):
     repeat_pivot_with_thresholds = repeat_pivot.merge(disease_thresholds, left_on="VARID", right_on="GENE", how="left")
     # now annotate with disease status
     repeat_pivot_with_thresholds.rename(columns={"DISEASE THRESHOLD": "DISEASE_THRESHOLD"}, inplace=True)
-    motif_count_cols = repeat_pivot_with_thresholds.columns[repeat_pivot_with_thresholds.columns.str.contains("REPCN")]
+    motif_count_cols = repeat_pivot_with_thresholds.columns[repeat_pivot_with_thresholds.columns.str.contains("motif_count")]
     for col in motif_count_cols:
         repeat_pivot_with_thresholds[f"DISEASE_PREDICTION_{col}"] = repeat_pivot_with_thresholds.apply(
             lambda row: is_disease(
@@ -64,16 +66,17 @@ def main(repeat_tsv, disease_thresholds, output_file):
             ),
             axis=1,
         )
-    disease_pred_cols = [col for col in repeat_pivot_with_thresholds.columns if "PREDICTION" in col and "REPCN" in col]
+    disease_pred_cols = [col for col in repeat_pivot_with_thresholds.columns if "PREDICTION" in col and "motif_count" in col]
     repeat_pivot_with_thresholds["DISEASE_PREDICTION"] = repeat_pivot_with_thresholds[disease_pred_cols].apply(
         lambda row: "|".join(row.values.astype(str)), axis=1
     )
     for col in disease_pred_cols:
         repeat_pivot_with_thresholds.drop(col, axis=1, inplace=True)
     # format for export
-    cov_cols = repeat_pivot_with_thresholds.columns[repeat_pivot_with_thresholds.columns.str.contains("LC")]
+    cov_cols = repeat_pivot_with_thresholds.columns[repeat_pivot_with_thresholds.columns.str.contains("coverage")]
     repeat_pivot_with_thresholds[cov_cols] = repeat_pivot_with_thresholds[cov_cols].astype(float).round(2)
     sample_cols = repeat_pivot_with_thresholds.columns[repeat_pivot_with_thresholds.columns.str.contains("EXP")]
+    sample_cols = [col for col in sample_cols if "_SO" not in col] # remove type of read support columns
     report_cols = (
         [
             "CHROM",
@@ -82,14 +85,17 @@ def main(repeat_tsv, disease_thresholds, output_file):
             "RL",
             "RU",
             "VARID",
-            "GENE",
             "DISORDER",
             "DISEASE_THRESHOLD",
             "DISEASE_PREDICTION",
         ] + list(sample_cols)
     )
 
-    repeat_pivot_with_thresholds = repeat_pivot_with_thresholds[report_cols]
+    repeat_pivot_with_thresholds = repeat_pivot_with_thresholds[report_cols].copy()
+    repeat_pivot_with_thresholds["DISEASE_THRESHOLD"] = repeat_pivot_with_thresholds["DISEASE_THRESHOLD"].astype(str)
+    repeat_pivot_with_thresholds["DISEASE_THRESHOLD"] = repeat_pivot_with_thresholds["DISEASE_THRESHOLD"].str.replace(".0", "")
+    repeat_pivot_with_thresholds.rename(columns={"VARID": "GENE", "REF": "REF_REPEAT_COUNT", "RL": "REF_LEN_BP", "RU": "MOTIF"}, inplace=True)
+    repeat_pivot_with_thresholds.replace({np.nan: "."}, inplace=True)
     today = date.today()
     today = today.strftime("%Y-%m-%d")
     output_prefix = output_file.replace(".csv", "")
