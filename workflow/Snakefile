@@ -7,10 +7,12 @@ min_version("9.16.2")
 ##### load rules #####
 include: "rules/common.smk"
 include: "rules/annotate_STRs.smk"
+include: "rules/annotate_sequence_var.smk"
 
 
 family = config["run"]["family"]
 samples = pd.read_table(config["run"]["samples"], dtype=str).set_index("sample", drop=False)
 
 rule all:
-    input: "reports/{family}.known.path.str.loci.csv"
+    input: 
+        "reports/{family}.known.path.str.loci.csv"
