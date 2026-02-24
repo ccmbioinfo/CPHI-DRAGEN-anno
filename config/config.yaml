@@ -1,5 +1,5 @@
 run:
-  family: "CS4C-040001"
+  family: "FAM-000000"
   samples: samples.tsv
   units: units.tsv
   hpo: "" # proband-specific HPO terms
