@@ -58,7 +58,7 @@ def main(repeat_tsv, disease_thresholds, output_file):
     repeat_pivot_with_thresholds.rename(columns={"DISEASE THRESHOLD": "DISEASE_THRESHOLD"}, inplace=True)
     motif_count_cols = repeat_pivot_with_thresholds.columns[repeat_pivot_with_thresholds.columns.str.contains("motif_count")]
     for col in motif_count_cols:
-        repeat_pivot_with_thresholds[f"DISEASE_PREDICTION_{col}"] = repeat_pivot_with_thresholds.apply(
+        repeat_pivot_with_thresholds[f"{col}_DISEASE_PREDICTION"] = repeat_pivot_with_thresholds.apply(
             lambda row: is_disease(
                 row[col],
                 row["GENE"],
@@ -67,16 +67,13 @@ def main(repeat_tsv, disease_thresholds, output_file):
             axis=1,
         )
     disease_pred_cols = [col for col in repeat_pivot_with_thresholds.columns if "PREDICTION" in col and "motif_count" in col]
-    repeat_pivot_with_thresholds["DISEASE_PREDICTION"] = repeat_pivot_with_thresholds[disease_pred_cols].apply(
-        lambda row: "|".join(row.values.astype(str)), axis=1
-    )
     for col in disease_pred_cols:
-        repeat_pivot_with_thresholds.drop(col, axis=1, inplace=True)
+        rename_col = col.replace("_motif_count", "")
+        repeat_pivot_with_thresholds.rename(columns={col: rename_col}, inplace=True)
     # format for export
-    cov_cols = repeat_pivot_with_thresholds.columns[repeat_pivot_with_thresholds.columns.str.contains("coverage")]
-    repeat_pivot_with_thresholds[cov_cols] = repeat_pivot_with_thresholds[cov_cols].astype(float).round(2)
     sample_cols = repeat_pivot_with_thresholds.columns[repeat_pivot_with_thresholds.columns.str.contains("EXP")]
-    sample_cols = [col for col in sample_cols if "_SO" not in col] # remove type of read support columns
+    sample_cols = [col for col in sample_cols if "_SO" not in col and "DISEASE_PREDICTION" not in col] 
+    disease_pred_cols = [col for col in repeat_pivot_with_thresholds.columns if "DISEASE_PREDICTION" in col]
     report_cols = (
         [
             "CHROM",
@@ -87,8 +84,7 @@ def main(repeat_tsv, disease_thresholds, output_file):
             "VARID",
             "DISORDER",
             "DISEASE_THRESHOLD",
-            "DISEASE_PREDICTION",
-        ] + list(sample_cols)
+        ] + list(disease_pred_cols) + list(sample_cols)
     )
 
     repeat_pivot_with_thresholds = repeat_pivot_with_thresholds[report_cols].copy()

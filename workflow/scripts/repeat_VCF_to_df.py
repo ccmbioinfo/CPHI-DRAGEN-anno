@@ -35,11 +35,10 @@ def main(repeat_vcf_dir, output_file):
                     ADSP = rec.samples[sample]["ADSP"]  # Number of spanning reads consistent with the allele
                     ADFL = rec.samples[sample]["ADFL"]  # Number of flanking reads consistent with the allele
                     ADIR = rec.samples[sample]["ADIR"]  # Number of in-repeat reads consistent with the allele
-                    LC = rec.samples[sample]["LC"]  # Locus Coverage
+                    LC = round(rec.samples[sample]["LC"], 2)  # Locus Coverage
                     f.write(
                         f"{sample}\t{rec.chrom}\t{rec.pos}\t{VARID}\t{REF}\t{RL}\t{RU}\t{GT}\t{SO}\t{REPCN}\t{REPCI}\t{ADSP}\t{ADFL}\t{ADIR}\t{LC}\n"
                     )
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
