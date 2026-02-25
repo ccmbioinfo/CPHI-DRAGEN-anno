@@ -13,4 +13,5 @@ family = config["run"]["family"]
 samples = pd.read_table(config["run"]["samples"], dtype=str).set_index("sample", drop=False)
 
 rule all:
-    input: "STRs/{family}.repeats.tsv"
+    input:
+        "STRs/{family}.repeats.tsv".format(family=family)

@@ -9,9 +9,9 @@ source /hpf/largeprojects/ccm_dccforge/dccdipg/Common/miniconda3/bin/activate
 conda activate /hpf/largeprojects/ccm_dccforge/dccdipg/Common/conda_envs/snakemake9.16.2
 
 
-SF=~/CPHI-DRAGEN-ANNO/Snakefile
+SF=~/CPHI-DRAGEN-anno/workflow/Snakefile
 CP="/hpf/largeprojects/ccm_dccforge/dccdipg/Common/cphi-dragen-anno-snakemake"
-SLURM=~/CPHI-DRAGEN-ANNO/slurm_profile/
+SLURM=~/CPHI-DRAGEN-anno/slurm-profile/
 CONFIG="config.yaml"
 
 snakemake --use-conda -s ${SF} --conda-prefix ${CP}  --configfile ${CONFIG} --profile ${SLURM} --executor slurm --verbose -p --rerun-incomplete

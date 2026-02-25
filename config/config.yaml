@@ -7,5 +7,24 @@ run:
 
 tools:
   cphi-dragen-anno: "~/CPHI-DRAGEN-anno/"
+  annotSV: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/crg2-pacbio-non-conda-tools/AnnotSV-3.1.1"
 
-  
+ref:
+  name: GRCh38.86
+
+params:
+  snpeff:
+    java_opts: "-Xms750m -Xmx20g"
+
+annotation:
+  snpeff:
+    data_dir: "/hpf/largeprojects/ccmbio/nhanafi/c4r/downloads/databases/snpeff/data"
+  omim_path: "~/crg2-pacbio/scripts/cre/data/"
+  general:
+    exon: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/genes/MANE/MANE.GRCh38.v1.0.ensembl_genomic.bed"
+    ensembl: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/genes/ensembl/Homo_sapiens.GRCh38.109.chr.processed.csv"
+    adotto_repeats: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/repeats/repeat_catalogs_for_TRGT/adotto_repeats.hg38.bed"
+    clingen_path: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/ClinGen/"
+  sv_report:
+    gnomad_SV: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/gnomAD/v4.1/SV/gnomad.v4.1.sv.sites.processed.bed"
+    dgv: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/DGV/DGV.GS.hg38.tsv"
