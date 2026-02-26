@@ -14,4 +14,5 @@ samples = pd.read_table(config["run"]["samples"], dtype=str).set_index("sample",
 
 rule all:
     input:
-        "STRs/{family}.repeats.tsv".format(family=family)
+        "STRs/{family}.repeats.tsv",
+        "reports/{family}.known.path.str.loci.csv"
