@@ -13,4 +13,6 @@ family = config["run"]["family"]
 samples = pd.read_table(config["run"]["samples"], dtype=str).set_index("sample", drop=False)
 
 rule all:
-    input: "reports/{family}.known.path.str.loci.csv"
+    input:
+        "STRs/{family}.repeats.tsv",
+        "reports/{family}.known.path.str.loci.csv"

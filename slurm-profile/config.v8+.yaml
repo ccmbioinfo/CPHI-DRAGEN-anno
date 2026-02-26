@@ -19,3 +19,7 @@ __default__:
 set-resources:
     myrule:
         mem: 500MB
+
+default-resources:
+  - mem_mb=20000
+  - runtime=20h
