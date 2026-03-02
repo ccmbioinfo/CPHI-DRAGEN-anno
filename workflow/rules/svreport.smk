@@ -1,5 +1,27 @@
+rule bnd_to_inv:
+    input:
+        vcf = get_sv_vcf
+    output:
+        vcf = "sv/{family}.sv.bnd_to_inv.vcf"
+    log:
+        "logs/sv/{family}.bnd_to_inv.log"
+    params:
+        cphi_dragen = config["tools"]["cphi-dragen-anno"],
+        ref_fasta = config["ref"]["genome"]
+    conda:
+        "../envs/bnd_to_inv.yaml"
+    shell:
+        """
+        (python3 {params.cphi_dragen}/workflow/scripts/bnd_to_inv_SVs.py \
+            $(command -v samtools) \
+            {params.ref_fasta} \
+            {input.vcf} \
+            > {output.vcf}) > {log} 2>&1
+        """
+
 rule snpeff:
-    input: get_sv_vcf
+    input:
+        "sv/{family}.sv.bnd_to_inv.vcf"
     output:
         vcf = "sv/{family}.sv.snpeff.vcf",
     log:
@@ -12,7 +34,8 @@ rule snpeff:
         get_wrapper_path("snpeff")
 
 rule annotsv:
-    input: get_sv_vcf
+    input:
+        "sv/{family}.sv.bnd_to_inv.vcf"
     output:
         annotsv_annotated =  "sv/{family}.AnnotSV.tsv",
         annotsv_unannotated =  temp("sv/{family}.AnnotSV.unannotated.tsv")

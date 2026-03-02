@@ -83,6 +83,9 @@ def apply_filter_benign(annotsv_df):
 
 
 def merge_full_split_annos(annotsv_df):
+    def join_str(s):
+        vals = [str(x) for x in s.tolist() if pd.notna(x)]
+        return ";".join(vals)
     annotsv_split = annotsv_df[annotsv_df["Annotation_mode"] == "split"]
     annotsv_full = annotsv_df[annotsv_df["Annotation_mode"] == "full"]
     DDD_cols = ["DDD_status", "DDD_mode", "DDD_consequence", "DDD_disease", "DDD_pmid"]
@@ -108,29 +111,29 @@ def merge_full_split_annos(annotsv_df):
         annotsv_split.groupby("AnnotSV_ID")
         .agg(
             {
-                "GenCC_disease": ";".join,
-                "GenCC_moi": ";".join,
-                "GenCC_classification": ";".join,
-                "GenCC_pmid": ";".join,
-                "Tx": ";".join,
-                "Tx_start": ";".join,
-                "Tx_end": ";".join,
-                "Overlapped_tx_length": ";".join,
-                "Overlapped_CDS_length": ";".join,
-                "Overlapped_CDS_percent": ";".join,
-                "Frameshift": ";".join,
-                "Exon_count": ";".join,
-                "Location": ";".join,
-                "Location2": ";".join,
-                "Nearest_SS_type": ";".join,
-                "Dist_nearest_SS": ";".join,
-                "Intersect_start": ";".join,
-                "Intersect_end": ";".join,
-                "DDD_status": ";".join,
-                "DDD_mode": ";".join,
-                "DDD_consequence": ";".join,
-                "DDD_disease": ";".join,
-                "DDD_pmid": ";".join,
+                "GenCC_disease": join_str,
+                "GenCC_moi": join_str,
+                "GenCC_classification": join_str,
+                "GenCC_pmid": join_str,
+                "Tx": join_str,
+                "Tx_start": join_str,
+                "Tx_end": join_str,
+                "Overlapped_tx_length": join_str,
+                "Overlapped_CDS_length": join_str,
+                "Overlapped_CDS_percent": join_str,
+                "Frameshift": join_str,
+                "Exon_count": join_str,
+                "Location": join_str,
+                "Location2": join_str,
+                "Nearest_SS_type": join_str,
+                "Dist_nearest_SS": join_str,
+                "Intersect_start": join_str,
+                "Intersect_end": join_str,
+                "DDD_status": join_str,
+                "DDD_mode": join_str,
+                "DDD_consequence": join_str,
+                "DDD_disease": join_str,
+                "DDD_pmid": join_str,
             }
         )
         .reset_index()
@@ -332,10 +335,17 @@ def annotate_pop_svs(annotsv_df, pop_svs, cols, variant_type):
         # look for population INS/BND within 50 bp of sample INS/BND 
         window_INS_BND = annotsv_INS_BND_bed.window(pop_svs_INS_BND_bed, w=50).to_dataframe(names=intersect_cols)
         if len(window_INS_BND) > 0:
+            for c in ["SVLEN", "SVLEN_pop"]:
+                window_INS_BND[c] = pd.to_numeric(window_INS_BND[c], errors="coerce")
             # only keep matches where the size fraction is greater than 0.8, e.g.  an insertion of 1000bp will not be matched to a 100bp insertion at the same position
             window_INS_BND["SVLEN"] = window_INS_BND["SVLEN"].abs()
-            window_INS_BND["size_fraction"] = window_INS_BND.apply(lambda x: (min([x["SVLEN"], x["SVLEN_pop"]]))/(max([x["SVLEN"], x["SVLEN_pop"]])), axis=1)
-            window_INS_BND = window_INS_BND[(window_INS_BND["size_fraction"] >= 0.8) | (window_INS_BND["SVTYPE"] == "BND")]
+            window_INS_BND["size_fraction"] = window_INS_BND.apply(
+                lambda x: (min([x["SVLEN"], x["SVLEN_pop"]])) / (max([x["SVLEN"], x["SVLEN_pop"]])),
+                axis=1,
+            )
+            window_INS_BND = window_INS_BND[
+                (window_INS_BND["size_fraction"] >= 0.8) | (window_INS_BND["SVTYPE"] == "BND")
+            ]
             window_INS_BND = window_INS_BND.drop(columns=["size_fraction"])
 
             # now concatenate the window and SVLEN-based matches
@@ -350,9 +360,15 @@ def annotate_pop_svs(annotsv_df, pop_svs, cols, variant_type):
 
     # make a column with SV details, e.g DEL:1:25266309-25324509
     pop_name = cols[0].split("_")[0]
-    intersect[f"{pop_name}_SV"] = intersect[
-        ["CHROM_pop", "POS_pop", "END_pop", "SVTYPE_pop"]
-    ].apply(lambda x: f"{x[3]}:{x[0]}:{x[1]}-{x[2]}", axis=1)
+    intersect[f"{pop_name}_SV"] = (
+        intersect["SVTYPE_pop"].astype(str)
+        + ":"
+        + intersect["CHROM_pop"].astype(str)
+        + ":"
+        + intersect["POS_pop"].astype(str)
+        + "-"
+        + intersect["END_pop"].astype(str)
+    )
     cols.append(f"{pop_name}_SV")
     intersect = intersect[["CHROM", "POS", "END", "SVTYPE", "ID"] + cols]
     # round AFs
@@ -807,6 +823,8 @@ def add_clingen_regions(annotsv_df, clingen_regions_df):
     """
     Annotate SVs against ClinGen regions
     """
+    def join_str(s):
+        return ";".join([str(x) for x in s.tolist() if pd.notna(x)])
     # parse Genomic Location to extract CHROM, START, END
     clingen_regions_df["CHROM"] = clingen_regions_df["Genomic Location"].str.split(":").str[0].apply(lambda x: x.replace("chr", ""))
     clingen_regions_df["START"] = clingen_regions_df["Genomic Location"].str.split(":").str[1].str.split("-").str[0]
@@ -845,9 +863,13 @@ def add_clingen_regions(annotsv_df, clingen_regions_df):
         ]
         
         # make a column with region details, e.g 1:25266309-25324509
-        intersect["clingen_region"] = intersect[
-            ["CHROM_region", "POS_region", "END_region"]
-        ].apply(lambda x: f"{x[0]}:{int(x[1])}-{int(x[2])}", axis=1)
+        intersect["clingen_region"] = (
+            intersect["CHROM_region"].astype(str)
+            + ":"
+            + pd.to_numeric(intersect["POS_region"], errors="coerce").fillna(0).astype(int).astype(str)
+            + "-"
+            + pd.to_numeric(intersect["END_region"], errors="coerce").fillna(0).astype(int).astype(str)
+        )
 
         # calculate percent of sample SV overlapped by region
         intersect["sample_SV_clingen_region_perc_overlap"] = intersect.apply(
@@ -856,9 +878,9 @@ def add_clingen_regions(annotsv_df, clingen_regions_df):
         # group by SV to aggregate multiple overlapping regions
         intersect_agg = intersect.groupby(["CHROM", "POS", "END", "SVTYPE", "ID"]).agg(
             {
-                "clingen_region_curation": ";".join,
-                "clingen_region": ";".join,
-                "sample_SV_clingen_region_perc_overlap": ";".join,
+                "clingen_region_curation": join_str,
+                "clingen_region": join_str,
+                "sample_SV_clingen_region_perc_overlap": join_str,
             }
         ).reset_index()
         
@@ -881,6 +903,18 @@ def add_clingen_regions(annotsv_df, clingen_regions_df):
         annotsv_df["sample_SV_clingen_region_perc_overlap"] = "."
     return annotsv_df
 
+def shorten_gene_list(value):
+    if pd.isna(value):
+        return value
+    s = str(value).strip()
+    if s in {".", "", "NA", "nan"}:
+        return s
+
+    genes = [g.strip() for g in s.split(";") if g.strip()]
+    if len(genes) <= 2:
+        return s
+
+    return f"{genes[0]};[...truncated...];{genes[-1]}"
 
 def add_BND_structure(svtype, info, alt):
     if svtype == "BND":
@@ -1201,6 +1235,13 @@ def main(
     ]
     # add clingen region curations
     df_merge = add_clingen_regions(df_merge, clingen_regions)
+
+    # if SVLEN is greater than 500,000 reduce the size of "GENE_NAME" and "ENSEMBL_GENE" to include only the first and last
+    svlen_numeric = pd.to_numeric(df_merge["SVLEN"], errors="coerce")
+    long_sv_mask = svlen_numeric.abs() > 500000
+
+    for col in ["GENE_NAME", "ENSEMBL_GENE"]:
+        df_merge.loc[long_sv_mask, col] = df_merge.loc[long_sv_mask, col].apply(shorten_gene_list)
 
     # define columns to be included in report
     hpo_cols = ["HPO"] if isinstance(hpo, pd.DataFrame) else []

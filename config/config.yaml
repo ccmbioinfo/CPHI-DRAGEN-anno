@@ -11,6 +11,7 @@ tools:
 
 ref:
   name: GRCh38.86
+  genome: /hpf/largeprojects/ccmbio/nhanafi/c4r/genomes/GIAB/GCA_000001405.15_GRCh38_no_alt_analysis_set_maskedGRC_exclusions_v2.fasta
 
 params:
   snpeff:
