@@ -7,6 +7,7 @@ shell(
     "-i VCF "
     "-o VCF "
     "-dataDir {snakemake.params.data_dir} "
+    "-config {snakemake.params.config_file} "
     "{snakemake.params.reference} "
     "{snakemake.input} > {snakemake.output.vcf}) {log}"
 )

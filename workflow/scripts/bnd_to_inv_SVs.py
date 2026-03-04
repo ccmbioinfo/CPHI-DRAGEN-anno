@@ -1,3 +1,6 @@
+# Obtained from https://github.com/srbehera/DRAGEN_Analysis/blob/main/convertInversion.py
+# Author: Sairam Behera
+
 import sys
 import gzip
 from subprocess import check_output

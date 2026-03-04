@@ -29,7 +29,8 @@ rule snpeff:
     params:
         java_opts = config["params"]["snpeff"]["java_opts"],
         reference = config["ref"]["name"],
-        data_dir = config["annotation"]["snpeff"]["data_dir"]
+        data_dir = config["annotation"]["snpeff"]["data_dir"],
+        config_file = config["annotation"]["snpeff"]["config"]
     wrapper:
         get_wrapper_path("snpeff")
 
@@ -111,4 +112,15 @@ rule sv_report:
                     -clingen_regions {params.clingen_path}/ClinGen_region_curation_list_GRCh38.tsv \
                     -samples {params.samples}) > {log} 2>&1
             fi
+        """
+
+rule sv_report_to_reports:
+    input:
+        "sv/{family}.sv.csv"
+    output:
+        "reports/{family}.sv.csv"
+    shell:
+        """
+        mkdir -p reports
+        cp {input} {output}
         """

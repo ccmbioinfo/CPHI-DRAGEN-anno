@@ -10,7 +10,7 @@ tools:
   annotSV: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/crg2-pacbio-non-conda-tools/AnnotSV-3.1.1"
 
 ref:
-  name: GRCh38.86
+  name: GRCh38.115
   genome: /hpf/largeprojects/ccmbio/nhanafi/c4r/genomes/GIAB/GCA_000001405.15_GRCh38_no_alt_analysis_set_maskedGRC_exclusions_v2.fasta
 
 params:
@@ -19,7 +19,8 @@ params:
 
 annotation:
   snpeff:
-    data_dir: "/hpf/largeprojects/ccmbio/nhanafi/c4r/downloads/databases/snpeff/data"
+    data_dir: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/snpEff/data"
+    config: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/snpEff/snpEff.config"
   omim_path: "~/crg2-pacbio/scripts/cre/data/"
   general:
     exon: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/genes/MANE/MANE.GRCh38.v1.0.ensembl_genomic.bed"
