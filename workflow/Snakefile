@@ -7,6 +7,7 @@ min_version("9.16.2")
 ##### load rules #####
 include: "rules/common.smk"
 include: "rules/annotate_STRs.smk"
+include: "rules/svreport.smk"
 
 
 family = config["run"]["family"]
@@ -14,5 +15,6 @@ samples = pd.read_table(config["run"]["samples"], dtype=str).set_index("sample",
 
 rule all:
     input:
-        "STRs/{family}.repeats.tsv",
-        "reports/{family}.known.path.str.loci.csv"
+        "STRs/{family}.repeats.tsv".format(family=family),
+        "reports/{family}.known.path.str.loci.csv".format(family=family),
+        "reports/{family}.sv.csv".format(family=family)

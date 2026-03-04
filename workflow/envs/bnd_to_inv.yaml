@@ -3,6 +3,5 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - bcftools=1.23
-  - tabix=1.11
-  - bedtools==2.31.1
+  - python=3.12
+  - samtools=1.23

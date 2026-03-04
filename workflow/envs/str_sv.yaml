@@ -1,0 +1,14 @@
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - bedtools =2.31.1
+  - python=3.12
+  - scikit-allel
+  - numpy
+  - pandas
+  - pyranges
+  - pysam
+  - pybedtools
+  - sigfig

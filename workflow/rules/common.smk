@@ -13,3 +13,11 @@ family = config["run"]["family"]
 
 def get_repeat_dir(wildcards):
     return units.loc[family, "repeat_VCF_dir"]
+
+def get_sv_vcf(wildcards):
+    input_vcf = units.loc[family, "SV_vcf"]
+
+    return input_vcf
+
+def get_wrapper_path(*dirs):
+    return "file:%s" % os.path.join(workflow.basedir, "wrappers", *dirs)
