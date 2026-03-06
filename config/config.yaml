@@ -10,8 +10,10 @@ tools:
   annotSV: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/crg2-pacbio-non-conda-tools/AnnotSV-3.1.1"
 
 ref:
-  name: GRCh38.115
-  genome: /hpf/largeprojects/ccmbio/nhanafi/c4r/genomes/GIAB/GCA_000001405.15_GRCh38_no_alt_analysis_set_maskedGRC_exclusions_v2.fasta
+  name: "GRCh38.115"
+  genome: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/genomes/DRAGEN_hg38-fasta-0-1_graph/hg38.fa"
+  known-variants: "/hpf/largeprojects/ccmbio/nhanafi/c4r/genomes/Homo_sapiens_assembly38.dbsnp138.vcf"
+  canon_bed: "/hpf/largeprojects/ccmbio/nhanafi/c4r/genomes/illumina/grch38_canon.bed"
 
 params:
   snpeff:
@@ -31,4 +33,12 @@ annotation:
     gnomad_SV: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/gnomAD/v4.1/SV/gnomad.v4.1.sv.sites.processed.bed"
     dgv: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/DGV/DGV.GS.hg38.tsv"
     1000G_SV: "/hpf/largeprojects/ccmbio/students/rkhan/cphi_dragen_runs/1000g/1000g_database/1000G.1000G_SV_database_AF.bed"
+  vep:
+    dir: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/snakemake/499f2ad2/share/ensembl-vep-115.2-0/"
+    dir_cache: "/hpf/largeprojects/ccmbio/nhanafi/c4r/downloads/databases/vep"
+    phyloP100way: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/PhyloP100way/hg38.phyloP100way.bw"
+  vcfanno:
+    conf: "~/CPHI-DRAGEN-anno/resources/vcfanno/vcfanno.conf"
+    lua_script: "~/CPHI-DRAGEN-anno/resources/vcfanno/vcfanno.lua"
+    base_path: "/hpf/largeprojects/ccmbio/nhanafi/c4r/downloads/databases/"
   str_disease_thresholds: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation/ExpansionHunter/tandem_repeat_disease_loci_v1.1.3.tsv"

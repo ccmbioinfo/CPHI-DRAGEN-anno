@@ -1,0 +1,4 @@
+name: "input_prep"
+description: Prepare VCF input to crg2 pipeline by filtering out variants >= 50 bp in length
+authors:
+  - Anjali Jain
