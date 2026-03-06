@@ -72,7 +72,8 @@ rule sv_report:
         dgv = config["annotation"]["sv_report"]["dgv"],
         ensembl = config["annotation"]["general"]["ensembl"],
         clingen_path = config["annotation"]["general"]["clingen_path"],
-        samples = config["run"]["samples"]
+        samples = config["run"]["samples"],
+        thousandg = config["annotation"]["sv_report"]["1000G_SV"]
     conda:
         "../envs/str_sv.yaml"
     shell:
@@ -93,6 +94,7 @@ rule sv_report:
                         -clingen_TS {params.clingen_path}/ClinGen_triplosensitivity_gene_GRCh38.bed \
                         -clingen_disease {params.clingen_path}/ClinGen_tableExport_202310.csv \
                         -clingen_regions {params.clingen_path}/ClinGen_region_curation_list_GRCh38.tsv \
+                        -thousandg {params.thousandg} \
                         -samples {params.samples}) > {log} 2>&1
             else
                 (python3 {params.cphi_dragen}/workflow/scripts/annotate_SVs.py \
@@ -110,6 +112,7 @@ rule sv_report:
                     -clingen_TS {params.clingen_path}/ClinGen_triplosensitivity_gene_GRCh38.bed \
                     -clingen_disease {params.clingen_path}/ClinGen_tableExport_202310.csv \
                     -clingen_regions {params.clingen_path}/ClinGen_region_curation_list_GRCh38.tsv \
+                    -thousandg {params.thousandg} \
                     -samples {params.samples}) > {log} 2>&1
             fi
         """
