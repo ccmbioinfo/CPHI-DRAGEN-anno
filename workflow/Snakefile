@@ -8,6 +8,7 @@ min_version("9.16.2")
 include: "rules/common.smk"
 include: "rules/annotate_STRs.smk"
 include: "rules/svreport.smk"
+include: "rules/cnvreport.smk"
 
 
 family = config["run"]["family"]
@@ -17,4 +18,6 @@ rule all:
     input:
         "STRs/{family}.repeats.tsv".format(family=family),
         "reports/{family}.known.path.str.loci.csv".format(family=family),
-        "reports/{family}.sv.csv".format(family=family)
+        "reports/{family}.sv.csv".format(family=family),
+        "reports/{family}.cnv.csv".format(family=family)
+

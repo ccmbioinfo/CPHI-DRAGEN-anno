@@ -22,6 +22,8 @@ def rename_SV_cols(annotsv_df):
         },
         inplace=True,
     )
+    #normalize SVTYPE like <DEL> to DEL
+    annotsv_df["SVTYPE"] = annotsv_df["SVTYPE"].astype(str).str.replace("<", "", regex=False).str.replace(">", "", regex=False)
     return annotsv_df
 
 
@@ -241,10 +243,15 @@ def get_genotype(sample_GT):
         zyg = genotype
     return [zyg, genotype]
 
-def get_CN(sample_GT):
+# def get_CN(sample_GT):
     # copy number: for CNV calls
-    CN = sample_GT.split(":")[1]
-    return CN
+#    CN = sample_GT.split(":")[1]
+#    return CN
+
+def get_CN(sample_field, format_field):
+    # copy number: for CNV calls 
+    # find CN in DRAGEN VCF using the format field rather than using GT
+    return get_format_value(sample_field, format_field, "CN")
 
 def get_exon_counts(annotsv_df, exon_bed):
     # original functions from SVRecords/SVAnnotator.py
@@ -342,6 +349,15 @@ def annotate_pop_svs(annotsv_df, pop_svs, cols, variant_type):
         intersect = intersect_DEL_DUP_INV
     
     # popSV and sample SV must be same type
+    if intersect.empty or "SVTYPE" not in intersect.columns or "SVTYPE_pop" not in intersect.columns:
+        # no overlaps found; add empty annotation cols and return
+        # if intersection is empty or missing expected columns, return original DF with placeholder annotation columns
+        annotsv_pop_svs = annotsv_df.copy()
+        for col in cols:
+            if col not in annotsv_pop_svs.columns:
+                annotsv_pop_svs[col] = "."
+        return annotsv_pop_svs
+
     intersect = intersect[intersect["SVTYPE"] == intersect["SVTYPE_pop"]]
 
     # make a column with SV details, e.g DEL:1:25266309-25324509
@@ -474,7 +490,8 @@ def annotate_repeats(annotsv_df, repeats, variant_type):
 def vcf_to_df(vcf_path):
     with open(vcf_path, "r") as f:
         lines = [l for l in f if not l.startswith("##")]
-    return pd.read_csv(
+
+    df = pd.read_csv(
         io.StringIO("".join(lines)),
         dtype={
             "#CHROM": str,
@@ -489,17 +506,37 @@ def vcf_to_df(vcf_path):
         sep="\t",
     ).rename(columns={"#CHROM": "CHROM"})
 
+    # Drop DRAGEN reference blocks / non-variant rows (ALT='.')
+    df = df[df["ALT"].astype(str) != "."].copy()
+
+    return df
 
 def parse_snpeff(snpeff_df, variant_type):
     svtype_list = []
     end_list = []
     ann_list = []
     pos_list = []
+    keep_idx = []
     # parse out svtype, end coordinate, ANN, and position
     for index, row in snpeff_df.iterrows():
         info = row["INFO"].split(";")
         pos = row["POS"]
-        svtype = [i for i in info if "SVTYPE=" in i][0].split("=")[1]
+        # svtype = [i for i in info if "SVTYPE=" in i][0].split("=")[1]
+        alt = str(row.get("ALT", ""))
+
+        # Prefer ALT symbolic allele for CNV/SV type normalization (<DEL>, <DUP>, <INV>, ...)
+        if alt.startswith("<") and alt.endswith(">"):
+            svtype = alt[1:-1].strip()
+        else:
+            svtype_tag = next((x for x in info if x.startswith("SVTYPE=")), None)
+            if svtype_tag:
+                svtype = svtype_tag.split("=", 1)[1].strip()
+            else:
+                continue
+
+        # normalize brackets/upper just in case
+        svtype = svtype.replace("<", "").replace(">", "").upper()
+        keep_idx.append(index)
         svtype_list.append(svtype)
         try:
             end = [i for i in info if "END=" in i][0].split("=")[1]
@@ -536,8 +573,16 @@ def parse_snpeff(snpeff_df, variant_type):
                         break
                 end = int(end) + int(CIEND)
             elif variant_type == "CNV":
-                CIEND = [i for i in info if "CIEND=" in i][0].split("=")[1].split(",")[1]
-                end = int(end) + int(CIEND)
+                # END is required; CIEND is optional in DRAGEN CNV records
+                end = int(end)
+                ciend_tag = next((x for x in info if x.startswith("CIEND=")), None)
+                if ciend_tag:
+                    ciend_vals = ciend_tag.split("=", 1)[1].split(",")
+                    ciend_r = int(ciend_vals[1]) if len(ciend_vals) > 1 else int(ciend_vals[0])
+                    end = end + ciend_r
+
+                # CIEND = [i for i in info if "CIEND=" in i][0].split("=")[1].split(",")[1]
+                # end = int(end) + int(CIEND)
             elif svtype == "INV":
                 raw_pos = int(pos)
                 raw_end = int(end)
@@ -583,6 +628,8 @@ def parse_snpeff(snpeff_df, variant_type):
                     CIPOS = 0
             pos = int(pos) + int(CIPOS)
         pos_list.append(pos)
+    # avoids length mismatch when some rows are skipped
+    snpeff_df = snpeff_df.loc[keep_idx].copy().reset_index(drop=True)
     snpeff_df["SVTYPE"] = svtype_list
     snpeff_df["END"] = end_list
     snpeff_df["ANN"] = ann_list
@@ -912,8 +959,11 @@ def main(
             get_genotype(row[sample])[1] for index, row in df_merge.iterrows()
         ]
         if variant_type == "CNV":
+            # df_merge[f"{sample}_CN"] = [
+            #     get_CN(row[sample]) for index, row in df_merge.iterrows()
+            # ]
             df_merge[f"{sample}_CN"] = [
-                get_CN(row[sample]) for index, row in df_merge.iterrows()
+                get_CN(row[sample], row["FORMAT"]) for index, row in df_merge.iterrows()
             ]
         df_merge[f"{sample}_PR_alt"] = [
             get_format_alt_value(row[sample], row["FORMAT"], "PR") for index, row in df_merge.iterrows()
