@@ -243,6 +243,21 @@ def get_genotype(sample_GT):
         zyg = genotype
     return [zyg, genotype]
 
+def get_cnv_zygosity(sample_GT, chrom):
+    genotype = sample_GT.split(":")[0]
+    chrom = str(chrom).replace("chr", "").upper()
+    if genotype in {"./.", "./."}:
+        return "-"
+    if genotype in {"./1", "./2", "1/.", "2/."}:
+        return "het"
+    
+    if chrom in {"X", "Y"}:
+        if genotype in {"0", "0/.", "./0"}:
+            return "-"
+        if genotype in {"1", "1/.", "./1"}:
+            return "hemi"
+    return get_genotype(sample_GT)[0]
+
 # def get_CN(sample_GT):
     # copy number: for CNV calls
 #    CN = sample_GT.split(":")[1]
@@ -952,9 +967,14 @@ def main(
                      
     # extract genotype and alt allele depth
     for sample in sample_cols:
-        df_merge[f"{sample}_zyg"] = [
-            get_genotype(row[sample])[0] for index, row in df_merge.iterrows()
-        ]
+        if variant_type == "CNV":
+            df_merge[f"{sample}_zyg"] = [
+                get_cnv_zygosity(row[sample], row["CHROM"]) for index, row in df_merge.iterrows()
+            ]
+        else:
+            df_merge[f"{sample}_zyg"] = [
+                get_genotype(row[sample])[0] for index, row in df_merge.iterrows()
+            ]
         df_merge[f"{sample}_GT"] = [
             get_genotype(row[sample])[1] for index, row in df_merge.iterrows()
         ]
@@ -980,6 +1000,12 @@ def main(
         df_merge[f"{sample}_FS"] = [
             get_format_value(row[sample], row["FORMAT"], "FS") for index, row in df_merge.iterrows()
         ]
+        df_merge[f"{sample}_DQ"] = [
+            get_format_value(row[sample], row["FORMAT"], "DQ") for index, row in df_merge.iterrows()
+        ]
+        df_merge[f"{sample}_DN"] = [
+            get_format_value(row[sample], row["FORMAT"], "DN") for index, row in df_merge.iterrows()
+        ]
     zyg_cols = [col for col in df_merge.columns if "_zyg" in col]
     gt_cols = [col for col in df_merge.columns if "_GT" in col]
     pr_alt_cols = [col for col in df_merge.columns if "_PR_alt" in col]
@@ -987,6 +1013,8 @@ def main(
     vf_alt_cols = [col for col in df_merge.columns if "_VF_alt" in col]
     gq_cols = [col for col in df_merge.columns if "_GQ" in col]
     fs_cols = [col for col in df_merge.columns if "_FS" in col]
+    dq_cols = [col for col in df_merge.columns if "_DQ" in col]
+    dn_cols = [col for col in df_merge.columns if "_DN" in col]
     cn_cols = [col for col in df_merge.columns if "_CN" in col]
 
     # filter out benign SVs with AF > 1%
@@ -1142,6 +1170,8 @@ def main(
         + vf_alt_cols 
         + gq_cols
         + fs_cols
+        + dq_cols
+        + dn_cols
         + cn_cols
         + ["Tx", "Frameshift", "EXONS_SPANNED", "Nearest_SS_type", "Dist_nearest_SS"]
         + gnomad_cols
@@ -1171,7 +1201,7 @@ def main(
     df_merge = df_merge[report_columns]
     if variant_type == "CNV":
         # exclude splice site annotations for CNVs
-        df_merge = df_merge.drop(columns=["Nearest_SS_type", "Dist_nearest_SS", "ID"])
+        df_merge = df_merge.drop(columns=["Nearest_SS_type", "Dist_nearest_SS", "ID"] + pr_alt_cols + sr_alt_cols + vf_alt_cols + gq_cols + fs_cols)
         # add back confidence intervals for CNV length now that annotation is done
         df_merge["POS"] = df_merge["POS"] + 2000
         df_merge["END"] = df_merge["END"] - 2000
