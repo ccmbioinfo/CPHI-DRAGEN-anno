@@ -6,7 +6,7 @@ latency-wait: 100
 rerun-incomplete: True
 printshellcmds: True
 use-conda: True
-retries: 1
+retries: 0
 remote-job-local-storage-prefix: "/localhd/$SLURM_JOB_ID"
 
 __default__:
