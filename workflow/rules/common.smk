@@ -22,5 +22,9 @@ def get_sv_vcf(wildcards):
 
     return input_vcf
 
+def get_cnv_vcf(wildcards):
+    input_vcf = units.loc[family, "CNV_vcf"]
+    return input_vcf
+
 def get_wrapper_path(*dirs):
     return "file:%s" % os.path.join(workflow.basedir, "wrappers", *dirs)
