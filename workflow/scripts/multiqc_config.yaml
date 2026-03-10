@@ -1,0 +1,59 @@
+remove_sections:
+  - bcftools-stats_singletones
+  - bcftools-stats_sequencing_depth
+  - bcftools-stats_sites_per_sample
+  - bcftools-stats_ts_tv
+  - bcftools-stats_depth_plot
+  - samtools-stats
+table_columns_visible:
+  verifybamid-results_table:
+    verifybamid-READS: false
+custom_data:
+  peddy_relatedness:
+    file_format: tsv
+    section_name: "Peddy Relatedness"
+    description: "Rate of allele sharing between samples (higher indicates greater relatedness)."
+    plot_type: table
+    pconfig:
+      namespace: peddy_relatedness
+      sort_rows: false
+      col1_header: Pair_ID
+    headers:
+      Pair_ID:
+        title: Pair
+      Sample_A:
+        title: Sample A
+      Sample_B:
+        title: Sample B
+      Peddy_Relatedness:
+        title: Relatedness
+        format: "{:.3f}"
+        scale: "Spectral"
+        min: 0
+        max: 0
+custom_plot_config:
+  bcftools_stats_vqc:
+    xmax: 200
+plots_force_interactive: true
+report_section_order:
+  peddy_relatedness:
+    order: 1000
+table_cond_formatting_colours:
+  - ped_high: "#2b9f2bcc"
+  - ped_mid: "#faa051cc"
+  - ped_low: "#6da4cae6"
+  - blue: "#337ab7"
+  - lbue: "#5bc0de"
+  - pass: "#5cb85c"
+  - warn: "#f0ad4e"
+  - fail: "#d9534f"
+  - male: "#5bc0de"
+  - female: "#d9534f"
+table_cond_formatting_rules:
+  peddy_relatedness-Peddy_Relatedness:
+    ped_low:
+      - lt: 0.25
+    ped_mid:
+      - lt: 0.5
+    ped_high:
+      - gt: 0.5

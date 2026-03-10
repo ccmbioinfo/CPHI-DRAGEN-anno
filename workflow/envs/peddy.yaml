@@ -1,0 +1,8 @@
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - peddy=0.4.8
+  - python=3.9.23
+  - bcftools
+  - samtools

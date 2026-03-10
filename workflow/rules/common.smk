@@ -19,5 +19,15 @@ def get_sv_vcf(wildcards):
 
     return input_vcf
 
+def get_smallvariants_vcf(wildcards):
+    input_vcf = units.loc[family, "sequence_variant_vcf"]
+
+    return input_vcf
+
+def get_cram(wildcards):
+    cram = samples.loc[wildcards.sample, "CRAM"]
+
+    return cram
+
 def get_wrapper_path(*dirs):
     return "file:%s" % os.path.join(workflow.basedir, "wrappers", *dirs)

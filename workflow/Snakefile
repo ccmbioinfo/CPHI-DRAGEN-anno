@@ -8,6 +8,7 @@ min_version("9.16.2")
 include: "rules/common.smk"
 include: "rules/annotate_STRs.smk"
 include: "rules/svreport.smk"
+include: "rules/qc.smk"
 
 
 family = config["run"]["family"]
