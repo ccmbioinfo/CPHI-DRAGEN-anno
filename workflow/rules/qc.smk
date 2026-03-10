@@ -77,23 +77,6 @@ rule bcftools_stats:
             > {output.stats}
         '''
 
-rule samtools_stats:
-    input:
-        cram=get_cram
-    output:
-        stats="qc/samtools/{family}/{sample}.stats"
-    log:
-        "logs/qc/samtools/{family}/{sample}.log"
-    conda:
-        "../envs/samtools.yaml"
-    params:
-        ref=config["ref"]["genome"]
-    shell:
-        '''
-        mkdir -p qc/samtools
-        samtools stats -r {params.ref} {input.cram} > {output.stats} 
-        '''    
-
 rule verifybam:
     input:
         cram=get_cram
@@ -115,7 +98,6 @@ rule multiqc:
         peddy_relatedness="qc/multiqc_custom/{family}/peddy_relatedness_mqc.tsv",
         bcftools_stats=expand("qc/bcftools/{family}/{sample}.stats", family=family, sample=samples.index),
         selfsm=expand("qc/verifybam/{family}/{sample}.selfSM", family=family, sample=samples.index),
-        samtools_stats=expand("qc/samtools/{family}/{sample}.stats", family=family, sample=samples.index),
     output:
         report="qc/multiqc/{family}.multiqc_report.html"
     log:
