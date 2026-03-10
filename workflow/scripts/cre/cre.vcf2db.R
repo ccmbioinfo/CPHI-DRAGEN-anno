@@ -494,7 +494,8 @@ select_and_write2 <- function(variants, samples, prefix, type)
 {
     print(colnames(variants))
     if (type == 'wgs' || type == 'denovo' || type == 'wgs.high.impact'){
-        noncoding_cols <- c("UCE_100bp", "UCE_200bp", "DNaseI_hypersensitive_site", "CTCF_binding_site", "ENH_cellline_tissue", "TF_binding_sites")
+        noncoding_cols <- c("UCE_100bp", "UCE_200bp", "DNaseI_hypersensitive_site", "CTCF_binding_site", "ENH_cellline_tissue", "TF_binding_sites",
+        "GreenDB_variant_type", "GreenDB_closest_gene", "GreenDB_controlled_gene")
         noncoding_scores <- c("ncER_score", "ReMM_score", "LINSIGHT_score", "Noncoding_path_pred", "promoterAI_score")
         coding_scores <- c("Cadd_score")
         protein_cols <- c()
