@@ -4,7 +4,6 @@ remove_sections:
   - bcftools-stats_sites_per_sample
   - bcftools-stats_ts_tv
   - bcftools-stats_depth_plot
-  - samtools-stats
 table_columns_visible:
   verifybamid-results_table:
     verifybamid-READS: false
@@ -42,8 +41,6 @@ table_cond_formatting_colours:
   - ped_high: "#2b9f2bcc"
   - ped_mid: "#faa051cc"
   - ped_low: "#6da4cae6"
-  - blue: "#337ab7"
-  - lbue: "#5bc0de"
   - pass: "#5cb85c"
   - warn: "#f0ad4e"
   - fail: "#d9534f"

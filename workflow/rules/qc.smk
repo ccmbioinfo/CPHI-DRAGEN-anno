@@ -1,3 +1,51 @@
+rule cram_to_bam:
+    input:
+        cram=get_cram
+    output:
+        bam=temp("qc/picard/{family}/{sample}.bam")
+    log:
+        "logs/qc/picard/{family}/{sample}.cram_to_bam.log"
+    conda:
+        "../envs/samtools.yaml"
+    threads: 8
+    params:
+        ref=config["ref"]["genome"]
+    shell:
+        """
+        mkdir -p qc/picard/{wildcards.family} logs/qc/picard/{wildcards.family}
+        samtools view -@ {threads} -T {params.ref} -b {input.cram} > {output.bam}
+        """
+
+rule picard_markduplicates:
+    input:
+        bam="qc/picard/{family}/{sample}.bam"
+    output:
+        bam=temp("qc/picard/{family}/{sample}.markdup.bam"),
+        metrics="qc/picard/{family}/{sample}.duplication_metrics.txt"
+    log:
+        "logs/qc/picard/{family}/{sample}.markdup.log"
+    conda:
+        "../envs/picard.yaml"
+    threads: 4
+    resources:
+        mem_mb=60000
+    params:
+        java_mem="48G",
+        tmpdir="qc/picard/{family}/{sample}.tmp"
+    shell:
+        """
+        mkdir -p {params.tmpdir}
+        picard -Xmx{params.java_mem} MarkDuplicates \
+            INPUT={input.bam} \
+            OUTPUT={output.bam} \
+            METRICS_FILE={output.metrics} \
+            TMP_DIR={params.tmpdir} \
+            ASSUME_SORT_ORDER=coordinate \
+            VALIDATION_STRINGENCY=SILENT \
+            CREATE_INDEX=false \
+            &> {log}
+        """
+
 rule peddy:
     input:
         vcf=get_smallvariants_vcf,
@@ -77,6 +125,25 @@ rule bcftools_stats:
             > {output.stats}
         '''
 
+rule samtools_stats:
+    input:
+        cram=get_cram
+    output:
+        stats="qc/samtools/{family}/{sample}.stats"
+    log:
+        "logs/qc/samtools/{family}/{sample}.log"
+    conda:
+        "../envs/samtools.yaml"
+    params:
+        ref=config["ref"]["genome"],
+        refcache=config["qc"]["refcache"]
+    shell:
+        '''
+        mkdir -p qc/samtools/{wildcards.family} logs/qc/samtools/{wildcards.family}
+        export REF_CACHE="{params.refcache}/%2s/%2s/%s"
+        samtools stats -r {params.ref} {input.cram} > {output.stats} 
+        '''    
+
 rule verifybam:
     input:
         cram=get_cram
@@ -92,12 +159,54 @@ rule verifybam:
     wrapper:
         get_wrapper_path("verifybamid")
 
+rule qualimap:
+    input:
+        bam="qc/picard/{family}/{sample}.bam"
+    output:
+        html="qc/qualimap/{family}/{sample}/qualimapReport.html",
+        raw="qc/qualimap/{family}/{sample}/raw_data_qualimapReport/coverage_histogram.txt"
+    log:
+        "logs/qc/qualimap/{family}/{sample}.log"
+    conda:
+        "../envs/qualimap.yaml"
+    threads: 8
+    resources: 
+        mem_mb=60000
+    params:
+        outdir="qc/qualimap/{family}/{sample}",
+        java_mem="48G",
+        nw=400,
+        hm=3
+    shell:
+        '''
+        mkdir -p {params.outdir}
+        mkdir -p logs/qc/qualimap/{wildcards.family}
+        mkdir -p {params.outdir}/tmp
+
+        unset DISPLAY
+        export _JAVA_OPTIONS="-Djava.io.tmpdir=$(pwd)/{params.outdir}/tmp"
+
+        qualimap \
+            --java-mem-size={params.java_mem} \
+            bamqc \
+            -bam {input.bam} \
+            -outdir {params.outdir} \
+            -nt {threads} \
+            -c \
+            -nw {params.nw} \
+            -hm {params.hm} \
+        &> {log}
+        '''
+
 rule multiqc:
     input:
         peddy_html=f"qc/peddy/{family}.html",
         peddy_relatedness="qc/multiqc_custom/{family}/peddy_relatedness_mqc.tsv",
         bcftools_stats=expand("qc/bcftools/{family}/{sample}.stats", family=family, sample=samples.index),
         selfsm=expand("qc/verifybam/{family}/{sample}.selfSM", family=family, sample=samples.index),
+        samtools_stats=expand("qc/samtools/{family}/{sample}.stats", family=family, sample=samples.index),
+        qualimap_report=expand("qc/qualimap/{family}/{sample}/qualimapReport.html", family=family, sample=samples.index),
+        picard_report=expand("qc/picard/{family}/{sample}.duplication_metrics.txt", family=family, sample=samples.index)
     output:
         report="qc/multiqc/{family}.multiqc_report.html"
     log:
@@ -114,3 +223,16 @@ rule multiqc:
         -o qc/multiqc \
         &> {log}
         '''
+
+rule publish_multiqc_report:
+    input:
+        report="qc/multiqc/{family}.multiqc_report.html"
+    output:
+        published="reports/{family}.multiqc_report.html"
+    log:
+        "logs/qc/multiqc/{family}.publish.log"
+    shell:
+        """
+        mkdir -p reports
+        cp {input.report} {output.published}
+        """

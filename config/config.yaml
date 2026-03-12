@@ -11,7 +11,7 @@ tools:
 
 ref:
   name: GRCh38.115
-  genome: /hpf/largeprojects/ccmbio/nhanafi/c4r/genomes/GIAB/GCA_000001405.15_GRCh38_no_alt_analysis_set_maskedGRC_exclusions_v2.fasta
+  genome: /hpf/largeprojects/ccm_dccforge/dccdipg/Common/genomes/DRAGEN_hg38-fasta-0-1_graph/hg38.fa
 
 params:
   snpeff:
@@ -35,3 +35,4 @@ annotation:
 
 qc:
   svdp: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/QC/1000g.phase3.100k.b38.vcf.gz.dat"
+  refcache: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/refcache/hg38"
