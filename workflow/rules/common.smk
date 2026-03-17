@@ -29,5 +29,8 @@ def get_cram(wildcards):
 
     return cram
 
+def get_dragen_metrics_files(wildcards):
+    return samples["metrics_tsv"].tolist()
+
 def get_wrapper_path(*dirs):
     return "file:%s" % os.path.join(workflow.basedir, "wrappers", *dirs)

@@ -7,6 +7,18 @@ remove_sections:
 table_columns_visible:
   verifybamid-results_table:
     verifybamid-READS: false
+custom_plot_config:
+  bcftools_stats_vqc:
+    xmax: 200
+sp:
+  peddy_relatedness:
+    fn: "peddy_relatedness_mqc.tsv"
+  dragen_duplication:
+    fn: "dragen_duplication_mqc.tsv"
+  dragen_mapping:
+    fn: "dragen_mapping_mqc.tsv"
+  dragen_qc_summary:
+    fn: "dragen_qc_summary_mqc.tsv"
 custom_data:
   peddy_relatedness:
     file_format: tsv
@@ -30,9 +42,113 @@ custom_data:
         scale: "Spectral"
         min: 0
         max: 0
-custom_plot_config:
-  bcftools_stats_vqc:
-    xmax: 200
+  dragen_duplication:
+    file_format: tsv
+    section_name: "DRAGEN Duplication"
+    description: "Duplicate vs non-duplicate read counts from DRAGEN."
+    plot_type: bargraph
+    pconfig:
+      id: dragen_duplication
+      cpswitch: true
+      cpswitch_c_active: true
+      cpswitch_counts_label: "Counts"
+      cpswitch_percent_label: "Percent"
+      stacking: normal
+    headers:
+      Sample:
+        title: Sample
+      Unique reads:
+        title: Unique reads
+        format: "{:,.0f}"
+      Duplicate reads:
+        title: Duplicate reads
+        format: "{:,.0f}"
+  dragen_mapping:
+    file_format: tsv
+    section_name: "DRAGEN MAPQ Summary"
+    description: "Read-count composition by MAPQ bucket from DRAGEN."
+    plot_type: bargraph
+    pconfig:
+      id: dragen_mapping
+      cpswitch: true
+      cpswitch_c_active: true
+      cpswitch_counts_label: "Counts"
+      cpswitch_percent_label: "Percent"
+      stacking: normal
+    headers:
+      Sample:
+        title: Sample
+      MAPQ >=40 reads:
+        title: MAPQ >=40 reads
+        format: "{:,.0f}"
+      MAPQ 30-40 reads:
+        title: MAPQ 30-40 reads
+        format: "{:,.0f}"
+      MAPQ 10-20 reads:
+        title: MAPQ 10-20 reads
+        format: "{:,.0f}"
+      MAPQ 0-10 reads:
+        title: MAPQ 0-10 reads
+        format: "{:,.0f}"
+      Unmapped reads:
+        title: Unmapped reads
+        format: "{:,.0f}"
+  dragen_qc_summary:
+    file_format: tsv
+    section_name: "DRAGEN QC Summary"
+    description: "Core DRAGEN QC metrics across samples."
+    plot_type: violin
+    pconfig:
+      id: dragen_qc_summary
+    headers:
+      Sample:
+        title: Sample
+      Total_reads:
+        title: Total Reads
+        format: "{:,.0f}"
+        shared_key: read_count
+      Mapped_reads:
+        title: Mapped Reads
+        format: "{:,.0f}"
+        shared_key: read_count
+      Properly_paired_reads:
+        title: Properly Paired Reads
+        format: "{:,.0f}"
+        shared_key: read_count
+      Duplicate_reads:
+        title: Duplicate Reads
+        format: "{:,.0f}"
+        shared_key: read_count
+      MQ_le_10_reads:
+        title: MAPQ <=10 Reads
+        format: "{:,.0f}"
+        shared_key: read_count
+      Mapped_bases:
+        title: Mapped Bases
+        format: "{:,.0f}"
+      Genome_20x_pct:
+        title: Genome 20x %
+        format: "{:.2f}"
+        suffix: "%"
+        max: 100
+      Q30_bases_pct:
+        title: Q30 Bases %
+        format: "{:.2f}"
+        suffix: "%"
+        max: 100
+      Estimated_contamination:
+        title: Contamination
+        format: "{:.4f}"
+        max: 1
+      Insert_length_mean:
+        title: Insert Mean
+        format: "{:.2f}"
+      Avg_autosomal_cov:
+        title: Avg Autosomal Cov
+        format: "{:.2f}"
+      Median_autosomal_cov:
+        title: Median Autosomal Cov
+        format: "{:.2f}"
 plots_force_interactive: true
 report_section_order:
   peddy_relatedness:
