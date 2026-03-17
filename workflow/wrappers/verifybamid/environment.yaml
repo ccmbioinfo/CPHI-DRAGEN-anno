@@ -1,0 +1,6 @@
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - verifybamid2=2.0.1
+  - samtools==1.23

@@ -10,6 +10,7 @@ include: "rules/annotate_STRs.smk"
 include: "rules/svreport.smk"
 include: "rules/cnvreport.smk"
 include: "rules/annotate_sequence_var.smk"
+include: "rules/qc.smk"
 
 
 family = config["run"]["family"]
@@ -20,5 +21,5 @@ rule all:
         "reports/coding/{family}".format(family=family),
         "reports/{family}.known.path.str.loci.csv".format(family=family),
         "reports/{family}.sv.csv".format(family=family),
-        "reports/{family}.cnv.csv".format(family=family)
-
+        "reports/{family}.cnv.csv".format(family=family),
+        "reports/{family}.multiqc_report.html".format(family=family)
