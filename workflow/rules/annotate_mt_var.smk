@@ -1,7 +1,7 @@
 
 rule extract_mt_variants:
     input:
-        vcf="dragen_vcf/{family}.vcf.gz"
+        vcf=get_sequence_var_vcf
     output:
         protected("mitochondrial_variants/{family}.dragen.mt.vcf.gz")
     params:
