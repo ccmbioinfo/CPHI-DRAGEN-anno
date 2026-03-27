@@ -3,9 +3,7 @@ run:
   samples: samples.tsv
   units: units.tsv
   hpo: "" # proband-specific HPO terms
-  ped: ""
-  mt_report: "" # specify "mt" to pull MT variants from Dragen VCF, annotate, and generate mitochondrial reports. Leave blank to ignore
-  
+  ped: ""  
 
 tools:
   cphi-dragen-anno: "~/CPHI-DRAGEN-anno/"
