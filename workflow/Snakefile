@@ -13,6 +13,7 @@ include: "rules/annotate_STRs.smk"
 include: "rules/svreport.smk"
 include: "rules/cnvreport.smk"
 include: "rules/annotate_sequence_var.smk"
+include: "rules/annotate_mt_var.smk"
 
 if config["run"]["mt_report"] == "mt":
     base = "rules/"
@@ -26,7 +27,8 @@ if config["run"]["mt_report"] == "mt":
 else:
     rule all:
         input:
-            "reports/coding/{family}".format(family=family),
+            "sequence_variants/coding/{family}".format(family=family),
             "reports/{family}.known.path.str.loci.csv".format(family=family),
             "reports/{family}.sv.csv".format(family=family),
-            "reports/{family}.cnv.csv".format(family=family)
+            "reports/{family}.cnv.csv".format(family=family),
+            "reports/mitochondrial/{family}.mitochondrial.report.csv".format(family=family)
