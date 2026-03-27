@@ -381,7 +381,7 @@ def main(vcf, report, family):
     #current_date=datetime.now().strftime("%Y-%m-%d")
 
     final_report.to_csv(
-        f"reports/mitochondrial/{family}.mitochondrial.report.csv", index=False
+        f"reports/{family}.mito.csv", index=False
     )
 
     log_message(
