@@ -24,7 +24,7 @@ bcf_normalise = " bcftools norm -f {reference_fasta} -m-both -Oz -o {outdir}/{fa
 vt = " vt decompose_blocksub -o {outdir}/{family}.normalise.decompose.unformatted.vcf.gz {outdir}/{family}.normalise.vcf.gz;"
 add_VAF_field = " bcftools +fill-tags {outdir}/{family}.normalise.decompose.unformatted.vcf.gz -Ou -- -t FORMAT/VAF | bcftools view -Oz -o {outdir}/{family}.normalise.decompose.temp.vcf.gz;"
 reformat_empty_VAF = " python {cphi_dragen_anno}/workflow/scripts/format_missing_vaf.py {outdir}/{family}.normalise.decompose.temp.vcf.gz {outdir}/{family}.mity.normalise.decompose.vcf.gz;"
-tabix = " tabix {outdir}/{family}.mity.normalise.decompose.vcf.gz "
+tabix = " tabix {outdir}/{family}.mity.normalise.decompose.vcf.gz;"
 remove_intermediate_files = " rm {outdir}/{family}.normalise.decompose.unformatted.vcf.gz {outdir}/{family}.normalise.decompose.temp.vcf.gz"
 
 
