@@ -80,24 +80,20 @@ rule vcf2db:
     wrapper:
         get_wrapper_path("vcf2db")
 
-"""
-#rule bgzip:
-#    input:
-#        "{prefix}.vcf"
-#    output:
-#        "{prefix}.vcf.gz"
-#    wildcard_constraints:
-#        prefix = "(?!.*trgt).*"
-#    conda:
-#        "../envs/common.yaml"
-"""
-
-
-    shell:
+rule bgzip:
+   input:
+       "{prefix}.vcf"
+   output:
+       "{prefix}.vcf.gz"
+   wildcard_constraints:
+       prefix = "(?!.*trgt).*"
+   conda:
+       "../envs/common.yaml"
+   shell:
         '''
         bgzip -c {input} > {output}
         '''
-
+        
 rule tabix:
     input: 
         "{prefix}.vcf.gz"

@@ -14,7 +14,7 @@ vcfanno_config= snakemake.params.vcfanno_config
 report_config= snakemake.params.report_config
 
 mity = " {tool}/mity report -k --contig {chr_contig} --prefix {family} --vcfanno-base-path {base_path} --custom-vcfanno-config {vcfanno_config} --custom-report-config {report_config} --output-dir {outdir} {snakemake.input}; "
-rename_vcf_file= " mv mitochondrial_variants/{family}.mity.normalise.decompose.mity.annotated.vcf mitochondrial_variants/{family}.mity.annotated.vcf ; "
+rename_vcf_file= " mv mitochondrial_variants/{family}.mt.normalise.decompose.mity.annotated.vcf mitochondrial_variants/{family}.mity.annotated.vcf ; "
 compress_vcf = " bgzip mitochondrial_variants/{family}.mity.annotated.vcf"
 
 shell("(" + python + mity + rename_vcf_file + compress_vcf + ") {log}")

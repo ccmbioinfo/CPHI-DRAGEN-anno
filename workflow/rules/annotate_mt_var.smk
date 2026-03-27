@@ -16,7 +16,7 @@ rule bcftools_normalise:
     input:
         "mitochondrial_variants/{family}.dragen.mt.vcf.gz"
     output:
-        protected("mitochondrial_variants/{family}.mity.normalise.decompose.vcf.gz")
+        protected("mitochondrial_variants/{family}.mt.normalise.decompose.vcf.gz")
     params:
         outdir="mitochondrial_variants/",
         tool=config["tools"]["mity"],
@@ -26,24 +26,9 @@ rule bcftools_normalise:
     wrapper:    
         get_wrapper_path("mito/bcftools_normalise")
 
-"""
-#rule mity_normalise:
-#    input:
-#        "mitochondrial_variants/{family}.dragen.mt.vcf.gz"
-#    output:
-#        protected("mitochondrial_variants/{family}.mity.normalise.decompose.vcf.gz")
-#    params:
-#        outdir="mitochondrial_variants/",
-#        tool=config["tools"]["mity"]
-#    log:
-#        "logs/mity/mity_normalise/{family}.mity_normalise.log"
-#    wrapper:    
-#        get_wrapper_path("mito/mity_normalise")
-"""
-
 rule mity_report:
     input:
-        "mitochondrial_variants/{family}.mity.normalise.decompose.vcf.gz"
+        "mitochondrial_variants/{family}.mt.normalise.decompose.vcf.gz"
     output:
         "mitochondrial_variants/{family}.mity.annotated.vcf.gz",
         "mitochondrial_variants/{family}.mity.report.xlsx"
