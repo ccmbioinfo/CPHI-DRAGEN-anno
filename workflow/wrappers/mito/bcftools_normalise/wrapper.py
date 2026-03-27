@@ -12,6 +12,7 @@ log = snakemake.log_fmt_shell(stdout=True, stderr=True, append=True)
 family = snakemake.wildcards.family
 outdir = snakemake.params.outdir
 tool = snakemake.params.tool
+cphi_dragen_anno = snakemake.params.cphi_dragen_anno
 input_vcf = snakemake.input[0]
 pythonpath = tool.replace("bin", "")
 python = " export PYTHONPATH={pythonpath}; "
@@ -22,7 +23,7 @@ reference_fasta = pythonpath + "/mitylib/reference/hg38.chrM.fa"
 bcf_normalise = " bcftools norm -f {reference_fasta} -m-both -Oz -o {outdir}/{family}.normalise.vcf.gz {input_vcf};"
 vt = " vt decompose_blocksub -o {outdir}/{family}.normalise.decompose.unformatted.vcf.gz {outdir}/{family}.normalise.vcf.gz;"
 add_VAF_field = " bcftools +fill-tags {outdir}/{family}.normalise.decompose.unformatted.vcf.gz -Ou -- -t FORMAT/VAF | bcftools view -Oz -o {outdir}/{family}.normalise.decompose.temp.vcf.gz;"
-reformat_empty_VAF = " python ~/CPHI-DRAGEN-anno/workflow/scripts/format_missing_vaf.py {outdir}/{family}.normalise.decompose.temp.vcf.gz {outdir}/{family}.mity.normalise.decompose.vcf.gz;"
+reformat_empty_VAF = " python {cphi_dragen_anno}/workflow/scripts/format_missing_vaf.py {outdir}/{family}.normalise.decompose.temp.vcf.gz {outdir}/{family}.mity.normalise.decompose.vcf.gz;"
 tabix = " tabix {outdir}/{family}.mity.normalise.decompose.vcf.gz "
 remove_intermediate_files = " rm {outdir}/{family}.normalise.decompose.unformatted.vcf.gz {outdir}/{family}.normalise.decompose.temp.vcf.gz"
 

@@ -19,7 +19,8 @@ rule bcftools_normalise:
         protected("mitochondrial_variants/{family}.mity.normalise.decompose.vcf.gz")
     params:
         outdir="mitochondrial_variants/",
-        tool=config["tools"]["mity"]
+        tool=config["tools"]["mity"],
+        cphi_dragen_anno=config["tools"]["cphi-dragen-anno"]
     log:
         "logs/mity/bcftools_normalise/{family}.bcftools_normalise.log"
     wrapper:    
