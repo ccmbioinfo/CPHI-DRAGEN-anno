@@ -4,12 +4,16 @@ import pandas as pd
 ##### set minimum snakemake version #####
 min_version("9.16.2")
 
+family = config["run"]["family"]
+samples = pd.read_table(config["run"]["samples"], dtype=str).set_index("sample", drop=False)
+
 ##### load rules #####
 include: "rules/common.smk"
 include: "rules/annotate_STRs.smk"
 include: "rules/svreport.smk"
 include: "rules/cnvreport.smk"
 include: "rules/annotate_sequence_var.smk"
+include: "rules/annotate_mt_var.smk"
 include: "rules/qc.smk"
 
 
@@ -18,8 +22,9 @@ samples = pd.read_table(config["run"]["samples"], dtype=str).set_index("sample",
 
 rule all:
     input:
-        "reports/coding/{family}".format(family=family),
+        "sequence_variants/coding/{family}".format(family=family),
         "reports/{family}.known.path.str.loci.csv".format(family=family),
         "reports/{family}.sv.csv".format(family=family),
         "reports/{family}.cnv.csv".format(family=family),
+        "reports/{family}.mito.csv".format(family=family)
         "reports/{family}.multiqc_report.html".format(family=family)

@@ -3,12 +3,14 @@ run:
   samples: samples.tsv
   units: units.tsv
   hpo: "" # proband-specific HPO terms
-  ped: ""
+  ped: ""  
 
 tools:
   cphi-dragen-anno: "~/CPHI-DRAGEN-anno/"
   annotSV: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/crg2-pacbio-non-conda-tools/AnnotSV-3.1.1"
   cre: "~/CPHI-DRAGEN-anno/workflow/scripts/cre"
+  mity: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/crg2-non-conda-tools/mity_v2.0.1/bin"
+
 
 ref:
   name: "GRCh38.115"
@@ -21,6 +23,10 @@ params:
     java_opts: "-Xms750m -Xmx20g"
 
 annotation:
+  mity:
+    report_config: "~/CPHI-DRAGEN-anno/workflow/wrappers/vcfanno/mity/report-config.yaml"
+    vcfanno_config: "~/CPHI-DRAGEN-anno/workflow/wrappers/vcfanno/mity/vcfanno-config-mt.toml"
+    base_path: "/hpf/largeprojects/ccmbio/nhanafi/c4r/downloads/databases/mity/"
   snpeff:
     data_dir: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/snpEff/data"
     config: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/snpEff/snpEff.config"

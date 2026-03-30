@@ -21,7 +21,7 @@ rule vt:
 
 rule pass:
     input:
-       	"{prefix}.{ext}"
+        "{prefix}.{ext}"
     output:
         temp("{prefix}.pass.{ext,(vcf|vcf\.gz)}")
     threads: 6
@@ -46,7 +46,7 @@ rule vep:
         dir=config["annotation"]["vep"]["dir"],
         dir_cache=config["annotation"]["vep"]["dir_cache"],
         ref=config["ref"]["genome"],
-        phyloP100way=config["annotation"]["vep"]["phyloP100way"], 
+        phyloP100way=config["annotation"]["vep"]["phyloP100way"],
     wrapper:
         get_wrapper_path("vep")
 
@@ -62,7 +62,7 @@ rule vcfanno:
         mem_mb = 20000
     params:
         lua_script=config["annotation"]["vcfanno"]["lua_script"],
-       	conf=config["annotation"]["vcfanno"]["conf"],
+        conf=config["annotation"]["vcfanno"]["conf"],
         base_path=config["annotation"]["vcfanno"]["base_path"],
     wrapper:
         get_wrapper_path("vcfanno")
@@ -81,20 +81,19 @@ rule vcf2db:
         get_wrapper_path("vcf2db")
 
 rule bgzip:
-    input:
-        "{prefix}.vcf"
-    output:
-        "{prefix}.vcf.gz"
-    wildcard_constraints:
-        prefix = "(?!.*trgt).*"
-    conda:
-        "../envs/common.yaml"
-
-    shell:
+   input:
+       "{prefix}.vcf"
+   output:
+       "{prefix}.vcf.gz"
+   wildcard_constraints:
+       prefix = "(?!.*trgt).*"
+   conda:
+       "../envs/common.yaml"
+   shell:
         '''
         bgzip -c {input} > {output}
         '''
-
+        
 rule tabix:
     input: 
         "{prefix}.vcf.gz"
