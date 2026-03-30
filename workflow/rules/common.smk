@@ -22,6 +22,19 @@ def get_sv_vcf(wildcards):
 
     return input_vcf
 
+def get_smallvariants_vcf(wildcards):
+    input_vcf = units.loc[family, "sequence_variant_vcf"]
+
+    return input_vcf
+
+def get_cram(wildcards):
+    cram = samples.loc[wildcards.sample, "CRAM"]
+
+    return cram
+
+def get_dragen_metrics_files(wildcards):
+    return samples["metrics_tsv"].tolist()
+
 def get_cnv_vcf(wildcards):
     input_vcf = units.loc[family, "CNV_vcf"]
     return input_vcf

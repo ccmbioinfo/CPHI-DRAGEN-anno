@@ -14,6 +14,11 @@ include: "rules/svreport.smk"
 include: "rules/cnvreport.smk"
 include: "rules/annotate_sequence_var.smk"
 include: "rules/annotate_mt_var.smk"
+include: "rules/qc.smk"
+
+
+family = config["run"]["family"]
+samples = pd.read_table(config["run"]["samples"], dtype=str).set_index("sample", drop=False)
 
 rule all:
     input:
@@ -22,3 +27,4 @@ rule all:
         "reports/{family}.sv.csv".format(family=family),
         "reports/{family}.cnv.csv".format(family=family),
         "reports/{family}.mito.csv".format(family=family)
+        "reports/{family}.multiqc_report.html".format(family=family)
