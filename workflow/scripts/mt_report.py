@@ -3,7 +3,8 @@ import logging
 import numpy as np
 import io
 import gzip
-from datetime import datetime 
+from datetime import date
+import os
 
 
 def log_message(*message):
@@ -378,12 +379,22 @@ def main(vcf, report, family):
     final_report = check_sort(vcf_df,final_report)
     final_report = reorder_cols(final_report)
 
-    #current_date=datetime.now().strftime("%Y-%m-%d")
+    today = date.today()
+    today = today.strftime("%Y-%m-%d")
 
     final_report.to_csv(
-        f"reports/{family}.mito.csv", index=False
+        f"reports/{family}.mito.{today}.csv", index=False
     )
-
+    # create a symlink instead of a new copy for the Snakemake target
+    symlink_path = f"reports/{family}.mito.csv"
+    target_path = f"reports/{family}.mito.{today}.csv"
+    try:
+        if os.path.islink(symlink_path) or os.path.exists(symlink_path):
+            os.remove(symlink_path)
+        os.symlink(os.path.basename(target_path), symlink_path)
+    except Exception as e:
+        log_message(f"Could not create symlink {symlink_path} -> {target_path}: {e}")
+    
     log_message(
         "Final formatted report containing annotated list of mitochondrial variants created!"
     )
