@@ -8,7 +8,7 @@ Rohan Khan, Madeline Couse
 
 Changes from the previous `DRAGEN_SV_CNV_report.md` version
 
-Differences from `crg2-pacbio`
+The SV/CNV annotation and report generation pipeline was adapted from the PacBio long-read [pipeline](https://github.com/ccmbioinfo/crg2-pacbio) with the following changes:
 
   - This workflow annotates DRAGEN SV and CNV VCFs rather than PacBio pbsv and HiFiCNV calls
   - Population annotations use gnomAD SV, DGV, and a DRAGEN-derived 1000 Genomes SV database rather than PacBio-specific C4R, TG, and CoLoRSdb resources
@@ -19,36 +19,15 @@ Differences from `crg2-pacbio`
 
 SV and CNV reports are generated from joint-genotyped or singleton DRAGEN VCFs.
 
-Annotate unfiltered SV or CNV calls from DRAGEN sequencing output using [SnpEff](https://pcingola.github.io/SnpEff/) and [AnnotSV](https://github.com/lgmgeo/AnnotSV). SnpEff predicts gene impacts (e.g. if a variant results in a frameshift, or falls in an intron). AnnotSV provides transcript overlap, repeat, regulatory, and gene constraint annotations that assist in clinical interpretation. Gene impact annotations used in the final report are taken from SnpEff rather than AnnotSV gene annotations because SnpEff incorporates 5kb upstream and downstream of genes and would therefore capture, say, an SV impacting a gene promoter.
+DRAGEN unfiltered SV and CNV calls are annotated using [SnpEff](https://pcingola.github.io/SnpEff/) 5.4.0a (annotation database version GRCh38.115) and [AnnotSV](https://github.com/lgmgeo/AnnotSV) 3.1.1. SnpEff predicts gene impacts (e.g. if a variant results in a frameshift, or falls in an intron). AnnotSV provides transcript overlap, repeat, regulatory, and gene constraint annotations that assist in clinical interpretation. Gene impact annotations used in the final report are taken from SnpEff rather than AnnotSV gene annotations because SnpEff incorporates 5kb upstream and downstream of genes and would therefore capture, say, an SV impacting a gene promoter. A custom python script is used to further parse and annotate variants with exon overlap, CDS overlap, proband HPO terms, OMIM, ClinGen, adotto tandem repeat regions, and variant frequencies from gnomAD SV, DGV, and 1000 genomes.
 
 For structural variants, `CPHI-DRAGEN-anno` converts DRAGEN inversion-like BND records to `INV` before annotation so that inversions are represented more consistently downstream.
-
-[SnpEff](https://pcingola.github.io/SnpEff/) 5.4.0a for gene impact annotation
-
-  - Annotates impact on every transcript overlapped by a variant which AnnotSV annotates
-
-[AnnotSV](https://github.com/lgmgeo/AnnotSV) 3.1.1 for annotation of:
-
-  - Repeats
-  - Gene constraint metrics
-  - Regulatory and regional annotations used in the final report
-
-Custom python script for parsing and further annotation
-
-  - Merge AnnotSV `split` and `full` annotations
-  - Pull gene impact annotations from SnpEff annotated VCF, and merge these with AnnotSV annotations
-  - Add exon overlap counts, Ensembl CDS overlap, SV/CNV start and end Ensembl gene overlaps
-  - Add optional proband-specific HPO terms if an HPO file is provided in the config
-  - Add OMIM
-  - Add ClinGen annotations
-  - Add SV/CNV frequencies from gnomAD SV, DGV Gold Standard, and a 1000 Genomes SV database
-  - Add overlap with Adotto tandem repeat regions used for repeat analysis
 
 ## Population databases used in report generation
 
   - gnomAD SV v4.1
   - DGV Gold Standard CNV/SV set for hg38
-  - 1000 Genomes SV database
+  - 1000 Genomes DRAGEN SV database
 
 Matching logic used in report generation:
 
@@ -81,12 +60,7 @@ The 1000 Genomes SV database used in report generation was created from [DRAGEN 
 
 For analysis, we recommend considering any exon-overlapping SVs or CNVs seen in the proband:
 
-  - `sampleID_zyg` uncheck `-` and `./.`
-
-And also any genic SV/CNV either in OMIM and/or in genes matching HPO terms:
-
-  - `omim_phenotype` uncheck `.`
-  - If an HPO file was added in the config, `HPO` uncheck `nan`
+`sampleID_zyg` uncheck `-` and `./.`
 
 Other analysis considerations:
 
