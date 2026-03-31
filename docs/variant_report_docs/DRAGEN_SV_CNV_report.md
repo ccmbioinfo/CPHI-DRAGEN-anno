@@ -17,7 +17,7 @@ The SV/CNV annotation and report generation pipeline was adapted from the PacBio
 
 ## Summary
 
-SV and CNV reports are generated from joint-genotyped or singleton DRAGEN VCFs.
+SV and CNV reports are generated from joint-genotyped or singleton DRAGEN v4.4 VCFs.
 
 DRAGEN unfiltered SV and CNV calls are annotated using [SnpEff](https://pcingola.github.io/SnpEff/) 5.4.0a (annotation database version GRCh38.115) and [AnnotSV](https://github.com/lgmgeo/AnnotSV) 3.1.1. SnpEff predicts gene impacts (e.g. if a variant results in a frameshift, or falls in an intron). AnnotSV provides transcript overlap, repeat, regulatory, and gene constraint annotations that assist in clinical interpretation. Gene impact annotations used in the final report are taken from SnpEff rather than AnnotSV gene annotations because SnpEff incorporates 5kb upstream and downstream of genes and would therefore capture, say, an SV impacting a gene promoter. A custom python script is used to further parse and annotate variants with exon overlap, CDS overlap, proband HPO terms, OMIM, ClinGen, adotto tandem repeat regions, and variant frequencies from gnomAD SV, DGV, and 1000 genomes.
 
@@ -71,7 +71,7 @@ Other analysis considerations:
   - The `sampleID_GT` column reports the called genotype, where `0` is reference and `1` is alternate. The corresponding `sampleID_zyg` column simplifies this to `het`, `hom`, `-`, `./.`, or for some sex-chromosome CNVs `hemi`.
   - For very large SVs/CNVs (`|SVLEN| > 500000`), the `GENE_NAME` and `ENSEMBL_GENE` fields are condensed in the final report to keep the output manageable and Excel-compatible. In these cases, only the first and last gene entries are retained rather than the full gene list.
 
-## Report columns
+## Column descriptions
 
 The SV and CNV reports share most columns. Columns that are SV-only or CNV-only are noted below.
 
