@@ -26,5 +26,5 @@ rule all:
         "reports/{family}.known.path.str.loci.csv".format(family=family),
         "reports/{family}.sv.csv".format(family=family),
         "reports/{family}.cnv.csv".format(family=family),
-        "reports/{family}.mito.csv".format(family=family)
+        "reports/{family}.mito.csv".format(family=family),
         "reports/{family}.multiqc_report.html".format(family=family)
