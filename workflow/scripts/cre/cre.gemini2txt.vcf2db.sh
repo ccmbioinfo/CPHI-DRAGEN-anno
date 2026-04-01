@@ -133,7 +133,7 @@ initialQuery=$sQuery # keep the field selection part for later use
 #gnomad_af includes gnomad WGS
 if [[ "$type" == 'wgs.high.impact' ]]
 then
-    sQuery=$sQuery" where gnomad_fafmax_faf95_max <= 0.001 and colorsdb_af <= 0.01 "$caller_filter""${severity_filter}""
+    sQuery=$sQuery" where gnomad_fafmax_faf95_max <= 0.001 "$caller_filter""${severity_filter}""
 else
     sQuery=$sQuery" where gnomad_fafmax_faf95_max <= "${max_af}" "$caller_filter""${severity_filter}""
 fi
