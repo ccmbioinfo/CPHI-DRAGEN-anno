@@ -23,6 +23,9 @@ samples = pd.read_table(config["run"]["samples"], dtype=str).set_index("sample",
 rule all:
     input:
         "sequence_variants/coding/{family}".format(family=family),
+        "sequence_variants/panel/{family}".format(family=family),
+        "sequence_variants/panel-flank/{family}".format(family=family),
+        "sequence_variants/wgs-high-impact/{family}".format(family=family),
         "reports/{family}.known.path.str.loci.csv".format(family=family),
         "reports/{family}.sv.csv".format(family=family),
         "reports/{family}.cnv.csv".format(family=family),
