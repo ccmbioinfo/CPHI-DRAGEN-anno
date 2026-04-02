@@ -8,8 +8,24 @@ def get_filt_vcf(wildcards):
     else:
         return "filtered/{p}/{family}.{p}.vcf.gz".format(p=wildcards.p,family=family)
 
+rule input_prep:
+    input:
+        units=get_sequence_var_vcf
+    params:
+        outdir="filtered"
+    output:
+        "filtered/{family}.vcf.gz"
+    wildcard_constraints:
+        family = "(?!.*panel|.*coding).*"
+    log:
+        "logs/input_prep/{family}.log"
+    conda:
+        "../envs/common.yaml"
+    shell:
+        "(if [ ! -d {params.outdir} ]; then mkdir -p {params.outdir}; fi; ln -s {input} {output}) > {log} 2>&1"
+
 rule vt:
-    input: get_sequence_var_vcf # (vcf, bcf, or vcf.gz)
+    input: get_filt_vcf # (vcf, bcf, or vcf.gz)
     output:
         temp("filtered/{p}/{family}.{p}.uniq.normalized.decomposed.vcf"),
     params:
@@ -86,7 +102,7 @@ rule bgzip:
    output:
        "{prefix}.vcf.gz"
    wildcard_constraints:
-       prefix = "(?!.*trgt).*"
+       prefix = "(?!.*panel).*"
    conda:
        "../envs/common.yaml"
    shell:
@@ -149,18 +165,10 @@ rule allsnvreport:
 if config["run"]["hpo"]:
 
     def get_panel(wildcards):
-        if not config["run"]["panel"]:
-            if wildcards.p == "panel":
-                return "genes/{family}.bed"
-            else:
-                return "genes/{family}_{p}.bed"
-        return config["run"]["panel"]
-
-    # def get_bed(wildcards):
-    #     if wildcards.p == "panel-flank":
-    #         return "genes/{family}_{p}.bed"
-    #     return get_panel()
-
+        if wildcards.p == "panel":
+            return "genes/{family}.bed"
+        else:
+            return "genes/{family}_{p}.bed"
 
     rule hpo_to_panel:
         input: 
@@ -168,11 +176,10 @@ if config["run"]["hpo"]:
             ensembl=config["genes"]["ensembl"],
             refseq=config["genes"]["refseq"],
             hgnc=config["genes"]["hgnc"]
-        params: 
-            crg2=config["tools"]["crg2"],
-            cre=config["tools"]["cre"]
         output: 
             genes="genes/{family}.bed"
+        wildcard_constraints:
+            family = "(?!.*panel|.*coding).*"
         conda: "../envs/hpo_to_panel.yaml"
         log: "logs/hpo_to_panel/{family}.log"
         script:
@@ -182,6 +189,7 @@ if config["run"]["hpo"]:
         input: "genes/{family}.bed"
         output: "genes/{family}_{p}.bed"
         params: config["run"]["flank"]
+        conda: "../envs/hpo_to_panel.yaml"
         shell:
             '''
             cat {input} | awk -F "\t" '{{print $1"\t"$2-{params}"\t"$3+{params}}}' | sed 's/-[0-9]*/0/g' | bedtools sort | bedtools merge > {output}

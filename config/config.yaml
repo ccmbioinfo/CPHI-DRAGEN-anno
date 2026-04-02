@@ -4,13 +4,18 @@ run:
   units: units.tsv
   hpo: "" # proband-specific HPO terms
   ped: ""  
+  flank: 100000
+  
+genes:
+  ensembl: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/genes/ensembl/for_gene_panels/Homo_sapiens.GRCh38.115.gtf_subset.csv"
+  refseq: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/genes/refseq/GRCh38_latest_genomic.gff_subset.csv"
+  hgnc: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/genes/HGNC/HGNC_20260310.txt"
 
 tools:
   cphi-dragen-anno: "~/CPHI-DRAGEN-anno/"
   annotSV: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/crg2-pacbio-non-conda-tools/AnnotSV-3.1.1"
   cre: "~/CPHI-DRAGEN-anno/workflow/scripts/cre"
   mity: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/crg2-non-conda-tools/mity_v2.0.1/bin"
-
 
 ref:
   name: "GRCh38.115"
