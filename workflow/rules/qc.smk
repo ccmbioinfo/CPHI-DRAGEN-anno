@@ -18,7 +18,7 @@ rule cram_to_bam:
 
 rule peddy:
     input:
-        vcf=get_smallvariants_vcf,
+        vcf=get_sequence_var_vcf,
         ped=config["run"]["ped"]
     output:
         pca="qc/peddy/{family}.background_pca.json",
@@ -73,7 +73,7 @@ rule peddy_relatedness_mqc:
 
 rule bcftools_stats:
     input:
-        vcf=get_smallvariants_vcf
+        vcf=get_sequence_var_vcf
     output:
         stats="qc/bcftools/{family}/{sample}.stats"
     log: 

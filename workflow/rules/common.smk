@@ -1,3 +1,4 @@
+import glob
 import pandas as pd
 import os
 from snakemake.utils import validate
@@ -19,21 +20,17 @@ def get_repeat_dir(wildcards):
 
 def get_sv_vcf(wildcards):
     input_vcf = units.loc[family, "SV_vcf"]
-
-    return input_vcf
-
-def get_smallvariants_vcf(wildcards):
-    input_vcf = units.loc[family, "sequence_variant_vcf"]
-
     return input_vcf
 
 def get_cram(wildcards):
-    cram = samples.loc[wildcards.sample, "CRAM"]
-
+    results_path = samples.loc[wildcards.sample, "DRAGEN_results_dir"]
+    cram = f"{results_path}/output/{wildcards.sample}.cram"
     return cram
 
 def get_dragen_metrics_files(wildcards):
-    return samples["metrics_tsv"].tolist()
+    results_paths = samples["DRAGEN_results_dir"].tolist()
+    metrics_files = [glob.glob(f"{dir}/*metrics.tsv")[0] for dir in results_paths]
+    return metrics_files
 
 def get_cnv_vcf(wildcards):
     input_vcf = units.loc[family, "CNV_vcf"]
