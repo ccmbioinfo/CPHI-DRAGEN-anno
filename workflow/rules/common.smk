@@ -23,7 +23,8 @@ def get_sv_vcf(wildcards):
     return input_vcf
 
 def get_cram(wildcards):
-    cram = samples.loc[wildcards.sample, "CRAM"]
+    results_path = samples.loc[wildcards.sample, "DRAGEN_results_dir"]
+    cram = f"{results_path}/output/{wildcards.sample}.cram"
     return cram
 
 def get_dragen_metrics_files(wildcards):
