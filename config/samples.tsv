@@ -1,2 +1,2 @@
-sample	CRAM	metrics_tsv
-XXXX-000000_EXP_0000	/path/to/CRAM	/path/to/DRAGEN_metrics_tsv
+sample	CRAM	DRAGEN_results_dir
+XXXX-000000_EXP_0000	/path/to/CRAM	/path/to/DRAGEN_results_dir

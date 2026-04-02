@@ -14,9 +14,15 @@ def recode_gt(gt):
             alleles.append(str(allele))
     return "/".join(alleles)
 
-def main(repeat_vcf_dir, output_file):
+def main(repeat_vcfs, output_file):
+    samples_df = pd.read_csv(samples_tsv, sep="\t", dtype=str)
+    results_paths = samples_df["DRAGEN_results_dir"].tolist()
+    try:
+        vcf_files = [glob.glob(f"{dir}/output/*repeats.vcf.gz")[0] for dir in results_paths]
+    except IndexError:
+        raise ValueError(f"No repeats VCF found in {results_paths}")
     with open(output_file, "w") as f:
-        for repeat_vcf in glob.glob(os.path.join(repeat_vcf_dir, "*.repeats.vcf.gz")):
+        for repeat_vcf in vcf_files:
             variants = VariantFile(repeat_vcf)
             samples = variants.header.samples
             for rec in variants.fetch():
@@ -45,14 +51,14 @@ if __name__ == "__main__":
         description="Converts DRAGEN repeat VCF(s) to a TSV"
     )
     parser.add_argument(
-        "--repeat_vcf_dir", type=str, help="DRAGEN repeat VCF", required=True
+        "--samples_tsv", type=str, help="Samples TSV with DRAGEN results paths", required=True
     )
     parser.add_argument(
         "--output_file", type=str, help="Output filename", required=True
     )
 
     args = parser.parse_args()
-    repeat_vcf_dir = args.repeat_vcf_dir
+    samples_tsv = args.samples_tsv
     output_file = args.output_file
 
-    main(repeat_vcf_dir, output_file)
+    main(samples_tsv, output_file)
