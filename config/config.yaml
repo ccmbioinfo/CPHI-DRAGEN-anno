@@ -5,7 +5,7 @@ run:
   hpo: "" # proband-specific HPO terms
   ped: ""  
   flank: 100000
-
+  
 genes:
   ensembl: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/genes/ensembl/for_gene_panels/Homo_sapiens.GRCh38.115.gtf_subset.csv"
   refseq: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/genes/refseq/GRCh38_latest_genomic.gff_subset.csv"
