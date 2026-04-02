@@ -169,7 +169,6 @@ if config["run"]["hpo"]:
             return "genes/{family}.bed"
         else:
             return "genes/{family}_{p}.bed"
-        return config["run"]["panel"]
 
     rule hpo_to_panel:
         input: 
