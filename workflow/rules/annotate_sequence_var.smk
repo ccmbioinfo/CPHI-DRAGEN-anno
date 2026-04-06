@@ -10,7 +10,7 @@ def get_filt_vcf(wildcards):
 
 rule input_prep:
     input:
-        units=get_sequence_var_vcf
+        vcf=get_sequence_var_vcf
     params:
         outdir="filtered"
     output:
@@ -22,7 +22,9 @@ rule input_prep:
     conda:
         "../envs/common.yaml"
     shell:
-        "(if [ ! -d {params.outdir} ]; then mkdir -p {params.outdir}; fi; ln -s {input} {output}) > {log} 2>&1"
+        '''
+        ( bcftools view -e 'CHROM~"alt" || CHROM~"random" || CHROM~"Un"' -O z -o {output} {input.vcf} ) > {log} 2>&1
+        '''
 
 rule vt:
     input: get_filt_vcf # (vcf, bcf, or vcf.gz)
