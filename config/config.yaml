@@ -3,8 +3,7 @@ run:
   samples: samples.tsv
   units: units.tsv
   hpo: "" # proband-specific HPO terms
-  ped: "" # path to PED for peddy QC (not used for filter_denovo)
-  denovo: false # if true, include sequence_variants/denovo/{family} in rule all
+  ped: "" 
   flank: 100000
   
 genes:
