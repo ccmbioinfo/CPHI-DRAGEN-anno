@@ -1,10 +1,10 @@
 def get_filt_vcf(wildcards):
     if wildcards.p == "coding":
         return "filtered/{family}.vcf.gz"
-    elif wildcards.p == "denovo":
-        return "filtered/{family}.vcf.gz"
     elif wildcards.p == "wgs-high-impact":
         return "filtered/{family}.vcf.gz"
+    elif wildcards.p == "denovo":
+        return "filtered/{family}.denovo.vcf.gz"
     else:
         return "filtered/{p}/{family}.{p}.vcf.gz".format(p=wildcards.p,family=family)
 
@@ -16,7 +16,7 @@ rule input_prep:
     output:
         "filtered/{family}.vcf.gz"
     wildcard_constraints:
-        family = "(?!.*panel|.*coding).*"
+        family = "(?!.*panel|.*coding|.*denovo).*"
     log:
         "logs/input_prep/{family}.log"
     conda:
@@ -153,8 +153,6 @@ rule allsnvreport:
          cd ../
          if [ {wildcards.p} == "coding" ]; then  
          cre={params.cre} reference={params.ref} database={params.database_path} {params.cre}/cre.sh {family} 
-         elif [ {wildcards.p} == "denovo" ]; then  
-         cre={params.cre} reference={params.ref} database={params.database_path} type=denovo {params.cre}/cre.sh {family} 
          elif [ {wildcards.p} == "wgs-high-impact" ]; then  
          cre={params.cre} reference={params.ref} database={params.database_path} type=wgs.high.impact {params.cre}/cre.sh {family}
          else
@@ -181,7 +179,7 @@ if config["run"]["hpo"]:
         output: 
             genes="genes/{family}.bed"
         wildcard_constraints:
-            family = "(?!.*panel|.*coding).*"
+            family = "(?!.*panel|.*coding|.*denovo).*"
         conda: "../envs/hpo_to_panel.yaml"
         log: "logs/hpo_to_panel/{family}.log"
         script:
@@ -208,4 +206,17 @@ if config["run"]["hpo"]:
         log: "logs/report/bedtools-{family}-{p}.log"
         wrapper:
             get_wrapper_path("bedtools", "intersect")
-            
+
+rule filter_denovo:
+    input:
+        "filtered/{family}.vcf.gz",
+    output:
+        "filtered/{family}.denovo.vcf.gz",
+    log:
+        "logs/filter_denovo/{family}.denovo.log",
+    conda:
+        "../envs/common.yaml"
+    shell:
+        '''
+        (bcftools filter -i "FORMAT/DN == 'DeNovo'" -O z -o {output} {input}) > {log} 2>&1
+        '''

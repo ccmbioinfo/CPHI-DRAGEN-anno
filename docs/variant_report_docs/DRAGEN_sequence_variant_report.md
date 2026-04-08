@@ -47,7 +47,9 @@ See also Ensembl VEP classification of variant impacts: <https://useast.ensembl.
   - otherwise, alt\_depth \>= 3 in any sample
   - if gnomad\_fafmax\_faf95\_max \>1% and alt\_depth \>=1 in any sample and clinvar status is pathogenic or likely pathogenic and clinvar status is not ‘no assertion provided’
 
-**wgs.panel-flank100k:** same as wgs.panel, but includes variants in 100kb flank of HPO-associated genes
+**wgs.panel-flank:** same as wgs.panel, but includes variants in 100kb flank of HPO-associated genes
+
+**wgs.denovo:** de novo variants (i.e. DRAGEN-called denovos, `FORMAT/DN = DeNovo`) of any impact
 
 **wgs.high.impact:** ultra-rare variants in all genes, filtered to include only variants predicted to be deleterious/impactful.
 
