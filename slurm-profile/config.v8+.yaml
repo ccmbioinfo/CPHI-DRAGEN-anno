@@ -1,25 +1,63 @@
 
+# ---------------------------------------------------------------------------
+# Executor
+# ---------------------------------------------------------------------------
 executor: slurm
+
+# ---------------------------------------------------------------------------
+# Job control
+# ---------------------------------------------------------------------------
+# Maximum number of simultaneously running jobs.
 jobs: 75
 
-latency-wait: 100
-rerun-incomplete: True
-printshellcmds: True
-use-conda: True
+# Maximum number of jobs to submit at once
+max-jobs-per-second: 5
+seconds-between-status-checks: 20
+
+# ---------------------------------------------------------------------------
+# Fault tolerance
+# ---------------------------------------------------------------------------
+# Do not retry failed jobs.
 retries: 0
-remote-job-local-storage-prefix: "/localhd/$SLURM_JOB_ID"
 
-__default__:
-  job-name: "{rule}"
-  mem: "20G"
-  time: "20:00:00"
-  output: "logs/%x-%j.out"
+# Wait up to 120 s for output files to appear on the shared filesystem after
+# a job finishes.
+latency-wait: 120
 
-#rule specific resources go below
+# Keep going with independent jobs even if some jobs fail.
+keep-going: True
+
+# Rerun incomplete jobs.
+rerun-incomplete: True
+
+# ---------------------------------------------------------------------------
+# Reporting / verbosity
+# ---------------------------------------------------------------------------
+# Print shell commands.
+printshellcmds: True
+
+# ---------------------------------------------------------------------------
+# Environment management
+# ---------------------------------------------------------------------------
+use-conda: True
+
+# ---------------------------------------------------------------------------
+# Slurm-specific submission options (passed via --slurm-* flags or embedded
+# in the job script).
+# ---------------------------------------------------------------------------
+slurm-logdir: "logs/slurm"   # relative to the working directory of the workflow
+slurm-keep-successful-logs: True # otherwise logs are deleted after successful completion
+
+# ---------------------------------------------------------------------------
+# Default resources
+# ---------------------------------------------------------------------------
+default-resources:
+  mem_mb: 20000
+  runtime: "20h"
+
+# ---------------------------------------------------------------------------
+# Rule specific resources
+# ---------------------------------------------------------------------------
 set-resources:
     myrule:
         mem: 500MB
-
-default-resources:
-  - mem_mb=20000
-  - runtime=20h
