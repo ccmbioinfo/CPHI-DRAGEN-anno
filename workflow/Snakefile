@@ -4,8 +4,22 @@ import pandas as pd
 ##### set minimum snakemake version #####
 min_version("9.16.2")
 
+def get_children_ids(ped_file):
+    pedigree = pd.read_csv(ped_file, sep="\t", header=None, 
+                          names=["family_ID", "individual_ID", "paternal_ID", "maternal_ID", "sex", "phenotype"])
+    pedigree = pedigree.astype(str)
+    children = pedigree[pedigree["paternal_ID"] != "0"][pedigree["maternal_ID"] != "0"]["individual_ID"].apply(lambda x: x.split("_")[1]).values
+    family = pedigree["family_ID"].iloc[0]
+
+    return children
+
 family = config["run"]["family"]
 samples = pd.read_table(config["run"]["samples"], dtype=str).set_index("sample", drop=False)
+if config["run"]["ped"]:
+	children = get_children_ids(config["run"]["ped"])
+else:
+    children = []
+
 
 ##### load rules #####
 include: "rules/common.smk"
@@ -26,6 +40,7 @@ rule all:
         "sequence_variants/panel/{family}".format(family=family),
         "sequence_variants/panel-flank/{family}".format(family=family),
         "sequence_variants/wgs-high-impact/{family}".format(family=family),
+        "sequence_variants/denovo/{family}".format(family=family) if len(children) > 0 else [],
         "reports/{family}.known.path.str.loci.csv".format(family=family),
         "reports/{family}.sv.csv".format(family=family),
         "reports/{family}.cnv.csv".format(family=family),
