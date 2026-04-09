@@ -24,6 +24,11 @@
 # default settings:
 # max af > 0.1, ad > 3, plus and any variants with a clinvar entry and ad > 1
 # cleanup is different for wes.fast template - don't remove gatk db
+
+
+module purge
+unset LD_LIBRARY_PATH
+
 function f_cleanup
 {
     # better to look for project-summary than hardcode the year
