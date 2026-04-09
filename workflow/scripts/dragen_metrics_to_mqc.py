@@ -1,5 +1,6 @@
 import pandas as pd
 
+
 samples_tsv = snakemake.input.samples_tsv
 
 duplication_out = snakemake.output.duplication
@@ -13,7 +14,7 @@ samples_df = pd.read_csv(samples_tsv, sep="\t", dtype=str)
 all_rows = []
 for _, row in samples_df.iterrows():
     sample = row["sample"]
-    metrics_path = row["metrics_tsv"]
+    metrics_path = f"{row["DRAGEN_results_dir"]}/{sample}.metrics.tsv"
 
     metrics_df = pd.read_csv(metrics_path, sep="\t", dtype=str)
     if metrics_df.empty:
