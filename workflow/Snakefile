@@ -41,7 +41,7 @@ rule all:
         "reports/{family}.panel.CH.csv".format(family=family),
         "reports/{family}.panel-flank.CH.csv".format(family=family),
         "reports/{family}.wgs.high.impact.CH.csv".format(family=family),
-        "reports/{family}.wgs.denovo.csv".format(family=family) if len(children) > 0 else [],
+        "reports/{family}.wgs.denovo.CH.csv".format(family=family) if len(children) > 0 else [],
         "reports/{family}.known.path.str.loci.csv".format(family=family),
         "reports/{family}.sv.CH.csv".format(family=family),
         "reports/{family}.cnv.CH.csv".format(family=family),
