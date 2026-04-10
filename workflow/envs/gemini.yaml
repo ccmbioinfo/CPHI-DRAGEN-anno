@@ -1,0 +1,7 @@
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - gemini =0.20.1
+  - numpy =1.15.4
+  - python =2.7.15

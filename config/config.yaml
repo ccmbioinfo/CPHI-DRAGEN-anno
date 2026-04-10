@@ -13,6 +13,7 @@ genes:
 
 tools:
   cphi-dragen-anno: "~/CPHI-DRAGEN-anno/"
+  crg2_pacbio: "~/crg2-pacbio"
   annotSV: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/crg2-pacbio-non-conda-tools/AnnotSV-3.1.1"
   cre: "~/CPHI-DRAGEN-anno/workflow/scripts/cre"
   mity: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/crg2-non-conda-tools/mity_v2.0.1/bin"
@@ -39,6 +40,7 @@ annotation:
   general:
     exon: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/DRAGEN_genes/MANE/MANE.GRCh38.v1.5.ensembl_genomic.bed"
     ensembl: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/DRAGEN_genes/ensembl/Homo_sapiens.GRCh38.115.chr.processed.csv"
+    ensembl_to_NCBI_df: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/genes/ensembl/ensembl_to_NCBI_ID.csv"
     adotto_repeats: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/repeats/repeat_catalogs_for_TRGT/adotto_repeats.hg38.bed"
     clingen_path: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/ClinGen/"
   sv_report:

@@ -29,6 +29,7 @@ include: "rules/cnvreport.smk"
 include: "rules/annotate_sequence_var.smk"
 include: "rules/annotate_mt_var.smk"
 include: "rules/qc.smk"
+include: "rules/compound_hets.smk"
 
 
 family = config["run"]["family"]
@@ -36,13 +37,14 @@ samples = pd.read_table(config["run"]["samples"], dtype=str).set_index("sample",
 
 rule all:
     input:
-        "sequence_variants/coding/{family}".format(family=family),
-        "sequence_variants/panel/{family}".format(family=family),
-        "sequence_variants/panel-flank/{family}".format(family=family),
-        "sequence_variants/wgs-high-impact/{family}".format(family=family),
-        "sequence_variants/denovo/{family}".format(family=family) if len(children) > 0 else [],
+        "reports/{family}.wgs.coding.CH.csv".format(family=family),
+        "reports/{family}.panel.CH.csv".format(family=family),
+        "reports/{family}.panel-flank.CH.csv".format(family=family),
+        "reports/{family}.wgs.high.impact.CH.csv".format(family=family),
+        "reports/{family}.wgs.denovo.csv".format(family=family) if len(children) > 0 else [],
         "reports/{family}.known.path.str.loci.csv".format(family=family),
-        "reports/{family}.sv.csv".format(family=family),
-        "reports/{family}.cnv.csv".format(family=family),
+        "reports/{family}.sv.CH.csv".format(family=family),
+        "reports/{family}.cnv.CH.csv".format(family=family),
         "reports/{family}.mito.csv".format(family=family),
-        "reports/{family}.multiqc_report.html".format(family=family)
+        "reports/{family}.multiqc_report.html".format(family=family),
+        "reports/{family}.compound.het.status.CH.csv".format(family=family)
