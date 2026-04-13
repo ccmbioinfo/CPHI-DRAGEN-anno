@@ -131,8 +131,6 @@ rule bgzip:
        "{prefix}.vcf"
    output:
        "{prefix}.vcf.gz"
-#    wildcard_constraints:
-#        prefix = "(?!.*panel).*"
    conda:
        "../envs/common.yaml"
    shell:
