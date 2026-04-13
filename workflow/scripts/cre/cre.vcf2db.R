@@ -393,7 +393,7 @@ create_report <- function(family, samples, type){
     # Column = Gnomad_pnull_score
     # Column = Gnomad_prec_score
     # Column = Gnomad_mis_z_score 
-    gnomad_scores_file <- paste0(default_tables_path, "/gnomad_scores_transcript_level_v4.1.csv")
+    gnomad_scores_file <- paste0(default_tables_path, "/gnomad_scores_transcript_level_v4.1.1.csv")
     gnomad_scores <- read.csv(gnomad_scores_file, stringsAsFactors = F)
     variants <- merge(variants, gnomad_scores, all.x = T, all.y = F)
 
