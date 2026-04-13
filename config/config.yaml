@@ -44,7 +44,7 @@ annotation:
   sv_report:
     gnomad_SV: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/gnomAD/v4.1/SV/gnomad.v4.1.sv.sites.processed.bed"
     dgv: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/DGV/DGV.GS.hg38.tsv"
-    1000G_SV: "/hpf/largeprojects/ccmbio/students/rkhan/cphi_dragen_runs/1000g/1000g_database/1000G.1000G_SV_database_AF.bed"
+    1000G_SV: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/1000G/DRAGEN_4_4_3_SV/1000G.1000G_SV_database_AF.bed"
   vep:
     dir: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/snakemake/499f2ad2/share/ensembl-vep-115.2-0/"
     dir_cache: "/hpf/largeprojects/ccmbio/nhanafi/c4r/downloads/databases/vep"
