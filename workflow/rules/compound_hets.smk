@@ -46,14 +46,14 @@ if len(children) > 0:
             pedigree=config["run"]["ped"],
             sample_order="sequence_variants/{family}.sample.order.txt",
         output:
-            sequence_variant_report_CH="reports/{family}.wgs.coding.CH.csv",
-            panel_variant_report_CH="reports/{family}.panel.CH.csv",
-            panel_flank_variant_report_CH="reports/{family}.panel-flank.CH.csv",
-            wgs_high_impact_variant_report_CH="reports/{family}.wgs.high.impact.CH.csv",
-            wgs_denovo_variant_report_CH="reports/{family}.wgs.denovo.CH.csv",
-            SV_report_CH="reports/{family}.sv.CH.csv",
-            CNV_report_CH="reports/{family}.cnv.CH.csv",
-            compound_het_status="reports/{family}.compound.het.status.CH.csv",
+            sequence_variant_report_CH="reports/{family}.wgs.coding.CH.hg38.csv",
+            panel_variant_report_CH="reports/{family}.panel.CH.hg38.csv",
+            panel_flank_variant_report_CH="reports/{family}.panel-flank.CH.hg38.csv",
+            wgs_high_impact_variant_report_CH="reports/{family}.wgs.high.impact.CH.hg38.csv",
+            wgs_denovo_variant_report_CH="reports/{family}.wgs.denovo.CH.hg38.csv",
+            SV_report_CH="reports/{family}.sv.CH.hg38.csv",
+            CNV_report_CH="reports/{family}.cnv.CH.hg38.csv",
+            compound_het_status="reports/{family}.compound.het.status.CH.hg38.csv",
         params:
             crg2_pacbio = config["tools"]["crg2_pacbio"],
             seq_type="short"
@@ -96,13 +96,13 @@ else:
                 pedigree=config["run"]["ped"],
                 sample_order="sequence_variants/{family}.sample.order.txt",
             output:
-                sequence_variant_report_CH="reports/{family}.wgs.coding.CH.csv",
-                panel_variant_report_CH="reports/{family}.panel.CH.csv",
-                panel_flank_variant_report_CH="reports/{family}.panel-flank.CH.csv",
-                wgs_high_impact_variant_report_CH="reports/{family}.wgs.high.impact.CH.csv",
-                SV_report_CH="reports/{family}.sv.CH.csv",
-                CNV_report_CH="reports/{family}.cnv.CH.csv",
-                compound_het_status="reports/{family}.compound.het.status.CH.csv",
+                sequence_variant_report_CH="reports/{family}.wgs.coding.CH.hg38.csv",
+                panel_variant_report_CH="reports/{family}.panel.CH.hg38.csv",
+                panel_flank_variant_report_CH="reports/{family}.panel-flank.CH.hg38.csv",
+                wgs_high_impact_variant_report_CH="reports/{family}.wgs.high.impact.CH.hg38.csv",
+                SV_report_CH="reports/{family}.sv.CH.hg38.csv",
+                CNV_report_CH="reports/{family}.cnv.CH.hg38.csv",
+                compound_het_status="reports/{family}.compound.het.status.CH.hg38.csv",
             params:
                 crg2_pacbio = config["tools"]["crg2_pacbio"],
                 seq_type="short"

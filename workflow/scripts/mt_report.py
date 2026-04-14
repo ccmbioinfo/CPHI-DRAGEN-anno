@@ -383,11 +383,11 @@ def main(vcf, report, family):
     today = today.strftime("%Y-%m-%d")
 
     final_report.to_csv(
-        f"reports/{family}.mito.{today}.csv", index=False
+        f"reports/{family}.mito.{today}.hg38.csv", index=False
     )
     # create a symlink instead of a new copy for the Snakemake target
-    symlink_path = f"reports/{family}.mito.csv"
-    target_path = f"reports/{family}.mito.{today}.csv"
+    symlink_path = f"reports/{family}.mito.hg38.csv"
+    target_path = f"reports/{family}.mito.{today}.hg38.csv"
     try:
         if os.path.islink(symlink_path) or os.path.exists(symlink_path):
             os.remove(symlink_path)

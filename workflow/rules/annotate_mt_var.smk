@@ -48,7 +48,7 @@ rule generate_mt_report:
         vcf="mitochondrial_variants/{family}.mity.annotated.vcf.gz",
         report="mitochondrial_variants/{family}.mity.report.xlsx"
     output:
-        "reports/{family}.mito.csv"        
+        "reports/{family}.mito.hg38.csv"        
     log:
         "logs/report/mitochondrial/{family}.mitochondrial.report.log"
     conda:
