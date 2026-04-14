@@ -2,7 +2,7 @@
 
 Rohan Khan, Madeline Couse
 
-**Version 2026-03**
+**Version 2026-04**
 
 ## Changelog
 
@@ -39,7 +39,7 @@ Matching logic used in report generation:
 
 ## 1000 Genomes SV database
 
-The 1000 Genomes SV database used in report generation was created from [DRAGEN SV callsets v4.2.7](https://registry.opendata.aws/ilmn-dragen-1kgp/) using the following workflow:
+The 1000 Genomes SV database used in report generation was created from [DRAGEN SV callsets v4.4.7](https://registry.opendata.aws/ilmn-dragen-1kgp/) using the following workflow:
 
   - Download per-sample DRAGEN SV VCFs from the public 1000 Genomes DRAGEN S3 bucket
   - Convert inversion-like BND records to `INV` using a [`bnd_to_inv.py`](https://github.com/srbehera/DRAGEN_Analysis/blob/main/convertInversion.py) script so inversion representation is more consistent before aggregation
