@@ -85,6 +85,9 @@ sQuery="select \
         gnomad_filter as Gnomad_filter, \
         regeneron_exome_AF as Regeneron_exome_AF, \
         regeneron_exome_AC as Regeneron_exome_AC, \
+        thousandG_ac as thousandG_AC,\
+        thousandG_af as thousandG_AF,\
+        thousandG_nhomalt as thousandG_nhomalt,\
         sift_score as Sift_score,\
         polyphen_score as Polyphen_score,\
         cadd_phred as Cadd_score,\
