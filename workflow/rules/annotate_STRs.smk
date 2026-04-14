@@ -9,7 +9,7 @@ rule repeat_VCF_to_df:
 
 rule annotate_path_str_loci:
     input: "STRs/{family}.repeats.tsv"
-    output: "reports/{family}.known.path.str.loci.csv"
+    output: "reports/{family}.known.path.str.loci.hg38.csv"
     params:
         cphi_dragen_anno = config["tools"]["cphi-dragen-anno"],
         disease_thresholds = config["annotation"]["str_disease_thresholds"]

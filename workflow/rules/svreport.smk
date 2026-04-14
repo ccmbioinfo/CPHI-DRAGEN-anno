@@ -116,14 +116,3 @@ rule sv_report:
                     -samples {params.samples}) > {log} 2>&1
             fi
         """
-
-rule sv_report_to_reports:
-    input:
-        "sv/{family}.sv.csv"
-    output:
-        "reports/{family}.sv.csv"
-    shell:
-        """
-        mkdir -p reports
-        cp {input} {output}
-        """

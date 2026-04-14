@@ -94,14 +94,3 @@ rule cnv_report:
                     -samples {params.samples}) > {log} 2>&1
             fi
         """
-
-rule cnv_report_to_reports:
-    input:
-        "cnv/{family}.cnv.csv"
-    output:
-        "reports/{family}.cnv.csv"
-    shell:
-        """
-        mkdir -p reports
-        cp {input} {output}
-        """
