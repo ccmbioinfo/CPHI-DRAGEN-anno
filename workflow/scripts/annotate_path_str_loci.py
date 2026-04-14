@@ -1,5 +1,6 @@
 import argparse
 from datetime import date
+import os
 import pandas as pd
 import numpy as np
 
@@ -95,8 +96,16 @@ def main(repeat_tsv, disease_thresholds, output_file):
     today = date.today()
     today = today.strftime("%Y-%m-%d")
     output_prefix = output_file.replace(".csv", "")
-    repeat_pivot_with_thresholds.to_csv(f"{output_file}", index=False)
     repeat_pivot_with_thresholds.to_csv(f"{output_prefix}.{today}.csv", index=False)
+    # Write a symlink instead of a new copy for the Snakemake target
+    symlink_path = f"{output_file}"
+    target_path = f"{output_prefix}.{today}.csv"
+    try:
+        if os.path.islink(symlink_path) or os.path.exists(symlink_path):
+            os.remove(symlink_path)
+        os.symlink(os.path.basename(target_path), symlink_path)
+    except Exception as e:
+        print(f"Could not create symlink {symlink_path} -> {target_path}: {e}")
 
 
 
