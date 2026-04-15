@@ -70,7 +70,7 @@ Thresholds taken from table 3\* in <https://doi.org/10.1016/j.gpb.2022.02.002>, 
 
 ### 1.3 1000 Genomes allele frequencies and counts
 
-The 1000 Genomes sequence variant database (n=3,102, 602 trios) used to annotate variants was created from [DRAGEN SV callsets v4.4.7](https://registry.opendata.aws/ilmn-dragen-1kgp/) using the following methods:
+The 1000 Genomes sequence variant database (n=3,202, 602 trios) used to annotate variants was created from [DRAGEN SV callsets v4.4.7](https://registry.opendata.aws/ilmn-dragen-1kgp/) using the following methods:
 
   - Download per-sample DRAGEN SV VCFs from the public 1000 Genomes DRAGEN S3 bucket
   - Run `bcftools norm` and `vt decompose` to left-normalize and decompose multiallelic variants. 
@@ -120,9 +120,9 @@ The 1000 Genomes sequence variant database (n=3,102, 602 trios) used to annotate
 | `Gnomad_filter` | VCF filter status (e.g. BOTH_FILTERED / EXOMES_FILTERED / GENOMES_FILTERED) | gnomAD v4.1.1 | EXOMES_FILTERED |
 | `Regeneron_exome_AF` | Allele frequency in Regeneron million exomes | [Regeneron](https://rgc-research.regeneron.com/me/resources) | 0.000152189997607 |
 | `Regeneron_exome_AC` | Allele count in Regeneron million exomes | [Regeneron](https://rgc-research.regeneron.com/me/resources) | 25 |
-| `thousandG_AF` | Allele frequency in 1000 Genomes DRAGEN v4.4 genomes (n=3,102, 602 trios) | [1000 Genomes](https://registry.opendata.aws/ilmn-dragen-1kgp/) | 0.0002 |
-| `thousandG_AC` | Allele count in 1000 Genomes DRAGEN v4.4 genomes (n=3,102, 602 trios) | [1000 Genomes](https://registry.opendata.aws/ilmn-dragen-1kgp/) | 2 |
-| `thousandG_nhomalt` | Homozygous alternate count in 1000 Genomes DRAGEN v4.4 genomes (n=3,102, 602 trios) | [1000 Genomes](https://registry.opendata.aws/ilmn-dragen-1kgp/) | 0 |
+| `thousandG_AF` | Allele frequency in 1000 Genomes DRAGEN v4.4 genomes (n=3,202, 602 trios) | [1000 Genomes](https://registry.opendata.aws/ilmn-dragen-1kgp/) | 0.0002 |
+| `thousandG_AC` | Allele count in 1000 Genomes DRAGEN v4.4 genomes (n=3,202, 602 trios) | [1000 Genomes](https://registry.opendata.aws/ilmn-dragen-1kgp/) | 2 |
+| `thousandG_nhomalt` | Homozygous alternate count in 1000 Genomes DRAGEN v4.4 genomes (n=3,202, 602 trios) | [1000 Genomes](https://registry.opendata.aws/ilmn-dragen-1kgp/) | 0 |
 | `Ensembl_transcript_id` | Most severely affected transcript | VEP | ENST00000374632 |
 | `rsIDs` | Variant IDs (dbSNP) | VEP | rs28936395 |
 | `AA_position` | Amino-acid position for most severely-affected transcript | VEP | 679/987 |
