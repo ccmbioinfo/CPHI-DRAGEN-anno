@@ -5,7 +5,8 @@
 
 set -euo pipefail
 
-module load pandoc
+source "$(conda info --base)/etc/profile.d/conda.sh"
+conda activate /hpf/largeprojects/ccmbio/students/rkhan/pandoc/pandoc
 
 if [ "$#" -ne 1 ]; then
   echo "Usage: $0 <input.md|input.docx>"
