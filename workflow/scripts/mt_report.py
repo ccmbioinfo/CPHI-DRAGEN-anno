@@ -190,7 +190,7 @@ def keep_only_pass(report):
 
 
 
-# create one field containing collapsed values across the MITOMAP groups 
+# create one field containing collapsed values across the MITOMAP annotation groups 
 # region groups from MITOMAP: RNA, Coding, ControL
 # disease association groups from MITOMAP: Confirmed, Disease
 
@@ -225,26 +225,15 @@ def combine_labeled_values(row, column_map):
     return "; ".join(parts)
 
 def add_additional_reported_disease_associations(row):
-    confirmed_association = str(row.get("MITOMAP CONFIRMED MUTATIONS ASSOCIATEDDISEASE", "")).strip()
+    def clean(s):
+        return re.sub(r'[\s\-/]+', '', str(s)).lower().strip()
+
+    confirmed = clean(row.get("MITOMAP CONFIRMED DISEASE", ""))
 
     for col in ["MITOMAP MUTATIONS RNA DISEASE", "MITOMAP DISEASE DISEASE"]:
-        reported_association = str(row.get(col, "")).strip()
-
-        if reported_association in ("", "."):
-            continue
-
-        # clean hyphens from Disease source 
-        if col == "MITOMAP DISEASE DISEASE":
-            reported_association = re.sub(r'-/-', ' / ', reported_association)
-            reported_association = re.sub(r'\|-', ' / ', reported_association)
-            reported_association = re.sub(r'(?<=[a-z])-(?=[a-z])', ' ', reported_association)
-            reported_association = re.sub(r'(?<=[a-z])-(?=[A-Z][a-z])', ' ', reported_association)
-
-        # only return if meaningfully different from confirmed
-        if confirmed_association and reported_association.lower() == confirmed_association.lower():
-            return "."
-
-        return reported_association
+        val = str(row.get(col, "")).strip()
+        if val not in ("", ".") and clean(val) != confirmed:
+            return val
 
     return "."
 
@@ -256,10 +245,10 @@ def create_collapsed_mitomap_columns(df):
             "MITOMAP VARIANTS CODING AMINOACIDCHANGE", #least interpretable format
             "MITOMAP MUTATIONS CODING CONTROL AMINOACIDCHANGE",
         ],
-        "MITOMAP SIGNIFICANCE SUMMARY": [
-            "MITOMAP CONFIRMED MUTATIONS STATUSMITOMAPCLINGEN", #from confirmed table
-            "MITOMAP MUTATIONS RNA STATUS", #from RNA table
-            "MITOMAP DISEASE DISEASE STATUS", #from coding and control tables
+        "MITOMAP STATUS [CLINGEN]": [
+            "MITOMAP CONFIRMED MUTATIONS STATUSMITOMAPCLINGEN", #from confirmed mutations annotations
+            "MITOMAP MUTATIONS RNA STATUS", #from RNA annotations 
+            "MITOMAP DISEASE DISEASE STATUS", #from coding and control annotations
         ],       
         #may differ from GENE/LOCUS field, eg MT-TER variants map to MT-TL1 in MITOMAP
         "MITOMAP LOCUS": [
@@ -274,6 +263,18 @@ def create_collapsed_mitomap_columns(df):
             "MITOMAP MUTATIONS RNA HETEROPLASMY",
              "MITOMAP DISEASE HETEROPLASMY",
         ],
+        "GB_SEQS": [
+            "MITOMAP MUTATIONS RNA GB SEQS",
+            "MITOMAP MUTATIONS CODING CONTROL GB SEQS",
+            "MITOMAP VARIANTS CODING GB SEQS",
+            "MITOMAP VARIANTS CONTROL GB SEQS"
+        ],
+        "GB_FREQ": [
+            "MITOMAP MUTATIONS RNA GB FREQ",
+            "MITOMAP MUTATIONS CODING CONTROL GB FREQ",
+            "MITOMAP VARIANTS CODING GB FREQ",
+            "MITOMAP VARIANTS CONTROL GB FREQ"
+								],
     }
 
     for new_column, original_cols in priority_fields.items():
@@ -282,9 +283,10 @@ def create_collapsed_mitomap_columns(df):
     df["MITOMAP ADDITIONAL REPORTED DISEASE"] = df.apply(add_additional_reported_disease_associations, axis=1)
         
     collapsed_fields = {
-        "MITOMAP # REFERENCES": {
+        "MITOMAP REFERENCES": {
             "RNA": "MITOMAP MUTATIONS RNA REFERENCES",
             "Coding": "MITOMAP VARIANTS CODING CURATEDREFERENCES",
+            "Control": "MITOMAP VARIANTS CONTROL CURATEDREFERENCES",
         },
     }
 
@@ -296,8 +298,6 @@ def create_collapsed_mitomap_columns(df):
 
 def remove_raw_collapsed_mitomap_columns(df):
     raw_mitomap_columns = [
-        "MITOMAP DISEASE AC",
-        "MITOMAP DISEASE AF",
         "MITOMAP DISEASE AACHANGE",
         "MITOMAP DISEASE HOMOPLASMY",
         "MITOMAP DISEASE HETEROPLASMY",
@@ -308,7 +308,7 @@ def remove_raw_collapsed_mitomap_columns(df):
         "MITOMAP CONFIRMED MUTATIONS LOCUSTYPE",
         "MITOMAP CONFIRMED MUTATIONS ALLELE",
         "MITOMAP CONFIRMED MUTATIONS AMINOACIDCHANGE",
-        "MITOMAP CONFIRMED MUTATIONS STATUS MITOMAP_CLINGEN",
+        "MITOMAP CONFIRMED MUTATIONS STATUS MITOMAPCLINGEN",
         "MITOMAP CONFIRMED MUTATIONS LASTUPDATE",
         "MITOMAP MUTATIONS RNA LOCUS",
         "MITOMAP MUTATIONS RNA DISEASE",
@@ -319,10 +319,24 @@ def remove_raw_collapsed_mitomap_columns(df):
         "MITOMAP MUTATIONS RNA REFERENCES",
         "MITOMAP VARIANTS CODING AMINOACIDCHANGE",
         "MITOMAP VARIANTS CODING CURATEDREFERENCES",
+        "MITOMAP VARIANTS CONTROL CURATEDREFERENCES",
+        "MITOMAP MUTATIONS RNA GB SEQS",
+        "MITOMAP MUTATIONS CODING CONTROL GB SEQS",
+        "MITOMAP VARIANTS CODING GB SEQS",
+        "MITOMAP VARIANTS CONTROL GB SEQS",
+        "MITOMAP MUTATIONS RNA GB FREQ",
+        "MITOMAP MUTATIONS CODING CONTROL GB FREQ",
+        "MITOMAP VARIANTS CODING GB FREQ",
+        "MITOMAP VARIANTS CONTROL GB FREQ",
     ]
 
     df = df.drop(columns=raw_mitomap_columns, errors="ignore")
-    log_message("removed raw un-collapsed MITOMAP columns")
+    log_message("removed raw collapsed MITOMAP columns")
+    
+    #Remove second frequency from MITOMAP's set of shorter, Control-Region-only sequences.          
+    df["GB_SEQS"] = df["GB_SEQS"].apply(lambda x: str(x).strip().split(" ")[0] if not pd.isna(x) and str(x).strip() not in ("", ".") else ".")
+    df["GB_FREQ"] = df["GB_FREQ"].apply(lambda x: str(x).strip().split("%")[1] if not pd.isna(x) and str(x).strip() not in ("", ".") and "%" in str(x) else str(x).strip() if not pd.isna(x) and str(x).strip() not in ("", ".") else ".")
+
     return df
 
 def reorder_cols(df):
@@ -352,37 +366,36 @@ def reorder_cols(df):
         "MITOMAP AA CHANGE",
         "clinvar_significance",
         "clinvar_status",
-        "gnomAD_AC_hom",
-        "gnomAD_AC_het",
-        "gnomAD_AF_hom",
-        "gnomAD_AF_het",
-        "gnomAD_max_hl",
+        "gnomAD_AC_homoplasmy",
+        "gnomAD_AC_heteroplasmy",
+        "gnomAD_AF_homoplasmy",
+        "gnomAD_AF_heteroplasmy",
+        "gnomAD_max_het_level",
         "MITOMAP LOCUS",
+        "GB_SEQS",
+        "GB_FREQ",
         "MITOMAP CONFIRMED DISEASE",
+        "MITOMAP STATUS [CLINGEN]",
+        "MITOMAP DISEASE AC",
+        "MITOMAP DISEASE AF",
         "MITOMAP ADDITIONAL REPORTED DISEASE",
-        "MITOMAP SIGNIFICANCE SUMMARY",
         "MITOMAP HOMOPLASMY",
         "MITOMAP HETEROPLASMY",
-        "MITOMAP REFERENCES",
-        "MITOMAP FREQUENCY",
         "MITOMAP DISEASE PUBMED IDS",
-        "MITOMAP POLYMORPHISMS AC",
-        "MITOMAP POLYMORPHISMS AF",
         "MITOMAP POLYMORPHISMS HGFL",
         "MITOMAP MUTATIONS RNA MITOTIP",
         "MITOTIP SCORE",
         "MITOTIP PERCENTILE",
         "MITOTIP QUARTILE",
         "MITOTIP SCORE INTERPRETATION",
-        "GB_COUNT",
-        "GB_PERCENTAGE",
         "ANTICODON",
         "MGRB FREQUENCY",
         "MGRB FILTER",
         "MGRB AC",
         "MGRB AN",
-        "MITOMAP # REFERENCES",
-								"MITOMAP STATUS",
+        "MITOMAP REFERENCES",
+        "MITOMAP POLYMORPHISMS AC",
+        "MITOMAP POLYMORPHISMS AF",
         "PHYLOTREE MUT",
         "PHYLOTREE HAPLOTYPE",
     ]
@@ -391,17 +404,16 @@ def reorder_cols(df):
     desired_cols = col_list + variant_heteroplasmy + alt_depth + total_sample_depth + col_list2
     final_col_list = [c for c in desired_cols if c in df.columns]
     reordered_df = df[final_col_list]
-                  
 
     # replace '.'/'-' with '0' for some columns
     replace_col_values = [ 
         "MITOMAP POLYMORPHISMS AF",
         "MITOMAP POLYMORPHISMS AC",
-        "gnomAD_AC_hom",
-        "gnomAD_AC_het",
-        "gnomAD_AF_hom",
-        "gnomAD_AF_het",
-        "gnomAD_max_hl",
+        "gnomAD_AC_homoplasmy",
+        "gnomAD_AC_heteroplasmy",
+        "gnomAD_AF_homoplasmy",
+        "gnomAD_AF_heteroplasmy",
+        "gnomAD_max_het_level",
     ]
 
     #replacing is tolerant of any missing columns

@@ -1,5 +1,3 @@
-
-
 #Please note that the AF field has been duplicated and named VAF; 
 #Any "." or missing value in the original AF field will be changed to 0.0 in the new VAF field.
 #The re-formatting of the VAF field is necessary for the downstream mity report.py script but the original AF field remains unchanged. 
@@ -25,7 +23,7 @@ vt = " vt decompose_blocksub -o {outdir}/{family}.normalise.decompose.unformatte
 add_VAF_field = " bcftools +fill-tags {outdir}/{family}.normalise.decompose.unformatted.vcf.gz -Ou -- -t FORMAT/VAF | bcftools view -Oz -o {outdir}/{family}.normalise.decompose.temp.vcf.gz;"
 reformat_empty_VAF = " python {cphi_dragen_anno}/workflow/scripts/format_missing_vaf.py {outdir}/{family}.normalise.decompose.temp.vcf.gz {outdir}/{family}.mt.normalise.decompose.vcf.gz;"
 tabix = " tabix {outdir}/{family}.mt.normalise.decompose.vcf.gz;"
-remove_intermediate_files = " rm {outdir}/{family}.normalise.decompose.unformatted.vcf.gz {outdir}/{family}.normalise.decompose.temp.vcf.gz"
+remove_intermediate_files = " rm {outdir}/{family}.normalise.decompose.unformatted.vcf.gz {outdir}/{family}.normalise.decompose.temp.vcf.gz {outdir}/{family}.normalise.vcf.gz"
 
 
 shell("(" + python + bcf_normalise + vt + add_VAF_field + reformat_empty_VAF + tabix + remove_intermediate_files +") {log}")

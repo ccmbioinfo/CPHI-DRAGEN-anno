@@ -3,7 +3,7 @@ rule extract_mt_variants:
     input:
         vcf=get_sequence_var_vcf
     output:
-        protected("mitochondrial_variants/{family}.dragen.mt.vcf.gz")
+        temp("mitochondrial_variants/{family}.dragen.mt.vcf.gz")
     params:
         outdir="mitochondrial_variants/",
         mt_contig="chrM"
@@ -16,7 +16,7 @@ rule bcftools_normalise:
     input:
         "mitochondrial_variants/{family}.dragen.mt.vcf.gz"
     output:
-        protected("mitochondrial_variants/{family}.mt.normalise.decompose.vcf.gz")
+        temp("mitochondrial_variants/{family}.mt.normalise.decompose.vcf.gz")
     params:
         outdir="mitochondrial_variants/",
         tool=config["tools"]["mity"],
