@@ -15,7 +15,6 @@ shell(
     """
     bcftools index -f -t {dragen_vcf}
     bcftools view -r chrM {dragen_vcf} -Oz -o {out}
-    bcftools index -f -t {out}
     {log}
     """
 )

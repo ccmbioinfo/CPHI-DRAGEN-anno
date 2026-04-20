@@ -16,7 +16,7 @@ Michelle Spivak, Madeline Couse, Anjali Jain
 
 - Mitochondrial variant calls from DRAGEN whole genome sequencing are normalised and decomposed with `bcftools norm` and annotated using `mity report`(https://github.com/KCCG/mity) v2.0.1 with with hg38-specific resources. MITOMAP annotation tables were bundled with mity v2.0.1.
 
-- Note: variants are reported in left-normalised, decomposed format: multi-base indels and complex variants are split by `bcftools norm`. Multi-nucleotide variants may be lost during decomposition and excluded from the final report. 
+- Note: variants are reported in left-normalised, decomposed format: multi-nucleotide variants are split by `bcftools norm` and will be reported as SNVs.  
 
 ## Recommended filters for analysis
 
@@ -63,8 +63,8 @@ Michelle Spivak, Madeline Couse, Anjali Jain
 | `MITOTIP SCORE` | Computational pathogenicity score from the MitoTIP model for tRNA variants; higher scores indicate greater predicted pathogenicity. | Mity | `3.16860` |
 | `MITOTIP SCORE INTERPRETATION` | Qualitative interpretation of `MITOTIP SCORE` | Mity | `likely-benign` |
 | `MITOMAP REFERENCES` | Publication count for the variant, labeled by source where relevant, such as RNA or Coding. | Mity (`mt_report`) | `RNA: 2` |
-| `MITOMAP POLYMORPHISMS AC` | Allele count of this variant in MITOMAP's general population polymorphisms table. A non-zero value suggests the variant has been observed in ostensibly healthy individuals. Complement to gnomAD population frequency; mtDNA-specific. | MITOMAP via vcfanno | `120` |
-| `MITOMAP POLYMORPHISMS AF` | Allele frequency of this variant in MITOMAP's general population polymorphisms table. High values (e.g. `>0.01`) suggest a common benign variant. | MITOMAP via vcfanno | `0.0018` |
+| `MITOMAP POLYMORPHISMS AC` | Allele count of this variant in MITOMAP's general population polymorphisms table. A non-zero value suggests the variant has been observed in ostensibly healthy individuals. Complement to gnomAD population frequency | Mity | `120` |
+| `MITOMAP POLYMORPHISMS AF` | Allele frequency of this variant in MITOMAP's general population polymorphisms table. High values (e.g. `>0.01`) suggest a common benign variant. | Mity  | `0.0018` |
 | `PHYLOTREE MUT` | Phylotree Mutation | Mity | `A73G!` |
 | `PHYLOTREE HAPLOTYPE` | The haplotypes that the variant is known to contribute to. See `http://www.phylotree.org/index.htm` | Mity | `H13a2b3` |
 
