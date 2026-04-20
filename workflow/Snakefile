@@ -20,6 +20,8 @@ if config["run"]["ped"]:
 else:
     children = []
 
+#### define file suffix if acmg_sf flag is set to true in config file ####
+sf_suffix = ".SF" if str(config["run"].get("acmg_sf", "")).lower() == "true" else ""
 
 ##### load rules #####
 include: "rules/common.smk"
@@ -31,20 +33,20 @@ include: "rules/annotate_mt_var.smk"
 include: "rules/qc.smk"
 include: "rules/compound_hets.smk"
 
+if str(config["run"].get("acmg_sf", "")).lower() == "true":
+    include: "rules/acmg_sf.smk"
 
-family = config["run"]["family"]
-samples = pd.read_table(config["run"]["samples"], dtype=str).set_index("sample", drop=False)
 
 rule all:
     input:
-        "reports/{family}.wgs.coding.CH.hg38.csv".format(family=family),
-        "reports/{family}.panel.CH.hg38.csv".format(family=family),
-        "reports/{family}.panel-flank.CH.hg38.csv".format(family=family),
-        "reports/{family}.wgs.high.impact.CH.hg38.csv".format(family=family),
-        "reports/{family}.wgs.denovo.CH.hg38.csv".format(family=family) if len(children) > 0 else [],
+        "reports/{family}.wgs.coding.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
+        "reports/{family}.panel.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
+        "reports/{family}.panel-flank.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
+        "reports/{family}.wgs.high.impact.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
+        "reports/{family}.wgs.denovo.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix) if len(children) > 0 else [],
         "reports/{family}.known.path.str.loci.hg38.csv".format(family=family),
-        "reports/{family}.sv.CH.hg38.csv".format(family=family),
-        "reports/{family}.cnv.CH.hg38.csv".format(family=family),
+        "reports/{family}.sv.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
+        "reports/{family}.cnv.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
         "reports/{family}.mito.hg38.csv".format(family=family),
         "reports/{family}.multiqc_report.html".format(family=family),
         "reports/{family}.compound.het.status.CH.hg38.csv".format(family=family)
