@@ -333,10 +333,9 @@ def remove_raw_collapsed_mitomap_columns(df):
     df = df.drop(columns=raw_mitomap_columns, errors="ignore")
     log_message("removed raw collapsed MITOMAP columns")
     
-    #Remove second frequency from MITOMAP's set of shorter, Control-Region-only sequences.          
+    #Remove second frequency from MITOMAP's set of shorter, Control-Region-only sequences. Report frequency as a decimal.          
     df["GB_SEQS"] = df["GB_SEQS"].apply(lambda x: str(x).strip().split(" ")[0] if not pd.isna(x) and str(x).strip() not in ("", ".") else ".")
-    df["GB_FREQ"] = df["GB_FREQ"].apply(lambda x: str(x).strip().split("%")[1] if not pd.isna(x) and str(x).strip() not in ("", ".") and "%" in str(x) else str(x).strip() if not pd.isna(x) and str(x).strip() not in ("", ".") else ".")
-
+    df["GB_FREQ"] = df["GB_FREQ"].apply(lambda x: str(float(str(x).strip().split("%")[0]) / 100) if not pd.isna(x) and str(x).strip() not in ("", ".") else ".")
     return df
 
 def reorder_cols(df):
