@@ -6,7 +6,7 @@ Michelle Spivak, Madeline Couse, Anjali Jain
 
 ## Changelog
 
-- Adapted from crg2 pipeline for GRCh38 DRAGEN v4.4 genomes. 
+- Adapted from [crg2 pipeline](https://github.com/ccmbioinfo/crg2) for GRCh38 DRAGEN v4.4 genomes. 
 
 - Annotation databases updated to hg38-specific resources: gnomAD v3.1 chrM sites and hg38 ClinVar chrM VCF
 
@@ -14,7 +14,7 @@ Michelle Spivak, Madeline Couse, Anjali Jain
 
 ## Summary
 
-- Mitochondrial variant calls from DRAGEN whole genome sequencing are normalised and decomposed with `bcftools norm` and annotated using `mity report`(https://github.com/KCCG/mity) v2.0.1 with with hg38-specific resources. MITOMAP annotation tables were bundled with mity v2.0.1.
+- Mitochondrial variant calls from DRAGEN whole genome sequencing are normalised and decomposed with `bcftools norm` and annotated using [mity report](https://github.com/KCCG/mity) v2.0.1 with with hg38-specific resources. MITOMAP annotation tables were bundled with mity v2.0.1.
 
 - Note: variants are reported in left-normalised, decomposed format: multi-nucleotide variants are split by `bcftools norm` and will be reported as SNVs.  
 
