@@ -121,9 +121,10 @@ The SV and CNV reports share most columns. Columns that are SV-only or CNV-only 
 | `gnomad_NAME` | Matching gnomAD SV identifier(s) | gnomAD SV | gnomAD-SV\_v3\_ DUP\_chr6\_cbd0f366 |
 | `gnomad_GRPMAX_AF` | Group-max allele frequency of overlapping gnomAD SV(s) | gnomAD SV | 0.00755 |
 | `gnomad_AC` | Allele count in gnomAD SV | gnomAD SV | 54 |
-| `gnomad_HOM` | Homozygous alternate count in gnomAD SV | gnomAD SV | 0 |
+| `gnomad_nhomalt` | Homozygous alternate count in gnomAD SV | gnomAD SV | 0 |
 | `gnomad_SV` | Coordinates/type of matching gnomAD SV(s), where matching is determined using the report’s SVTYPE-specific comparison logic | gnomAD SV | DUP:6:73747426-73766256 |
-| `gnomad_maxAF` | Maximum allele frequency among matching gnomAD SV(s), where matching is determined using the report’s SVTYPE-specific comparison logic | gnomAD SV | 0.00755 |
+| `gnomad_maxAF` | Maximum allele frequency among matching gnomAD SV(s) | gnomAD SV | 0.00755 |
+| `gnomad_nhomalt_max` | Maximum homozygous alternate count among matching gnomAD SV(s) | gnomAD SV | 0 |
 | `DGV_AF` | DGV allele frequency | DGV | 0.0955; 0.0955; 0.0955 |
 | `DGV_NUM_ SAMPLES_TESTED` | Number of samples tested in the DGV study | DGV | 3425; 3425; 3425 |
 | `DGV_SV` | Coordinates/type of matching DGV event(s), where matching is determined using the report’s SVTYPE-specific comparison logic | DGV | DEL:10:101634196-101635451; DEL:10:101634196-101635451; DEL:10:101634196-101635451 |
@@ -132,7 +133,8 @@ The SV and CNV reports share most columns. Columns that are SV-only or CNV-only 
 | `1000G_AC` | Allele count in the 1000 Genomes SV database | 1000 Genomes SV database | 958 |
 | `1000G_nhomalt` | Number of homozygous alternate individuals in the 1000 Genomes SV database | 1000 Genomes SV database | 254 |
 | `1000G_SV` | Coordinates/type of matching 1000 Genomes SV(s), where matching is determined using the report’s SVTYPE-specific comparison logic | 1000 Genomes SV database | DEL:10:103293394-103294434 |
-| `1000G_maxAF` | Maximum allele frequency among matching 1000 Genomes SV(s), where matching is determined using the report’s SVTYPE-specific comparison logic | 1000 Genomes SV database | 0.15 |
+| `1000G_maxAF` | Maximum allele frequency among matching 1000 Genomes SV(s) | 1000 Genomes SV database | 0.15 |
+| `1000G_nhomalt_max` | Maximum homozygous alternate count among matching 1000 Genomes SV(s) | 1000 Genomes SV database | 254 |
 | `ExAC_delZ` | Positive delZ\_ExAC (Z score) from ExAC indicate gene intolerance to deletion | AnnotSV | 0.018797621 |
 | `ExAC_dupZ` | Positive dupZ\_ExAC (Z score) from ExAC indicate gene intolerance to duplication | AnnotSV | \-1.900013288 |
 | `ExAC_cnvZ` | Positive cnvZ\_ExAC (Z score) from ExAC indicate gene intolerance to CNV | AnnotSV | \-1.383777638 |

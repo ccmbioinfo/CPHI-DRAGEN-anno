@@ -410,6 +410,14 @@ def annotate_pop_svs(annotsv_df, pop_svs, cols, variant_type):
             lambda x: max([float(af) for af in x.split("; ")])
         )
         cols.append(f"{pop_name}_maxAF")
+        hom_cols = [col for col in cols if "HOM" in col or "nhomalt" in col]
+        if len(hom_cols) > 0:
+            hom_col = hom_cols[0]
+            intersect[f"{hom_col}_max"] = intersect[hom_col].apply(
+                lambda x: max([float(hom) for hom in x.split("; ")])
+            )
+            cols.append(f"{hom_col}_max")
+
     # get max allele counts for C4R
     except IndexError:
         try:
@@ -1199,6 +1207,7 @@ def main(
     )
 
     df_merge = df_merge[report_columns]
+    df_merge.rename(columns={"gnomad_HOM": "gnomad_nhomalt", "gnomad_HOM_max": "gnomad_nhomalt_max"}, inplace=True)
     if variant_type == "CNV":
         # exclude splice site annotations for CNVs
         df_merge = df_merge.drop(columns=["Nearest_SS_type", "Dist_nearest_SS", "ID"] + pr_alt_cols + sr_alt_cols + vf_alt_cols + gq_cols + fs_cols)
