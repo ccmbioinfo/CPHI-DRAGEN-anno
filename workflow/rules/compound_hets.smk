@@ -1,3 +1,8 @@
+def output_status(output_path):
+    if str(config["run"].get("acmg_sf", "")).lower() == "true":
+        return temp(output_path)
+    return(output_path)
+
 rule get_sequence_variants_for_CH:
     input:
         gemini_db="annotated/coding/{family}-gemini.db"
@@ -46,13 +51,13 @@ if len(children) > 0:
             pedigree=config["run"]["ped"],
             sample_order="sequence_variants/{family}.sample.order.txt",
         output:
-            sequence_variant_report_CH="reports/{family}.wgs.coding.CH.hg38.csv",
-            panel_variant_report_CH="reports/{family}.panel.CH.hg38.csv",
-            panel_flank_variant_report_CH="reports/{family}.panel-flank.CH.hg38.csv",
-            wgs_high_impact_variant_report_CH="reports/{family}.wgs.high.impact.CH.hg38.csv",
-            wgs_denovo_variant_report_CH="reports/{family}.wgs.denovo.CH.hg38.csv",
-            SV_report_CH="reports/{family}.sv.CH.hg38.csv",
-            CNV_report_CH="reports/{family}.cnv.CH.hg38.csv",
+            sequence_variant_report_CH=output_status("reports/{family}.wgs.coding.CH.hg38.csv"),
+            panel_variant_report_CH=output_status("reports/{family}.panel.CH.hg38.csv"),
+            panel_flank_variant_report_CH=output_status("reports/{family}.panel-flank.CH.hg38.csv"),
+            wgs_high_impact_variant_report_CH=output_status("reports/{family}.wgs.high.impact.CH.hg38.csv"),
+            wgs_denovo_variant_report_CH=output_status("reports/{family}.wgs.denovo.CH.hg38.csv"),
+            SV_report_CH=output_status("reports/{family}.sv.CH.hg38.csv"),
+            CNV_report_CH=output_status("reports/{family}.cnv.CH.hg38.csv"),
             compound_het_status="reports/{family}.compound.het.status.CH.hg38.csv",
         params:
             crg2_pacbio = config["tools"]["crg2_pacbio"],
@@ -96,12 +101,12 @@ else:
                 pedigree=config["run"]["ped"],
                 sample_order="sequence_variants/{family}.sample.order.txt",
             output:
-                sequence_variant_report_CH="reports/{family}.wgs.coding.CH.hg38.csv",
-                panel_variant_report_CH="reports/{family}.panel.CH.hg38.csv",
-                panel_flank_variant_report_CH="reports/{family}.panel-flank.CH.hg38.csv",
-                wgs_high_impact_variant_report_CH="reports/{family}.wgs.high.impact.CH.hg38.csv",
-                SV_report_CH="reports/{family}.sv.CH.hg38.csv",
-                CNV_report_CH="reports/{family}.cnv.CH.hg38.csv",
+                sequence_variant_report_CH=output_status("reports/{family}.wgs.coding.CH.hg38.csv"),
+                panel_variant_report_CH=output_status("reports/{family}.panel.CH.hg38.csv"),
+                panel_flank_variant_report_CH=output_status("reports/{family}.panel-flank.CH.hg38.csv"),
+                wgs_high_impact_variant_report_CH=output_status("reports/{family}.wgs.high.impact.CH.hg38.csv"),
+                SV_report_CH=output_status("reports/{family}.sv.CH.hg38.csv"),
+                CNV_report_CH=output_status("reports/{family}.cnv.CH.hg38.csv"),
                 compound_het_status="reports/{family}.compound.het.status.CH.hg38.csv",
             params:
                 crg2_pacbio = config["tools"]["crg2_pacbio"],
