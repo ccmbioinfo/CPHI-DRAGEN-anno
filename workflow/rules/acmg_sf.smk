@@ -19,6 +19,7 @@ rule add_acmg_sf_column:
         report="reports/{family}.{input_report_type}.SF.hg38.csv",
     params:
         acmg_sf_version=config["annotation"]["general"]["acmg_sf_version"],
+        seq_type="short",
     wildcard_constraints:
         input_report_type="|".join([t.replace(".", "\\.") for t in acmg_sf_input_report_type]),
     log:

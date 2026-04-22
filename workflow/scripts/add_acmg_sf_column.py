@@ -26,7 +26,7 @@ def find_acmg_sf_gene_matches(report_gene_string, acmg_sf_genes):
             matches.append(gene)
     return matches
 
-def main(family, input_report_type, input_csv, output_csv, acmg_sf_tsv, acmg_sf_version):
+def main(family, input_report_type, input_csv, output_csv, acmg_sf_tsv, acmg_sf_version, seq_type):
     logfile = f"logs/report/acmg_sf/{family}.{input_report_type}.acmg_sf.log"
     logging.basicConfig(
         filename=logfile,
@@ -37,7 +37,7 @@ def main(family, input_report_type, input_csv, output_csv, acmg_sf_tsv, acmg_sf_
     )
     today = date.today()
     today = today.strftime("%Y-%m-%d")
-    suffix = "hg38.csv"
+    suffix = "csv" if seq_type == "long" else "hg38.csv"
     
     acmg_df = pd.read_csv(acmg_sf_tsv, sep="\t")
     acmg_genes = set(acmg_df["Gene"].dropna())
@@ -100,4 +100,5 @@ if __name__ == "__main__":
     output_csv = snakemake.output.report
     acmg_tsv = snakemake.input.acmg_sf_list
     acmg_sf_version = snakemake.params.acmg_sf_version
-    main(family, input_report_type, input_csv, output_csv, acmg_tsv, acmg_sf_version)
+    seq_type = snakemake.params.seq_type
+    main(family, input_report_type, input_csv, output_csv, acmg_tsv, acmg_sf_version, seq_type)
