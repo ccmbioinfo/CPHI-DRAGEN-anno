@@ -1,7 +1,7 @@
 def output_status(output_path):
-    if str(config["run"].get(acmg_sf, "")).lower() == "true":
+    if str(config["run"].get("acmg_sf", "")).lower() == "true":
         return temp(output_path)
-				return(output_path)
+    return(output_path)
 
 rule get_sequence_variants_for_CH:
     input:

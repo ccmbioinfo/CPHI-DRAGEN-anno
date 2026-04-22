@@ -1,6 +1,8 @@
 import pandas as pd
 import logging
 import re
+import os
+from datetime import date
 
 def log_message(*message):
     if message:
@@ -24,7 +26,7 @@ def find_acmg_sf_gene_matches(report_gene_string, acmg_sf_genes):
             matches.append(gene)
     return matches
 
-def main(family, input_report_type, input_csv, output_csv, acmg_sf_tsv):
+def main(family, input_report_type, input_csv, output_csv, acmg_sf_tsv, acmg_sf_version):
     logfile = f"logs/report/acmg_sf/{family}.{input_report_type}.acmg_sf.log"
     logging.basicConfig(
         filename=logfile,
@@ -33,7 +35,10 @@ def main(family, input_report_type, input_csv, output_csv, acmg_sf_tsv):
         format="%(asctime)s:%(message)s",
         datefmt="%Y-%m-%d %H:%M",
     )
-
+    today = date.today()
+    today = today.strftime("%Y-%m-%d")
+    suffix = "hg38.csv"
+    
     acmg_df = pd.read_csv(acmg_sf_tsv, sep="\t")
     acmg_genes = set(acmg_df["Gene"].dropna())
     log_message(f"Loaded {len(acmg_genes)} genes from ACMG SF gene list.")
@@ -49,8 +54,15 @@ def main(family, input_report_type, input_csv, output_csv, acmg_sf_tsv):
 
     if gene_col is None:
         log_message(f"ERROR: No gene column found in {input_report_type} report. Expected header names: Gene, GENE_NAME, GENE, gene.")
-        df["ACMG_SF_v{acmg_sf_version}"] = "."
-        df.to_csv(output_csv, index=False)
+        df[f"ACMG_SF_v{acmg_sf_version}"] = "."
+        dated_output_csv = f"reports/{family}.{input_report_type}.SF.{today}.{suffix}"
+        df.to_csv(dated_output_csv, index=False)
+        try:
+            if os.path.islink(output_csv) or os.path.exists(output_csv):
+                os.remove(output_csv)
+            os.symlink(os.path.basename(dated_output_csv), output_csv)
+        except Exception as e:
+            log_message(f"Could not create symlink {output_csv} -> {dated_output_csv}: {e}")
         return
 
     acmg_sf_matches = []
@@ -63,13 +75,23 @@ def main(family, input_report_type, input_csv, output_csv, acmg_sf_tsv):
         else:
             acmg_sf_matches.append(".")
 
-    df["ACMG_SF_v{acmg_sf_version}"] = acmg_sf_matches
+    df[f"ACMG_SF_v{acmg_sf_version}"] = acmg_sf_matches
 
-    num_rows_matching_ACMG_SF_list = (df["ACMG_SF_v{acmg_sf_version}"] != ".").sum()
+    num_rows_matching_ACMG_SF_list = (df[f"ACMG_SF_v{acmg_sf_version}"] != ".").sum()
     log_message(f"{num_rows_matching_ACMG_SF_list} variants impacting ACMG SF v{acmg_sf_version} genes")
 
-    df.to_csv(output_csv, index=False)
-    log_message(f"{output_csv} created")
+    dated_output_csv = f"reports/{family}.{input_report_type}.SF.{today}.{suffix}"
+    df.to_csv(dated_output_csv, index=False)
+    log_message(f"{dated_output_csv} created")
+    
+    symlink_path = output_csv
+    target_path = dated_output_csv
+    try:
+        if os.path.islink(symlink_path) or os.path.exists(symlink_path):
+            os.remove(symlink_path)
+        os.symlink(os.path.basename(target_path), symlink_path)
+    except Exception as e:
+        log_message(f"Could not create symlink {symlink_path} -> {target_path}: {e}")
 
 if __name__ == "__main__":
     family = snakemake.wildcards.family
