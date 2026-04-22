@@ -3,10 +3,13 @@ acmg_sf_input_report_type = [
     "panel.CH",
     "panel-flank.CH",
     "wgs.high.impact.CH",
-    "wgs.denovo.CH",
     "sv.CH",
     "cnv.CH",
 ]
+
+if len(children) > 0:
+    acmg_sf_input_report_type.append("wgs.denovo.CH")
+
 
 rule add_acmg_sf_column:
     input:
@@ -21,6 +24,6 @@ rule add_acmg_sf_column:
     log:
         "logs/report/acmg_sf/{family}.{input_report_type}.SF.log",
     conda:
-        "../envs/common.yaml"
+        "../envs/acmg_sf.yaml"
     script:
         "../scripts/add_acmg_sf_column.py"

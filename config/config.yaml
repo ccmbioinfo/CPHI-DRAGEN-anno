@@ -5,7 +5,7 @@ run:
   hpo: "" # proband-specific HPO terms
   ped: "" 
   flank: 100000
-  acmg_sf: true # set to true to annotate reports with ACMG secondary findings gene list, or false to skip this step 
+  acmg_sf: true
   
 genes:
   ensembl: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/genes/ensembl/for_gene_panels/Homo_sapiens.GRCh38.115.gtf_subset.csv"
