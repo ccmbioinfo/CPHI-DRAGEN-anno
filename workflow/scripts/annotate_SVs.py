@@ -151,10 +151,12 @@ def merge_full_split_annos(annotsv_df):
 
 
 def add_hpo(hpo, gene):
+    if pd.isna(gene):
+        return "."
     try:
         genes = [g for g in re.split('[;&]', gene) if g]
     except AttributeError:
-        return "NA"
+        return "."
     terms = []
     for gene in genes:
         # split by - for intergenic variants, which are annotated as <upstream_gene>-<downstream_gene>
@@ -180,8 +182,6 @@ def add_omim(omim_df, gene):
     try:
         genes = [g for g in re.split('[;&]', gene) if g]
     except TypeError:
-        print("Omim")
-        print(gene)
         return [".","."]
     phenos = []
     inheritance = []
@@ -737,8 +737,6 @@ def add_clingen(clingen_df, gene, colname):
     try:
         genes = [g for g in re.split('[;&]', gene) if g]
     except TypeError:
-        print("ClinGen")
-        print(gene)
         return "NA"
     clingen = []
     for gene in genes:
