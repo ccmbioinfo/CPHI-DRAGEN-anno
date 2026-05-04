@@ -1,15 +1,11 @@
 acmg_sf_input_report_type = [
     "wgs.coding.CH",
-    "panel.CH",
-    "panel-flank.CH",
     "wgs.high.impact.CH",
     "sv.CH",
     "cnv.CH",
 ]
-
 if len(children) > 0:
     acmg_sf_input_report_type.append("wgs.denovo.CH")
-
 
 rule add_acmg_sf_column:
     input:

@@ -3,6 +3,25 @@ def output_status(output_path):
         return temp(output_path)
     return(output_path)
 
+hpo_available = config["run"].get("hpo", "")
+
+hpo_panel_inputs = {
+    "panel_variant_report_dir": "small_variants/panel/{family}",
+    "panel_flank_variant_report_dir": "small_variants/panel-flank/{family}",
+    "HPO": config["run"]["hpo"],
+} if hpo_available else {}
+
+hpo_panel_outputs = {
+    "panel_variant_report_CH": "reports/{family}.panel.CH.csv",
+    "panel_flank_variant_report_CH": "reports/{family}.panel-flank.CH.csv",
+} if hpo_available else {}
+
+hpo_panel_args = (
+    "--hpo {input.HPO} "
+    "--panel_variant_report_dir {input.panel_variant_report_dir} "
+    "--panel_flank_variant_report_dir {input.panel_flank_variant_report_dir}"
+) if hpo_available else ""
+
 rule get_sequence_variants_for_CH:
     input:
         gemini_db="annotated/coding/{family}-gemini.db"
@@ -39,29 +58,27 @@ if len(children) > 0:
             high_med_variants="sequence_variants/{family}.HIGH-MED.impact.variants.tsv",
             low_variants="sequence_variants/{family}.LOW.impact.variants.tsv",
             small_variant_report_dir="sequence_variants/coding/{family}",
-            panel_variant_report_dir="sequence_variants/panel/{family}",
-            panel_flank_variant_report_dir="sequence_variants/panel-flank/{family}",
             wgs_high_impact_variant_report_dir="sequence_variants/wgs-high-impact/{family}",
             wgs_denovo_variant_report_dir="sequence_variants/denovo/{family}",
             SV_report="sv/{family}.sv.csv",
             CNV_report="cnv/{family}.cnv.csv",
             ensembl=config["annotation"]["general"]["ensembl"],
             ensembl_to_NCBI_df=config["annotation"]["general"]["ensembl_to_NCBI_df"],
-            HPO=config["run"]["hpo"],
             pedigree=config["run"]["ped"],
             sample_order="sequence_variants/{family}.sample.order.txt",
+            **hpo_panel_inputs,
         output:
             sequence_variant_report_CH=output_status("reports/{family}.wgs.coding.CH.hg38.csv"),
-            panel_variant_report_CH=output_status("reports/{family}.panel.CH.hg38.csv"),
-            panel_flank_variant_report_CH=output_status("reports/{family}.panel-flank.CH.hg38.csv"),
             wgs_high_impact_variant_report_CH=output_status("reports/{family}.wgs.high.impact.CH.hg38.csv"),
             wgs_denovo_variant_report_CH=output_status("reports/{family}.wgs.denovo.CH.hg38.csv"),
             SV_report_CH=output_status("reports/{family}.sv.CH.hg38.csv"),
             CNV_report_CH=output_status("reports/{family}.cnv.CH.hg38.csv"),
             compound_het_status="reports/{family}.compound.het.status.CH.hg38.csv",
+            **hpo_panel_outputs,
         params:
             crg2_pacbio = config["tools"]["crg2_pacbio"],
-            seq_type="short"
+            seq_type="short",
+            hpo_panel_args=hpo_panel_args
         conda:
             "../envs/str_sv.yaml"
         log:
@@ -75,10 +92,8 @@ if len(children) > 0:
             --ensembl {input.ensembl}  \
             --ensembl_to_NCBI_df {input.ensembl_to_NCBI_df}  \
             --pedigree {input.pedigree}  \
-            --hpo {input.HPO}  \
+            {params.hpo_panel_args}  \
             --sequence_variant_report_dir {input.small_variant_report_dir}  \
-            --panel_variant_report_dir {input.panel_variant_report_dir}  \
-            --panel_flank_variant_report_dir {input.panel_flank_variant_report_dir}  \
             --wgs_high_impact_variant_report_dir {input.wgs_high_impact_variant_report_dir}  \
             --wgs_denovo_variant_report_dir {input.wgs_denovo_variant_report_dir}  \
             --sample_order {input.sample_order}  \
@@ -90,27 +105,25 @@ else:
                 high_med_variants="sequence_variants/{family}.HIGH-MED.impact.variants.tsv",
                 low_variants="sequence_variants/{family}.LOW.impact.variants.tsv",
                 small_variant_report_dir="sequence_variants/coding/{family}",
-                panel_variant_report_dir="sequence_variants/panel/{family}",
-                panel_flank_variant_report_dir="sequence_variants/panel-flank/{family}",
                 wgs_high_impact_variant_report_dir="sequence_variants/wgs-high-impact/{family}",
                 SV_report="reports/{family}.sv.csv",
                 CNV_report="reports/{family}.cnv.csv",
                 ensembl=config["annotation"]["general"]["ensembl"],
                 ensembl_to_NCBI_df=config["annotation"]["general"]["ensembl_to_NCBI_df"],
-                HPO=config["run"]["hpo"],
                 pedigree=config["run"]["ped"],
                 sample_order="sequence_variants/{family}.sample.order.txt",
+                **hpo_panel_inputs,
             output:
                 sequence_variant_report_CH=output_status("reports/{family}.wgs.coding.CH.hg38.csv"),
-                panel_variant_report_CH=output_status("reports/{family}.panel.CH.hg38.csv"),
-                panel_flank_variant_report_CH=output_status("reports/{family}.panel-flank.CH.hg38.csv"),
                 wgs_high_impact_variant_report_CH=output_status("reports/{family}.wgs.high.impact.CH.hg38.csv"),
                 SV_report_CH=output_status("reports/{family}.sv.CH.hg38.csv"),
                 CNV_report_CH=output_status("reports/{family}.cnv.CH.hg38.csv"),
                 compound_het_status="reports/{family}.compound.het.status.CH.hg38.csv",
+                **hpo_panel_outputs,
             params:
                 crg2_pacbio = config["tools"]["crg2_pacbio"],
-                seq_type="short"
+                seq_type="short",
+                hpo_panel_args=hpo_panel_args
             conda:
                 "../envs/str_sv.yaml"
             log:
@@ -124,10 +137,8 @@ else:
                 --ensembl {input.ensembl}  \
                 --ensembl_to_NCBI_df {input.ensembl_to_NCBI_df}  \
                 --pedigree {input.pedigree}  \
-                --hpo {input.HPO}  \
+                {params.hpo_panel_args}  \
                 --sequence_variant_report_dir {input.small_variant_report_dir}  \
-                --panel_variant_report_dir {input.panel_variant_report_dir}  \
-                --panel_flank_variant_report_dir {input.panel_flank_variant_report_dir}  \
                 --wgs_high_impact_variant_report_dir {input.wgs_high_impact_variant_report_dir}  \
                 --sample_order {input.sample_order}  \
                 --family {wildcards.family}) > {log} 2>&1

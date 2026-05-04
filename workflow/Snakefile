@@ -16,7 +16,7 @@ def get_children_ids(ped_file):
 family = config["run"]["family"]
 samples = pd.read_table(config["run"]["samples"], dtype=str).set_index("sample", drop=False)
 if config["run"]["ped"]:
-	children = get_children_ids(config["run"]["ped"])
+    children = get_children_ids(config["run"]["ped"])
 else:
     children = []
 
@@ -30,23 +30,29 @@ include: "rules/svreport.smk"
 include: "rules/cnvreport.smk"
 include: "rules/annotate_sequence_var.smk"
 include: "rules/annotate_mt_var.smk"
-include: "rules/qc.smk"
+#include: "rules/qc.smk"
 include: "rules/compound_hets.smk"
 
 if str(config["run"].get("acmg_sf", "")).lower() == "true":
     include: "rules/acmg_sf.smk"
 
+if config["run"].get("hpo",""):
+    hpo_report_outputs=[
+            "reports/{family}.panel.CH.hg38.csv".format(family=family),
+            "reports/{family}.panel-flank.CH.hg38.csv".format(family=family),
+     ]
+else:
+     hpo_report_outputs=[]
 
 rule all:
     input:
         "reports/{family}.wgs.coding.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
-        "reports/{family}.panel.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
-        "reports/{family}.panel-flank.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
         "reports/{family}.wgs.high.impact.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
         "reports/{family}.wgs.denovo.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix) if len(children) > 0 else [],
         "reports/{family}.known.path.str.loci.hg38.csv".format(family=family),
         "reports/{family}.sv.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
         "reports/{family}.cnv.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
         "reports/{family}.mito.hg38.csv".format(family=family),
-        "reports/{family}.multiqc_report.html".format(family=family),
-        "reports/{family}.compound.het.status.CH.hg38.csv".format(family=family)
+        #"reports/{family}.multiqc_report.html".format(family=family),
+        "reports/{family}.compound.het.status.CH.hg38.csv".format(family=family),
+        *hpo_report_outputs,

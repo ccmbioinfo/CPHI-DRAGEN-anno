@@ -76,7 +76,23 @@ def main(family, input_report_type, input_csv, output_csv, acmg_sf_tsv, acmg_sf_
             acmg_sf_matches.append(".")
 
     df[f"ACMG_SF_v{acmg_sf_version}"] = acmg_sf_matches
+    
+    #create secondary findings variant report
+    acmg_col = f"ACMG_SF_v{acmg_sf_version}"
 
+    acmg_sf_report = df[df[acmg_col] != "."].copy()
+    acmg_sf_report = acmg_sf_report.iloc[:, :5]
+    acmg_sf_report["report"] = input_report_type
+
+    acmg_sf_report_csv = f"reports/{family}.acmg_sf_report.csv"
+
+    if os.path.exists(acmg_sf_report_csv):
+        acmg_sf_report.to_csv(acmg_sf_report_csv, mode="a", header=False, index=False)
+    else:
+        acmg_sf_report.to_csv(acmg_sf_report_csv, index=False)
+
+    log_message(f"{acmg_sf_report_csv} updated")
+    
     num_rows_matching_ACMG_SF_list = (df[f"ACMG_SF_v{acmg_sf_version}"] != ".").sum()
     log_message(f"{num_rows_matching_ACMG_SF_list} variants impacting ACMG SF v{acmg_sf_version} genes")
 
