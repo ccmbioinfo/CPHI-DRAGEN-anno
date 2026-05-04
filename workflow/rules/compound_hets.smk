@@ -78,7 +78,8 @@ if len(children) > 0:
         params:
             crg2_pacbio = config["tools"]["crg2_pacbio"],
             seq_type="short",
-            hpo_panel_args=hpo_panel_args
+            hpo_panel_args=hpo_panel_args,
+            acmg_sf_flag = str(config["run"].get("acmg_sf", "false")).lower()
         conda:
             "../envs/str_sv.yaml"
         log:
@@ -97,7 +98,8 @@ if len(children) > 0:
             --wgs_high_impact_variant_report_dir {input.wgs_high_impact_variant_report_dir}  \
             --wgs_denovo_variant_report_dir {input.wgs_denovo_variant_report_dir}  \
             --sample_order {input.sample_order}  \
-            --family {wildcards.family}) > {log} 2>&1
+            --family {wildcards.family}  \
+            --acmg_sf {params.acmg_sf_flag}) > {log} 2>&1
             """
 else:
         rule identify_compound_hets:
@@ -123,7 +125,8 @@ else:
             params:
                 crg2_pacbio = config["tools"]["crg2_pacbio"],
                 seq_type="short",
-                hpo_panel_args=hpo_panel_args
+                hpo_panel_args=hpo_panel_args,
+                acmg_sf_flag = str(config["run"].get("acmg_sf", "false")).lower()
             conda:
                 "../envs/str_sv.yaml"
             log:
@@ -141,6 +144,7 @@ else:
                 --sequence_variant_report_dir {input.small_variant_report_dir}  \
                 --wgs_high_impact_variant_report_dir {input.wgs_high_impact_variant_report_dir}  \
                 --sample_order {input.sample_order}  \
-                --family {wildcards.family}) > {log} 2>&1
+                --family {wildcards.family}  \
+                --acmg_sf {params.acmg_sf_flag}) > {log} 2>&1
                 """
  

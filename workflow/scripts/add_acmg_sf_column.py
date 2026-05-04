@@ -26,6 +26,159 @@ def find_acmg_sf_gene_matches(report_gene_string, acmg_sf_genes):
             matches.append(gene)
     return matches
 
+#create acmg report with variants from SNV, SV, and CNV reports
+def make_variant_key(row, input_report_type):
+    if input_report_type in ["wgs.coding.CH", "wgs.high.impact.CH", "wgs.denovo.CH"]:
+        return f"{get_value(row, 'Position')}:{get_value(row, 'Ref')}:{get_value(row, 'Alt')}"
+    if input_report_type in ["sv.CH", "cnv.CH"]:
+        chrom = str(get_value(row, "CHROM"))
+
+        if chrom != "." and not chrom.startswith("chr"):
+            chrom = f"chr{chrom}"
+
+        return f"{chrom}:{get_value(row, 'POS')}:{get_value(row, 'END')}:{get_value(row, 'SVTYPE')}"
+    return "."
+
+def get_value(row, col, default="."):
+    if col in row.index and pd.notna(row[col]) and str(row[col]).strip() != "":
+        return row[col]
+    return default
+
+def clean_sample_name(sample_name):
+    return str(sample_name).replace("-", "_")
+
+def collapse_sample_zygosity_genotype_values(row, df, value_type):
+    sample_values = []
+    for col in df.columns:
+        if value_type == "zygosity":
+            if col.startswith("Zygosity."):
+                sample = col.replace("Zygosity.", "")
+            elif col.endswith("_zyg"):
+                sample = col[:-4]
+            else:
+                continue
+        elif value_type == "genotype":
+            if col.endswith("_GT"):
+                sample = col[:-3]
+            else:
+                continue    
+        else:
+            continue
+        
+        value = get_value(row, col)
+        sample = clean_sample_name(sample)
+        sample_values.append(f"{sample}={value}")
+        
+    if len(sample_values) == 0:
+        return "."
+
+    return ";".join(sample_values)
+
+def make_acmg_sf_report_rows(df, family, input_report_type, acmg_col):
+    acmg_matches = df[df[acmg_col] != "."].copy()
+    report_rows = []
+    for _, row in acmg_matches.iterrows():
+
+        # WGS small variant report columns
+        if input_report_type == "wgs.coding.CH":
+            position = get_value(row, "Position")
+            gene = get_value(row, "Gene")
+            consequence = get_value(row, "Variation")
+            ref = get_value(row, "Ref")
+            alt = get_value(row, "Alt")
+            end = "."
+            svtype = "."
+            clinvar = get_value(row, "Clinvar")
+            gnomad_af = get_value(row, "Gnomad_af")
+            ucsc_link = get_value(row, "UCSC_Link")
+
+        # SV and CNV report columns
+        elif input_report_type in ["sv.CH", "cnv.CH"]:
+            chrom = str(get_value(row, "CHROM"))
+
+            if chrom != "." and not chrom.startswith("chr"):
+                chrom = f"chr{chrom}"
+
+            position = f"{chrom}:{get_value(row, 'POS')}"
+            gene = get_value(row, "GENE_NAME")
+            consequence = get_value(row, "VARIANT")
+            ref = "."
+            alt = "."
+            end = get_value(row, "END")
+            svtype = get_value(row, "SVTYPE")
+            clinvar = "."
+            gnomad_af = get_value(row, "gnomad_GRPMAX_AF")
+            ucsc_link = get_value(row, "UCSC_link")
+
+        else:
+            continue
+
+        report_rows.append({
+            "position": position,
+            "end": end,
+            "ref": ref,
+            "alt": alt,
+            "svtype": svtype,
+            "gene": gene,
+            "acmg_sf_gene": get_value(row, acmg_col),
+            "consequence": consequence,
+            "family": family,
+            "sample_zygosities": collapse_sample_zygosity_genotype_values(row, acmg_matches, "zygosity"),
+            "sample_genotypes": collapse_sample_zygosity_genotype_values(row, acmg_matches, "genotype"),
+            "clinvar": clinvar,
+            "gnomad_af": gnomad_af,
+            "ucsc_link": ucsc_link,
+            "in_high_impact_report": ".",
+            "in_denovo_report": ".",
+            "variant_reported_in": input_report_type,
+            "variant_key": make_variant_key(row, input_report_type),
+        })
+
+    return pd.DataFrame(report_rows)
+
+def update_acmg_sf_report_flags(df, input_report_type, acmg_col, acmg_sf_report_csv):
+    if input_report_type not in ["wgs.high.impact.CH", "wgs.denovo.CH"]:
+        return
+
+    if not os.path.exists(acmg_sf_report_csv):
+        log_message(
+            f"{acmg_sf_report_csv} does not exist yet; cannot update {input_report_type} flags"
+        )
+        return
+
+    acmg_matches = df[df[acmg_col] != "."].copy()
+
+    if len(acmg_matches) == 0:
+        log_message(f"No ACMG SF variants in {input_report_type}; no flags updated")
+        return
+
+    flag_variant_keys = set(
+        acmg_matches.apply(lambda row: make_variant_key(row, input_report_type), axis=1)
+    )
+
+    acmg_sf_report = pd.read_csv(acmg_sf_report_csv)
+
+    if "in_high_impact_report" not in acmg_sf_report.columns:
+        acmg_sf_report["in_high_impact_report"] = False
+
+    if "in_denovo_report" not in acmg_sf_report.columns:
+        acmg_sf_report["in_denovo_report"] = False
+
+    if input_report_type == "wgs.high.impact.CH":
+        acmg_sf_report["in_high_impact_report"] = (
+            acmg_sf_report["in_high_impact_report"].astype(bool)
+            | acmg_sf_report["variant_key"].isin(flag_variant_keys)
+        )
+
+    if input_report_type == "wgs.denovo.CH":
+        acmg_sf_report["in_denovo_report"] = (
+            acmg_sf_report["in_denovo_report"].astype(bool)
+            | acmg_sf_report["variant_key"].isin(flag_variant_keys)
+        )
+
+    acmg_sf_report.to_csv(acmg_sf_report_csv, index=False)
+    log_message(f"{acmg_sf_report_csv} {input_report_type} flags updated")
+
 def main(family, input_report_type, input_csv, output_csv, acmg_sf_tsv, acmg_sf_version, seq_type):
     logfile = f"logs/report/acmg_sf/{family}.{input_report_type}.acmg_sf.log"
     logging.basicConfig(
@@ -79,19 +232,39 @@ def main(family, input_report_type, input_csv, output_csv, acmg_sf_tsv, acmg_sf_
     
     #create secondary findings variant report
     acmg_col = f"ACMG_SF_v{acmg_sf_version}"
-
-    acmg_sf_report = df[df[acmg_col] != "."].copy()
-    acmg_sf_report = acmg_sf_report.iloc[:, :5]
-    acmg_sf_report["report"] = input_report_type
-
     acmg_sf_report_csv = f"reports/{family}.acmg_sf_report.csv"
 
-    if os.path.exists(acmg_sf_report_csv):
-        acmg_sf_report.to_csv(acmg_sf_report_csv, mode="a", header=False, index=False)
-    else:
-        acmg_sf_report.to_csv(acmg_sf_report_csv, index=False)
+    main_acmg_report_types = ["wgs.coding.CH", "sv.CH", "cnv.CH"]
+    flag_only_report_types = ["wgs.high.impact.CH", "wgs.denovo.CH"]
 
-    log_message(f"{acmg_sf_report_csv} updated")
+    if input_report_type in main_acmg_report_types:
+        acmg_sf_report = make_acmg_sf_report_rows(
+            df=df,
+            family=family,
+            input_report_type=input_report_type,
+            acmg_col=acmg_col
+        )
+
+        if len(acmg_sf_report) > 0:
+            if os.path.exists(acmg_sf_report_csv):
+                acmg_sf_report.to_csv(
+                    acmg_sf_report_csv,
+                    mode="a",
+                    header=False,
+                    index=False
+                )
+            else:
+                acmg_sf_report.to_csv(acmg_sf_report_csv, index=False)
+
+        log_message(f"{acmg_sf_report_csv} updated with {input_report_type} rows")
+
+    elif input_report_type in flag_only_report_types:
+        update_acmg_sf_report_flags(
+            df=df,
+            input_report_type=input_report_type,
+            acmg_col=acmg_col,
+            acmg_sf_report_csv=acmg_sf_report_csv
+        )
     
     num_rows_matching_ACMG_SF_list = (df[f"ACMG_SF_v{acmg_sf_version}"] != ".").sum()
     log_message(f"{num_rows_matching_ACMG_SF_list} variants impacting ACMG SF v{acmg_sf_version} genes")
