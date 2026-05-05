@@ -6,14 +6,14 @@ def output_status(output_path):
 hpo_available = config["run"].get("hpo", "")
 
 hpo_panel_inputs = {
-    "panel_variant_report_dir": "small_variants/panel/{family}",
-    "panel_flank_variant_report_dir": "small_variants/panel-flank/{family}",
+    "panel_variant_report_dir": "sequence_variants/panel/{family}",
+    "panel_flank_variant_report_dir": "sequence_variants/panel-flank/{family}",
     "HPO": config["run"]["hpo"],
 } if hpo_available else {}
 
 hpo_panel_outputs = {
-    "panel_variant_report_CH": "reports/{family}.panel.CH.csv",
-    "panel_flank_variant_report_CH": "reports/{family}.panel-flank.CH.csv",
+    "panel_variant_report_CH": "reports/{family}.panel.CH.hg38.csv",
+    "panel_flank_variant_report_CH": "reports/{family}.panel-flank.CH.hg38.csv",
 } if hpo_available else {}
 
 hpo_panel_args = (
