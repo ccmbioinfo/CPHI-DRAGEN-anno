@@ -16,11 +16,14 @@ hpo_panel_outputs = {
     "panel_flank_variant_report_CH": "reports/{family}.panel-flank.CH.hg38.csv",
 } if hpo_available else {}
 
-hpo_panel_args = (
-    "--hpo {input.HPO} "
-    "--panel_variant_report_dir {input.panel_variant_report_dir} "
-    "--panel_flank_variant_report_dir {input.panel_flank_variant_report_dir}"
-) if hpo_available else ""
+def get_hpo_panel_args(wildcards, input):
+    if hpo_available:
+        return (
+            f"--hpo {input.HPO} "
+            f"--panel_variant_report_dir {input.panel_variant_report_dir} "
+            f"--panel_flank_variant_report_dir {input.panel_flank_variant_report_dir}"
+        )
+    return ""
 
 rule get_sequence_variants_for_CH:
     input:
@@ -78,7 +81,7 @@ if len(children) > 0:
         params:
             crg2_pacbio = config["tools"]["crg2_pacbio"],
             seq_type="short",
-            hpo_panel_args=hpo_panel_args,
+            hpo_panel_args=get_hpo_panel_args,
             acmg_sf_flag = str(config["run"].get("acmg_sf", "false")).lower()
         conda:
             "../envs/str_sv.yaml"
@@ -125,7 +128,7 @@ else:
             params:
                 crg2_pacbio = config["tools"]["crg2_pacbio"],
                 seq_type="short",
-                hpo_panel_args=hpo_panel_args,
+                hpo_panel_args=get_hpo_panel_args,
                 acmg_sf_flag = str(config["run"].get("acmg_sf", "false")).lower()
             conda:
                 "../envs/str_sv.yaml"
