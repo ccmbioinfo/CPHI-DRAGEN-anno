@@ -5,6 +5,7 @@ run:
   hpo: "" # proband-specific HPO terms
   ped: "" 
   flank: 100000
+  acmg_sf: true
   
 genes:
   ensembl: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/genes/ensembl/for_gene_panels/Homo_sapiens.GRCh38.115.gtf_subset.csv"
@@ -43,6 +44,8 @@ annotation:
     ensembl_to_NCBI_df: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/genes/ensembl/ensembl_to_NCBI_ID.csv"
     adotto_repeats: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/repeats/repeat_catalogs_for_TRGT/adotto_repeats.hg38.bed"
     clingen_path: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/ClinGen/"
+    acmg_sf_list: "/home/mspivak/CPHI-DRAGEN-anno/resources/acmg_sf_list/ACMG_SF_v3.3.tsv"
+    acmg_sf_version: "3.3"
   sv_report:
     gnomad_SV: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/gnomAD/v4.1/SV/gnomad.v4.1.sv.sites.processed.bed"
     dgv: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/DGV/DGV.GS.hg38.tsv"
