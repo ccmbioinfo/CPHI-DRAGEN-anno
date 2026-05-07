@@ -21,7 +21,10 @@ else:
     children = []
 
 #### define file suffix if acmg_sf flag is set to true in config file ####
-sf_suffix = ".SF" if str(config["run"].get("acmg_sf", "")).lower() == "true" else ""
+acmg_sf_enabled = str(config["run"].get("acmg_sf", "")).lower() == "true"
+sf_suffix = ".SF" if acmg_sf_enabled else ""
+
+acmg_sf_report_output = ["reports/{family}.acmg_sf_report.hg38.csv".format(family=family)] if acmg_sf_enabled else []
 
 ##### load rules #####
 include: "rules/common.smk"
@@ -30,7 +33,7 @@ include: "rules/svreport.smk"
 include: "rules/cnvreport.smk"
 include: "rules/annotate_sequence_var.smk"
 include: "rules/annotate_mt_var.smk"
-include: "rules/qc.smk"
+#include: "rules/qc.smk"
 include: "rules/compound_hets.smk"
 
 if str(config["run"].get("acmg_sf", "")).lower() == "true":
@@ -53,6 +56,7 @@ rule all:
         "reports/{family}.sv.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
         "reports/{family}.cnv.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
         "reports/{family}.mito.hg38.csv".format(family=family),
-        "reports/{family}.multiqc_report.html".format(family=family),
+        #"reports/{family}.multiqc_report.html".format(family=family),
         "reports/{family}.compound.het.status.CH.hg38.csv".format(family=family),
         *hpo_report_outputs,
+        *acmg_sf_report_output,
