@@ -18,7 +18,7 @@ Each variant's gene field is matched against ACMG SF gene symbols. Gene fields m
 
 ### Output
 An `ACMG_SF_{version}` column is appended to each CH report CSV and a .SF suffix is appended to the file name. Variants in genes on the ACMG SF list are flagged with the matching gene symbol(s) separated by `;`. All other variants receive `.`.
-A combined family-level ACMG SF report is also generated: `reports/{family}.acmg_sf_report.csv`
+A combined family-level ACMG SF report is also generated: `reports/{family}.ACMG.SF.hg38.csv`
 
 This report contains ACMG-flagged variants pulled from: wgs.coding, sv, and cnv reports. High-impact and denovo status is added as a flag when matching variants are also present in the high-impact or denovo CH reports.
 

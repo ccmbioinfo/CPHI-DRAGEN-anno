@@ -114,7 +114,6 @@ def make_acmg_sf_report_rows(df, family, input_report_type, acmg_col):
             "IN_HIGH_IMPACT_REPORT": False,
             "IN_DENOVO_REPORT": False,
             "VARIANT_REPORTED_IN": input_report_type,
-            "VARIANT_KEY": make_variant_key(row, input_report_type),
         })
 
     return pd.DataFrame(report_rows)
@@ -222,7 +221,6 @@ def main(family, input_reports, output_csv, acmg_sf_version):
             "IN_HIGH_IMPACT_REPORT",
             "IN_DENOVO_REPORT",
             "VARIANT_REPORTED_IN",
-            "VARIANT_KEY",
         ])
 
     for df, input_report_type in flag_inputs:
