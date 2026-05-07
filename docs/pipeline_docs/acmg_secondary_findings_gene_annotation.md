@@ -40,20 +40,19 @@ Combined ACMG SF report columns
 
 | Column | Description | Example |
 | --- | --- | --- |
-| `position` | Variant position. For SNVs this is copied from the CH report `Position` column. For SV/CNV records this is generated from `CHROM:POS`. | `chr9:7542000` |
-|`end`| End coordinate for SV/CNV records. SNV records receive `.`.| `75420999`|
-| `ref` | Reference allele for SNV records. SV/CNV records receive `.`. | `G` |
+| `position` | Variant position. For SNVs this is copied from the CH report `Position` column. For SV/CNV records this is generated from `CHROM:POS` | `chr9:7542000` |
+|`end`| End coordinate for SV/CNV records. SNV records receive `.`| `75420999`|
+| `ref` | Reference allele for SNV records. SV/CNV records receive `.` | `G` |
 | `alt`| Alternate allele for SNV records. SV/CNV records receive `. `A` |
-| `svtype` | Structural variant type for SV/CNV records. SNV records receive `.`. | `DEL` |
-| `gene`| Gene name or gene symbols associated with the variant. | `EPHB2` |
+| `svtype` | Structural variant type for SV/CNV records. SNV records receive `.` | `DEL` |
+| `gene`| Gene name or gene symbols associated with the variant | `BRCA1` |
 | `acmg_sf_gene` | ACMG SF gene symbol or symbols matched for this variant. Multiple matches are separated by `;`. | `BRCA1` |
-| `consequence` | Variant consequence or variant class, depending on source report. | `missense_variant`; `DEL` |
-| `family` | Family or project identifier. | `FAM-001267` |
-| `sample_zygosities` | Collapsed zygosity values across available sample zygosity columns. Values are formatted as `sample=value` and separated by `;`. | `CS4C_060001_EXP_0001=Het;CS4C_060002_EXP_0001=Hom` |
-| `sample_genotypes` | Collapsed genotype values across available sample genotype columns. Values are formatted as `sample=value` and separated by `;`. |`CS1C_000001_EXP_0001=0/1; |
-| `clinvar` | ClinVar annotation when available. | `Pathogenic` |
-| `gnomad_af` | gnomAD allele frequency when available. | `0.00001` |
+| `consequence` | Variant consequence or variant class, depending on source report | `missense_variant`; `DEL` |
+| `family` | Family or project identifier | `FAM-001267` |
+| `sample_zygosities` | Collapsed zygosity values across available sample zygosity columns. Values are formatted as `sample=value` and separated by `;`. | `CA1C_000001_EXP_0001=Het;CA1C_000002_EXP_0001=Hom` |
+| `sample_genotypes` | Collapsed genotype values across available sample genotype columns. Values are formatted as `sample=value` and separated by `;` |`CS1C_000001_EXP_0001=0/1; |
+| `clinvar` | ClinVar annotation when available | `Pathogenic` |
+| `gnomad_af` | gnomAD allele frequency when available | `0.00001` |
 | `ucsc_link` | Link to the locus in the UCSC genome browser| `=HYPERLINK("http://genome.ucsc.edu/...", "UCSC link")` |
-| `in_high_impact_report` | Indicates whether the same ACMG-flagged variant was also found in the WGS high-impact CH report. | `True`; `.`; |
-| `variant_reported_in` | Source report where the variant row was pulled from.  | `wgs.coding.CH`; `sv.CH`; `cnv.CH` |
-| `variant_key` | Internal key used to match variants across source reports. SNVs use position/ref/alt; SV/CNV records use chrom/pos/end/SVTYPE. | `chr1:12345:A:T`; `chr1:12345:13000:DEL` |
+| `in_high_impact_report` | Indicates whether the same ACMG-flagged variant was also found in the WGS high-impact report. | `True`; `.`; |
+| `variant_reported_in` | Source report where the variant row was pulled from.  | `wgs.coding`; `sv`; `cnv` |
