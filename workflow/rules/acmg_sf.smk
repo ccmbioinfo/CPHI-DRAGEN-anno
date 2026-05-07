@@ -33,7 +33,7 @@ rule create_acmg_sf_report:
             input_report_type=acmg_sf_input_report_type,
         ),
     output:
-        report="reports/{family}.acmg_sf_report.hg38.csv",
+        report="reports/{family}.ACMG.SF.hg38.csv",
     params:
         acmg_sf_version=config["annotation"]["general"]["acmg_sf_version"],
     log:
