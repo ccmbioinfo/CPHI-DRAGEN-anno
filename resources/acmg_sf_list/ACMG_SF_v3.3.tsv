@@ -1,0 +1,104 @@
+Phenotype	ACMG SF List Version	MIM Disorder	Gene	HGNC_ID	Inheritance	Variants to Report
+X-linked adrenoleukodystrophy	3.3	300100	ABCD1	HGNC:61	XL	All hemi or homozygous P and LP or 2 het. P/LP variants
+Familial thoracic aortic aneurysm	1.0	611788	ACTA2	HGNC:130	AD	All P and LP
+Hypertrophic cardiomyopathy	1.0	612098	ACTC1	HGNC:143	AD	All P and LP
+Hereditary hemorrhagic telangiectasia	3.0	600376	ACVRL1	HGNC:175	AD	All P and LP
+Familial adenomatous polyposis	1.0	175100	APC	HGNC:583	AD 	All P and LP
+Familial hypercholesterolemia	1.0	144010	APOB	HGNC:603	AD	All P and LP
+Wilson disease	2.0	277900	ATP7B	HGNC:870	AR	P and LP (2 variants)
+Dilated cardiomyopathy	3.1	613881	BAG3	HGNC:939	AD	All P and LP
+Myofibrillar myopathy	3.1	612954	BAG3	HGNC:939	AD	All P and LP
+Juvenile polyposis syndrome	1.0	174900	BMPR1A	HGNC:1076	AD	All P and LP
+Hereditary breast and ovarian cancer	1.0	604370	BRCA1	HGNC:1100	AD	All P and LP
+Hereditary breast and ovarian cancer	1.0	612555	BRCA2	HGNC:1101	AD	All P and LP
+Biotinidase deficiency	3.0	253260	BTD	HGNC:1122	AR	P and LP (2 variants)
+Malignant hyperthermia	1.0	601887	CACNA1S	HGNC:1397	AD	All P and LP
+Long-QT syndrome type 14	3.2	616247	CALM1	HGNC:1442	AD	All P and LP
+Catecholaminergic polymorphic ventricular tachycardia	3.2	614916	CALM1	HGNC:1442	AD	All P and LP
+Long-QT syndrome type 15	3.2	616249	CALM2	HGNC:1445	AD	All P and LP
+Catecholaminergic polymorphic ventricular tachycardia	3.2	616249	CALM2	HGNC:1445	AD	All P and LP
+Long-QT syndrome type 16	3.2	618782	CALM3	HGNC:1449	AD	All P and LP
+Catecholaminergic polymorphic ventricular tachycardia	3.2	618782	CALM3	HGNC:1449	AD	All P and LP
+Catecholaminergic polymorphic ventricular tachycardia	3.0	611938	CASQ2	HGNC:1513	AR	P and LP (2 variants)
+"Ehlers-Danlos syndrome	 vascular type"	1.0	130050	COL3A1	HGNC:2201	AD	All P and LP
+Cerebrotendinous xanthomatosis	3.3	213700	CYP27A1	HGNC:2605	AR	P and LP (2 variants)
+Myofibrillar myopathy	3.1	601419	DES	HGNC:2770	AD	All P and LP
+Dliated cardiomyopathy	3.1	604765	DES	HGNC:2770	AD	All P and LP
+Arrhythmogenic right ventricular cardiomyopathy	1.0	610476	DSC2	HGNC:3036	AD	All P and LP
+Arrhythmogenic right ventricular cardiomyopathy	1.0	610193	DSG2	HGNC:3049	AD	All P and LP
+Arrhythmogenic right ventricular cardiomyopathy	1.0	607450	DSP	HGNC:3052	AD	All P and LP
+Dilated cardiomyopathy	1.0	615821	DSP	HGNC:3052	AD	All P and LP
+Hereditary hemorrhagic telangiectasia	3.0	187300	ENG	HGNC:3349	AD	All P and LP
+Marfan syndrome	1.0	154700	FBN1	HGNC:3603	AD	All P and LP
+Dilated cardiomyopathy	3.0		FLNC	HGNC:3756	AD	All P and LP
+Hypertrophic cardiomyopathy	3.0	617047	FLNC	HGNC:3756	AD	All P and LP
+Myofibrillar myopathy	3.0	609524	FLNC	HGNC:3756	AD	All P and LP
+Pompe disease	3.0	232300	GAA	HGNC:4065	AR	P and LP (2 variants)
+Fabry disease	1.0	301500	GLA	HGNC:4296	XL	"All hemi	 het	 homozygous P and LP"
+Hereditary hemochromatosis (c.845G>A; p.C282Y homozygotes only)	3.0	235200	HFE	HGNC:4886	AR	p.C282Y homozygotes only
+Maturity-Onset of Diabetes of the Young	3.0	600496	HNF1A	HGNC:11621	AD	All P and LP
+Long-QT syndrome type 2	1.0	613688	KCNH2	HGNC:6251	AD	All P and LP
+Long-QT syndrome type 1	1.0	192500	KCNQ1	HGNC:6294	AD	All P and LP
+Familial hypercholesterolemia	1.0	143890	LDLR	HGNC:6547	AD	All P and LP
+Dilated cardiomyopathy	1.0	115200	LMNA	HGNC:6636	AD	All P and LP
+Hereditary paraganglioma-pheochromocytoma syndrome	3.0	171300	MAX	HGNC:6913	AD	All P and LP
+Multiple endocrine neoplasia type 1	1.0	131100	MEN1	HGNC:7010	AD	All P and LP
+Lynch syndrome	1.0	609310	MLH1	HGNC:7127	AD	All P and LP
+Lynch syndrome	1.0	120435	MSH2	HGNC:7325	AD	All P and LP
+Lynch syndrome	1.0	614350	MSH6	HGNC:7329	AD	All P and LP
+MUTYH-associated polyposis	1.0	608456	MUTYH	HGNC:7527	AR	P and LP (2 variants)
+Hypertrophic cardiomyopathy	1.0	115197	MYBPC3	HGNC:7551	AD	All P and LP
+Familial thoracic aortic aneurysm	1.0	132900	MYH11	HGNC:7569	AD	All P and LP
+Hypertrophic cardiomyopathy	1.0	192600	MYH7	HGNC:7577	AD	All P and LP
+Dilated cardiomyopathy	1.0	613426	MYH7	HGNC:7577	AD	All P and LP
+Hypertrophic cardiomyopathy	1.0	608758	MYL2	HGNC:7583	AD	All P and LP
+Hypertrophic cardiomyopathy	1.0	608751	MYL3	HGNC:7584	AD	All P and LP
+NF2-related schwannomatosis	1.0	101000	NF2	HGNC:7773	AD	All P and LP
+Ornithine transcarbamylase deficiency	2.0	311250	OTC	HGNC:8512	XL	"All hemi	 het	 homozygous P and LP"
+Hereditary breast cancer	3.0	114480	PALB2	HGNC:26144	AD	All P and LP
+Familial hypercholesterolemia	1.0	603776	PCSK9	HGNC:20001	AD	All P and LP
+Arrhythmogenic right ventricular cardiomyopathy	1.0	609040	PKP2	HGNC:9024	AD	All P and LP
+Dilated cardiomyopathy	3.3	609909	PLN	HGNC:9080	AD	All P and LP
+Lynch syndrome	1.0	614337	PMS2	HGNC:9122	AD	All P and LP
+Hypertrophic cardiomyopathy	1.0	600858	PRKAG2	HGNC:9386	AD	All P and LP
+PTEN hamartoma tumor syndrome	1.0	158350	PTEN	HGNC:9588	AD	All P and LP
+Retinoblastoma	1.0	180200	RB1	HGNC:9884	AD	All P and LP
+Dliated cardiomyopathy	3.1	613172	RBM20	HGNC:27424	AD	All P and LP
+Familial medullary thyroid cancer	1.0	155240	RET	HGNC:9967	AD	All P and LP
+Multiple endocrine neoplasia type 2A	1.0	171400	RET	HGNC:9967	AD	All P and LP
+Multiple endocrine neoplasia type 2B	1.0	162300	RET	HGNC:9967	AD	All P and LP
+RPE65-related retinopathy	3.0	"204100	
+613794"	RPE65	HGNC:10294	AR	P and LP (2 variants)
+Malignant hyperthermia	1.0	145600	RYR1	HGNC:10483	AD	All P and LP
+Catecholaminergic polymorphic ventricular tachycardia	1.0	604772	RYR2	HGNC:10484	AD	All P and LP
+Long QT syndrome type 3	1.0	603830	SCN5A	HGNC:10593	AD	All P and LP
+Brugada syndrome	1.0	601144	SCN5A	HGNC:10593	AD	All P and LP
+Dilated cardiomyopathy	1.0	601154	SCN5A	HGNC:10593	AD	All P and LP
+Hereditary paraganglioma-pheochromocytoma syndrome	1.0	601650	SDHAF2	HGNC:26034	AD	All P and LP
+Hereditary paraganglioma-pheochromocytoma syndrome	1.0	"115310	
+171300"	SDHB	HGNC:10681	AD	All P and LP
+Hereditary paraganglioma-pheochromocytoma syndrome	1.0	605373	SDHC	HGNC:10682	AD	All P and LP
+Hereditary paraganglioma-pheochromocytoma syndrome	1.0	"168000	
+171300"	SDHD	HGNC:10683	AD	All P and LP
+Loeys-Dietz syndrome	1.0	613795	SMAD3	HGNC:6769	AD	All P and LP
+Juvenile polyposis syndrome	1.0	174900	SMAD4	HGNC:6770	AD	All P and LP
+Hereditary hemorrhagic telangiectasia	1.0	175050	SMAD4	HGNC:6770	AD	All P and LP
+Peutz-Jeghers syndrome	1.0	175200	STK11	HGNC:11389	AD	All P and LP
+Loeys-Dietz syndrome	1.0	609192	TGFBR1	HGNC:11772	AD	All P and LP
+Loeys-Dietz syndrome	1.0	610168	TGFBR2	HGNC:11773	AD	All P and LP
+Hereditary paraganglioma-pheochromocytoma syndrome	3.0	171300	TMEM127	HGNC:26038	AD	All P and LP
+Arrhythmogenic right ventricular cardiomyopathy	1.0	604400	TMEM43	HGNC:28472	AD	All P and LP
+Dilated cardiomyopathy	3.1	611879	TNNC1	HGNC:11943	AD	All P and LP
+Hypertrophic cardiomyopathy	1.0	613690	TNNI3	HGNC:11947	AD	All P and LP
+Dilated cardiomyopathy	1.0	601494	TNNT2	HGNC:11949	AD	All P and LP
+Hypertrophic cardiomyopathy	1.0	115195	TNNT2	HGNC:11949	AD	All P and LP
+Li-Fraumeni syndrome	1.0	151623	TP53	HGNC:11998	AD	All P and LP
+Hypertrophic cardiomyopathy	1.0	115196	TPM1	HGNC:12010	AD	All P and LP
+Catecholaminergic polymorphic ventricular tachycardia	3.0	615441	TRDN	HGNC:12261	AR	All P and LP
+Long QT syndrome	3.0		TRDN	HGNC:12261	AR	All P and LP
+Tuberous sclerosis complex	1.0	191100	TSC1	HGNC:12362	AD	All P and LP
+Tuberous sclerosis complex	1.0	613254	TSC2	HGNC:12363	AD	All P and LP
+Dilated cardiomyopathy (truncating variants only)	3.0	604145	TTN	HGNC:12403	AD	P and LP (truncating variants only)
+Hereditary transthyretin-related amyloidosis	3.1	105210	TTR	HGNC:12405	AD	All P and LP
+Von Hippel-Lindau syndrome	1.0	193300	VHL	HGNC:12687	AD	All P and LP
+WT1-related Wilms tumor	1.0	194070	WT1	HGNC:12796	AD	All P and LP
