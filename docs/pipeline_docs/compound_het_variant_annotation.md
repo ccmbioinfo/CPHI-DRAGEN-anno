@@ -112,7 +112,7 @@ CNV processing
 
 CH status determination
 
-10. Identify genes with CH status in proband using only proband long-read phased genotypes and phase block IDs from the variant table created in step 9.
+10. Identify genes with CH status in proband using only proband read-phased genotypes and phase block IDs from the variant table created in step 9.
 
 11. For genes with unknown CH status after step 9, attempt to determine CH status using parental variant genotypes if available.
 
