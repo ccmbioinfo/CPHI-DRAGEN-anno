@@ -29,7 +29,7 @@ rule get_sequence_variants_for_CH:
     input:
         gemini_db="annotated/coding/{family}-gemini.db"
     output:
-        variants="sequence_variants/{family}.{severity}.impact.variants.tsv",
+        variants="small_variants/{family}.{severity}.impact.variants.tsv",
     params:
         severity="{severity}",
         crg2_pacbio = config["tools"]["crg2_pacbio"],
@@ -47,7 +47,7 @@ rule get_VCF_sample_order:
     input:
         vcf="annotated/coding/vcfanno/{family}.coding.vep.vcfanno.vcf.gz",
     output:
-        sample_order="sequence_variants/{family}.sample.order.txt",
+        sample_order="small_variants/{family}.sample.order.txt",
     log:
         "logs/compound_hets/{family}.get.VCF.sample.order.log",
     conda:
