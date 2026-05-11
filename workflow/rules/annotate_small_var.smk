@@ -10,7 +10,7 @@ def get_filt_vcf(wildcards):
 
 rule input_prep:
     input:
-        vcf=get_sequence_var_vcf
+        vcf=get_small_variant_vcf
     params:
         outdir="filtered"
     output:

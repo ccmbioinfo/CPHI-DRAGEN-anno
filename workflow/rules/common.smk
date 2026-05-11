@@ -12,8 +12,8 @@ samples = pd.read_table(config["run"]["samples"], dtype=str).set_index("sample",
 units = pd.read_table(config["run"]["units"], dtype=str).set_index(["family"], drop=False)
 family = config["run"]["family"]
 
-def get_sequence_var_vcf(wildcards):
-    return units.loc[family, "sequence_variant_vcf"]
+def get_small_variant_vcf(wildcards):
+    return units.loc[family, "small_variant_vcf"]
     
 def get_repeat_dir(wildcards):
     return units.loc[family, "repeat_VCF_dir"]
