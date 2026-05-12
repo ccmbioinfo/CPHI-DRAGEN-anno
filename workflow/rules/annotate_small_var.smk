@@ -10,7 +10,7 @@ def get_filt_vcf(wildcards):
 
 rule input_prep:
     input:
-        vcf=get_sequence_var_vcf
+        vcf=get_small_variant_vcf
     params:
         outdir="filtered"
     output:
@@ -155,7 +155,7 @@ rule allsnvreport:
         db="annotated/{p}/{family}-gemini.db",
         vcf="annotated/{p}/vcfanno/{family}.{p}.vep.vcfanno.vcf.gz"
     output:
-        directory("sequence_variants/{p}/{family}")
+        directory("small_variants/{p}/{family}")
     conda:
         "../envs/cre.yaml"
     log:

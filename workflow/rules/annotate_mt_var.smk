@@ -1,7 +1,7 @@
 
 rule extract_mt_variants:
     input:
-        vcf=get_sequence_var_vcf
+        vcf=get_small_variant_vcf
     output:
         temp("mitochondrial_variants/{family}.dragen.mt.vcf.gz")
     params:
