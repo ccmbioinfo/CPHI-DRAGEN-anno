@@ -16,35 +16,34 @@ def get_value(row, col, default="."):
 def clean_sample_name(sample_name):
     return str(sample_name).replace("-", "_")
 
-def collapse_sample_zygosity_genotype_values(row, df, value_type):
-    sample_values = []
+def discover_samples(df):
+    zygosity_by_sample = {}
+    genotype_by_sample = {}
 
     for col in df.columns:
-        if value_type == "zygosity":
-            if col.startswith("Zygosity."):
-                sample = col.replace("Zygosity.", "")
-            elif col.endswith("_zyg"):
-                sample = col[:-4]
-            else:
-                continue
+        if col.startswith("Zygosity."):
+            sample = clean_sample_name(col.replace("Zygosity.", ""))
+            zygosity_by_sample[sample] = col
+        elif col.endswith("_zyg"):
+            sample = clean_sample_name(col[:-4])
+            zygosity_by_sample[sample] = col
+        elif col.endswith("_GT"):
+            sample = clean_sample_name(col[:-3])
+            genotype_by_sample[sample] = col
 
-        elif value_type == "genotype":
-            if col.endswith("_GT"):
-                sample = col[:-3]
-            else:
-                continue
+    all_samples = sorted(set(zygosity_by_sample) | set(genotype_by_sample))
+    return [
+        (sample, zygosity_by_sample.get(sample), genotype_by_sample.get(sample))
+        for sample in all_samples
+    ]
 
-        else:
-            continue
 
-        value = get_value(row, col)
-        sample = clean_sample_name(sample)
-        sample_values.append(f"{sample}={value}")
-
-    if len(sample_values) == 0:
-        return "."
-
-    return ";".join(sample_values)
+def per_sample_zygosity_genotype_columns(row, sample_columns):
+    columns = {}
+    for sample, zygosity_col, genotype_col in sample_columns:
+        columns[f"{sample}_zyg"] = get_value(row, zygosity_col) if zygosity_col else "."
+        columns[f"{sample}_GT"] = get_value(row, genotype_col) if genotype_col else "."
+    return columns
 
 
 def make_variant_key(row, input_report_type):
@@ -62,6 +61,7 @@ def make_variant_key(row, input_report_type):
 
 def make_acmg_sf_report_rows(df, family, input_report_type, acmg_col):
     acmg_matches = df[df[acmg_col] != "."].copy()
+    sample_columns = discover_samples(acmg_matches)
     report_rows = []
 
     for _, row in acmg_matches.iterrows():
@@ -96,7 +96,7 @@ def make_acmg_sf_report_rows(df, family, input_report_type, acmg_col):
         else:
             continue
 
-        report_rows.append({
+        report_row = {
             "POSITION": position,
             "END": end,
             "REF": ref,
@@ -106,8 +106,6 @@ def make_acmg_sf_report_rows(df, family, input_report_type, acmg_col):
             "ACMG_SF_GENE": get_value(row, acmg_col),
             "CONSEQUENCE": consequence,
             "FAMILY": family,
-            "SAMPLE_ZYGOSITIES": collapse_sample_zygosity_genotype_values(row, acmg_matches, "zygosity"),
-            "SAMPLE_GENOTYPES": collapse_sample_zygosity_genotype_values(row, acmg_matches, "genotype"),
             "CLINVAR": clinvar,
             "GNOMAD_AF": gnomad_af,
             "UCSC_LINK": ucsc_link,
@@ -115,7 +113,9 @@ def make_acmg_sf_report_rows(df, family, input_report_type, acmg_col):
             "IN_DENOVO_REPORT": False,
             "VARIANT_REPORTED_IN": input_report_type,
             "VARIANT_KEY": make_variant_key(row, input_report_type),
-        })
+        }
+        report_row.update(per_sample_zygosity_genotype_columns(row, sample_columns))
+        report_rows.append(report_row)
 
     return pd.DataFrame(report_rows)
 
@@ -214,8 +214,8 @@ def main(family, input_reports, output_csv, acmg_sf_version):
             "ACMG_SF_GENE",
             "CONSEQUENCE",
             "FAMILY",
-            "SAMPLE_ZYGOSITIES",
-            "SAMPLE_GENOTYPES",
+            "SAMPLE_ZYGOSITY",
+            "SAMPLE_GENOTYPE",
             "CLINVAR",
             "GNOMAD_AF",
             "UCSC_LINK",
