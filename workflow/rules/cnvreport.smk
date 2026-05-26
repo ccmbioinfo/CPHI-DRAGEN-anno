@@ -50,7 +50,8 @@ rule cnv_report:
         ensembl = config["annotation"]["general"]["ensembl"],
         clingen_path = config["annotation"]["general"]["clingen_path"],
         samples = config["run"]["samples"],
-        thousandg = config["annotation"]["sv_report"]["1000G_SV"]
+        thousandg = config["annotation"]["sv_report"]["1000G_SV"],
+        GSO_SV = config["annotation"]["sv_report"]["GSO_SV"]
     conda:
         "../envs/str_sv.yaml"
     shell:
@@ -72,6 +73,7 @@ rule cnv_report:
                         -clingen_disease {params.clingen_path}/ClinGen_tableExport_202310.csv \
                         -clingen_regions {params.clingen_path}/ClinGen_region_curation_list_GRCh38.tsv \
                         -thousandg {params.thousandg} \
+                        -GSO_SV {params.GSO_SV} \
                         -samples {params.samples}) > {log} 2>&1
 
             else
@@ -91,6 +93,7 @@ rule cnv_report:
                     -clingen_disease {params.clingen_path}/ClinGen_tableExport_202310.csv \
                     -clingen_regions {params.clingen_path}/ClinGen_region_curation_list_GRCh38.tsv \
                     -thousandg {params.thousandg} \
+                    -GSO_SV {params.GSO_SV} \
                     -samples {params.samples}) > {log} 2>&1
             fi
         """
