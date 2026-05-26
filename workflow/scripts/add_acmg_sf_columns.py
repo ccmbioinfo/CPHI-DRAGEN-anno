@@ -47,7 +47,7 @@ def main(family, input_report_type, input_csv, output_csv, acmg_sf_tsv, acmg_sf_
     log_message(f"Loaded {len(df)} rows from {input_csv}")
 
     gene_col = None
-    for col_name in ["Gene", "GENE_NAME", "GENE", "gene"]:
+    for col_name in ["Gene", "GENE_NAME_CDS", "GENE_NAME", "GENE", "gene"]: # only consider SVs that overlap gene CDS
         if col_name in df.columns:
             gene_col = col_name
             break
