@@ -123,6 +123,10 @@ The 1000 Genomes sequence variant database (n=3,202, 602 trios) used to annotate
 | `thousandG_AF` | Allele frequency in 1000 Genomes DRAGEN v4.4 genomes (n=3,202, 602 trios) | [1000 Genomes](https://registry.opendata.aws/ilmn-dragen-1kgp/) | 0.0002 |
 | `thousandG_AC` | Allele count in 1000 Genomes DRAGEN v4.4 genomes (n=3,202, 602 trios) | [1000 Genomes](https://registry.opendata.aws/ilmn-dragen-1kgp/) | 2 |
 | `thousandG_nhomalt` | Homozygous alternate count in 1000 Genomes DRAGEN v4.4 genomes (n=3,202, 602 trios) | [1000 Genomes](https://registry.opendata.aws/ilmn-dragen-1kgp/) | 0 |
+| `GSO_AF` | Allele frequency in GSO DRAGEN genomes (n=8,439). NB: this resource includes both affected probands and parents. | DPLM 2026-04-06 | 0.00225099991076 | 
+| `GSO_AC` | Allele count in GSO DRAGEN genomes (n=8,439). NB: this resource includes both affected probands and parents.| DPLM 2026-04-06 | 38 | 
+| `GSO_nhomalt` | Number of homozygotes in GSO DRAGEN genomes (n=8,439). NB: this resource includes both affected probands and parents. | DPLM 2026-04-06 | 1 | 
+| `GSO_hemi` | Number of hemizygotes in GSO DRAGEN genomes (n=8,439). NB: this resource includes both affected probands and parents. | DPLM 2026-04-06 | 0 | 
 | `Ensembl_transcript_id` | Most severely affected transcript | VEP | ENST00000374632 |
 | `rsIDs` | Variant IDs (dbSNP) | VEP | rs28936395 |
 | `AA_position` | Amino-acid position for most severely-affected transcript | VEP | 679/987 |
