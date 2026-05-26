@@ -9,7 +9,7 @@ This annotation is applied after compound heterozygous status is determined and 
 
 ### Gene matching
 
-Each variant's gene field is matched against ACMG SF gene symbols. Gene fields may contain multiple symbols and a single variant may match multiple ACMG SF genes (e.g fusions or very large CNVs).
+Each variant's gene field is matched against ACMG SF gene symbols. Gene fields may contain multiple symbols and a single variant may match multiple ACMG SF genes (e.g fusions or very large CNVs). For SVs and CNVs, only variants overlapping the coding sequence of an ACMG gene(s) are considered.
 
 ### Inputs
 - CH reports: wgs.coding, wgs.high.impact, sv, cnv, and wgs.denovo if available. 
@@ -49,7 +49,8 @@ Combined ACMG SF report columns
 | `CONSEQUENCE` | Variant consequence | `missense_variant` |
 | `FAMILY` | Family or project identifier | `FAM-001267` |
 | `SAMPLE_ZYGOSITIES` | Collapsed zygosity values across available sample zygosity columns. Values are formatted as `sample=value` and separated by `;`. | `CA1C_000001_EXP_0001=Het;CA1C_000002_EXP_0001=Hom` |
-| `SAMPLE_GENOTYPES` | Collapsed genotype values across available sample genotype columns. Values are formatted as `sample=value` and separated by `;` |`CS1C_000001_EXP_0001=0/1; |
+| `SAMPLE_zyg` | Sample zygosity |
+| `SAMPLE_gt` | Sample genotype |
 | `CLINVAR` | ClinVar annotation when available | `Pathogenic` |
 | `GNOMAD_AF` | gnomAD allele frequency when available | `0.00001` |
 | `UCSC_LINK` | Link to the locus in the UCSC genome browser| `=HYPERLINK("http://genome.ucsc.edu/...", "UCSC link")` |
