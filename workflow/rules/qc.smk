@@ -162,7 +162,8 @@ rule dragenmetrics:
     conda:
         "../envs/annotate.yaml"
     params:
-        outdir="qc/multiqc_custom/{family}"
+        outdir="qc/multiqc_custom/{family}",
+        dragen_output_schema=config["run"].get("dragen_output_schema", "")
     script:
         "../scripts/dragen_metrics_to_mqc.py"
 
