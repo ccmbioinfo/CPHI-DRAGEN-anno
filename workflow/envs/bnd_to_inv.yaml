@@ -5,3 +5,4 @@ channels:
 dependencies:
   - python=3.12
   - samtools=1.23
+  - bcftools=1.23
