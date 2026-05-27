@@ -7,16 +7,21 @@ rule bnd_to_inv:
         "logs/sv/{family}.bnd_to_inv.log"
     params:
         cphi_dragen = config["tools"]["cphi-dragen-anno"],
-        ref_fasta = config["ref"]["genome"]
+        ref_fasta = config["ref"]["genome"],
+        dragen_output_schema = config["run"].get("dragen_output_schema", "")
     conda:
         "../envs/bnd_to_inv.yaml"
     shell:
         """
-        (python3 {params.cphi_dragen}/workflow/scripts/bnd_to_inv_SVs.py \
-            $(command -v samtools) \
-            {params.ref_fasta} \
-            {input.vcf} \
-            > {output.vcf}) > {log} 2>&1
+        if [[ "{params.dragen_output_schema}" == "modified" ]]; then
+            (bcftools view -Ov -o {output.vcf} {input.vcf}) > {log} 2>&1
+        else
+            (python3 {params.cphi_dragen}/workflow/scripts/bnd_to_inv_SVs.py \
+                $(command -v samtools) \
+                {params.ref_fasta} \
+                {input.vcf} \
+                > {output.vcf}) > {log} 2>&1
+        fi
         """
 
 rule snpeff:
