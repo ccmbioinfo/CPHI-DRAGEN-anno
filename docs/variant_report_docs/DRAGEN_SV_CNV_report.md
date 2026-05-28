@@ -57,6 +57,7 @@ The 1000 Genomes SV database used in report generation was created from [DRAGEN 
   - `gnomad_maxAF < 0.01`
   - `DGV_maxAF < 0.01`
   - `1000G_maxAF < 0.01`
+  - `GSO_maxAF < 0.01`
 
 For analysis, we recommend considering any exon-overlapping SVs or CNVs seen in the proband:
 
@@ -135,6 +136,13 @@ The SV and CNV reports share most columns. Columns that are SV-only or CNV-only 
 | `1000G_SV` | Coordinates/type of matching 1000 Genomes SV(s), where matching is determined using the report’s SVTYPE-specific comparison logic | 1000 Genomes SV database | DEL:10:103293394-103294434 |
 | `1000G_maxAF` | Maximum allele frequency among matching 1000 Genomes SV(s) | 1000 Genomes SV database | 0.15 |
 | `1000G_nhomalt_max` | Maximum homozygous alternate count among matching 1000 Genomes SV(s) | 1000 Genomes SV database | 254 |
+| `GSO_AF` | Allele frequency in GSO DRAGEN genomes (n=7,857). NB: this resource includes both affected probands and parents. | DPLM 2026-04-06 | 0.000636| 
+| `GSO_AC` | Allele count in GSO DRAGEN genomes (n=7,857). NB: this resource includes both affected probands and parents. | DPLM 2026-04-06 | 10 | 
+| `GSO_hemi` | Number of hemizygotes in GSO DRAGEN genomes (n=7,857). NB: this resource includes both affected probands and parents. | DPLM 2026-04-06 | 0 | 
+| `GSO_nhomalt` | Number of homozygotes in GSO DRAGEN genomes (n=7,857). NB: this resource includes both affected probands and parents. | DPLM 2026-04-06 | 4 | 
+| `GSO_SV` | Coordinates/type of matching GSO SV(s), where matching is determined using the report’s SVTYPE-specific comparison logic | DPLM 2026-04-06 | INS:10:100315123-100315126 | 
+| `GSO_maxAF` | Maximum allele frequency among matching GSO SV(s) | DPLM 2026-04-06 | 0.000636 | 
+| `GSO_nhomalt_max` | Maximum homozygous alternate count of matching GSO SV(s) | DPLM 2026-04-06 | 4 | 
 | `ExAC_delZ` | Positive delZ\_ExAC (Z score) from ExAC indicate gene intolerance to deletion | AnnotSV | 0.018797621 |
 | `ExAC_dupZ` | Positive dupZ\_ExAC (Z score) from ExAC indicate gene intolerance to duplication | AnnotSV | \-1.900013288 |
 | `ExAC_cnvZ` | Positive cnvZ\_ExAC (Z score) from ExAC indicate gene intolerance to CNV | AnnotSV | \-1.383777638 |

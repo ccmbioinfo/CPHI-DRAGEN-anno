@@ -88,6 +88,10 @@ sQuery="select \
         thousandG_ac as thousandG_AC,\
         thousandG_af as thousandG_AF,\
         thousandG_nhomalt as thousandG_nhomalt,\
+        GSO_AC as GSO_AC,\
+        GSO_nhomalt as GSO_nhomalt,\
+        GSO_hemi as GSO_hemi,\
+        GSO_AF as GSO_AF,\
         sift_score as Sift_score,\
         polyphen_score as Polyphen_score,\
         cadd_phred as Cadd_score,\

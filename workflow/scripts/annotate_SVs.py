@@ -950,6 +950,7 @@ def main(
     gnomad,
     dgv,
     thousandg,
+    GSO_SV,
     ensembl,
     repeats,
     clingen_HI,
@@ -1079,6 +1080,11 @@ def main(
     thousandg_cols = ["1000G_AF", "1000G_AC", "1000G_nhomalt"]
     df_merge = annotate_pop_svs(df_merge, thousandg, thousandg_cols, variant_type)
 
+    # add GSO SVs
+    print("Adding GSO SV frequencies")
+    GSO_SV_cols = ["GSO_AF", "GSO_AC", "GSO_hemi", "GSO_nhomalt"]
+    df_merge = annotate_pop_svs(df_merge, GSO_SV, GSO_SV_cols, variant_type)
+
     # add exon counts
     df_merge = get_exon_counts(df_merge, exon_bed)
 
@@ -1183,6 +1189,7 @@ def main(
         + gnomad_cols
         + dgv_cols
         + thousandg_cols
+        + GSO_SV_cols
         + [
             "ExAC_delZ",
             "ExAC_dupZ",
@@ -1261,6 +1268,12 @@ if __name__ == "__main__":
         required=True, 
         help="1000G SV in bed format"
         )
+    parser.add_argument(
+        "-GSO_SV",
+        type=str,
+        required=True,
+        help="GSO SVs in bed format"
+    )
     parser.add_argument(
         "-ensembl",
         help="Ensembl GTF subset CSV file",
@@ -1355,6 +1368,7 @@ if __name__ == "__main__":
         args.gnomad,
         args.dgv,
         args.thousandg,
+        args.GSO_SV,
         args.ensembl,
         args.repeats,
         clingen_HI,

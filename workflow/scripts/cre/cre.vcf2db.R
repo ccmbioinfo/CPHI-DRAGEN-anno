@@ -476,7 +476,7 @@ create_report <- function(family, samples, type){
     # Column 57: ENH_cellline_tissue
 
     # replace -1 with 0
-    for (field in c("Trio_coverage", "Gnomad_af", "Gnomad_af_grpmax", "Gnomad_fafmax_faf95_max", "Regeneron_exome_AF", "Regeneron_exome_AC", "thousandG_AF", "thousandG_AC", "thousandG_nhomalt")){
+    for (field in c("Trio_coverage", "Gnomad_af", "Gnomad_af_grpmax", "Gnomad_fafmax_faf95_max", "Regeneron_exome_AF", "Regeneron_exome_AC", "thousandG_AF", "thousandG_AC", "thousandG_nhomalt", "GSO_AC", "GSO_nhomalt", "GSO_hemi", "GSO_AF")){
         variants[,field] <- with(variants, gsub("-1", "0", get(field), fixed = T))
         variants[,field] <- with(variants, gsub("None", "0", get(field), fixed = T))
     }
@@ -520,6 +520,7 @@ select_and_write2 <- function(variants, samples, prefix, type)
                             "Gnomad_af_grpmax", "Gnomad_af", "Gnomad_ac", "Gnomad_hom", "Gnomad_male_ac","Gnomad_fafmax_faf95_max", "Gnomad_filter",
                             "Regeneron_exome_AF", "Regeneron_exome_AC",
                             "thousandG_AF", "thousandG_AC", "thousandG_nhomalt",
+                            "GSO_AF", "GSO_AC", "GSO_nhomalt", "GSO_hemi",
                             "Ensembl_transcript_id", "rsIDs"),
                             protein_cols,
                             c("Gnomad_oe_lof_score", "Gnomad_oe_ci_lower","Gnomad_oe_ci_upper","Gnomad_oe_mis_score", "Gnomad_mis_z_score","Gnomad_pLI_score","Gnomad_pnull_score","Gnomad_prec_score"),
