@@ -25,6 +25,8 @@ def get_sv_vcf(wildcards):
 def get_cram(wildcards):
     results_path = samples.loc[wildcards.sample, "DRAGEN_results_dir"]
     cram = f"{results_path}/output/{wildcards.sample}.cram"
+    if not os.path.exists(cram): # non-CPHI family
+        cram =  f"{results_path}/{wildcards.sample}.cram"
     return cram
 
 def get_dragen_metrics_files(wildcards):
@@ -33,6 +35,7 @@ def get_dragen_metrics_files(wildcards):
     return metrics_files
 
 def get_cnv_vcf(wildcards):
+    print(units.loc[family, "CNV_vcf"])
     input_vcf = units.loc[family, "CNV_vcf"]
     return input_vcf
 
