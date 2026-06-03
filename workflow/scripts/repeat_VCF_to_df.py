@@ -19,8 +19,11 @@ def main(repeat_vcfs, output_file):
     results_paths = samples_df["DRAGEN_results_dir"].tolist()
     try:
         vcf_files = [glob.glob(f"{dir}/output/*repeats.vcf.gz")[0] for dir in results_paths]
-    except IndexError:
-        raise ValueError(f"No repeats VCF found in {results_paths}")
+    except IndexError: # non-CPHI family
+        try:
+            vcf_files = [glob.glob(f"{dir}/*repeats.vcf.gz")[0] for dir in results_paths]
+        except IndexError:
+            raise ValueError(f"No repeats VCF found in {results_paths}")
     with open(output_file, "w") as f:
         for repeat_vcf in vcf_files:
             variants = VariantFile(repeat_vcf)

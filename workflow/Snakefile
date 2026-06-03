@@ -5,11 +5,14 @@ import pandas as pd
 min_version("9.16.2")
 
 def get_children_ids(ped_file):
-    pedigree = pd.read_csv(ped_file, sep="\t", header=None, 
+    pedigree = pd.read_csv(ped_file, sep=None, header=None, 
                           names=["family_ID", "individual_ID", "paternal_ID", "maternal_ID", "sex", "phenotype"])
     pedigree = pedigree.astype(str)
-    children = pedigree[pedigree["paternal_ID"] != "0"][pedigree["maternal_ID"] != "0"]["individual_ID"].apply(lambda x: x.split("_")[1]).values
-    family = pedigree["family_ID"].iloc[0]
+    try:
+        children = pedigree[pedigree["paternal_ID"] != "0"][pedigree["maternal_ID"] != "0"]["individual_ID"].apply(lambda x: x.split("_")[1]).values
+    except IndexError:
+        # non-CPHI family 
+        children = pedigree[pedigree["paternal_ID"] != "0"][pedigree["maternal_ID"] != "0"]["individual_ID"].values 
 
     return children
 
