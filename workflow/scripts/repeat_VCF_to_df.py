@@ -14,14 +14,14 @@ def recode_gt(gt):
             alleles.append(str(allele))
     return "/".join(alleles)
 
-def main(repeat_vcfs, output_file):
+def main(repeat_vcfs, family, output_file):
     samples_df = pd.read_csv(samples_tsv, sep="\t", dtype=str)
     results_paths = samples_df["DRAGEN_results_dir"].tolist()
     try:
         vcf_files = [glob.glob(f"{dir}/output/*repeats.vcf.gz")[0] for dir in results_paths]
     except IndexError: # non-CPHI family
         try:
-            vcf_files = [glob.glob(f"{dir}/*repeats.vcf.gz")[0] for dir in results_paths]
+            vcf_files = glob.glob(f"{results_paths[0]}/{family}*repeats.vcf.gz")
         except IndexError:
             raise ValueError(f"No repeats VCF found in {results_paths}")
     with open(output_file, "w") as f:
@@ -57,11 +57,17 @@ if __name__ == "__main__":
         "--samples_tsv", type=str, help="Samples TSV with DRAGEN results paths", required=True
     )
     parser.add_argument(
+        "--family", type=str, help="Family ID", required=True
+    )
+    parser.add_argument(
         "--output_file", type=str, help="Output filename", required=True
     )
 
     args = parser.parse_args()
     samples_tsv = args.samples_tsv
     output_file = args.output_file
+    family = args.family
+    if "GD" in family:
+        family = family.replace("GD", "GD-")
 
-    main(samples_tsv, output_file)
+    main(samples_tsv, family, output_file)
