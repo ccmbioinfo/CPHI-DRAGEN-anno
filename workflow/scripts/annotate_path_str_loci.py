@@ -41,7 +41,7 @@ def is_disease(motif_count, gene, threshold):
     return is_disease
 
 
-def main(repeat_tsv, disease_thresholds, output_file):
+def main(repeat_tsv, disease_thresholds, samples_tsv, output_file):
     repeat_df = pd.read_csv(repeat_tsv, sep="\t", names=["SAMPLE", "CHROM", "POS", "VARID", "REF", "RL", "RU", "GT", "SO", "motif_count", "REPCI", "ADSP", "ADFL", "ADIR", "coverage"])
     repeat_df.set_index(["CHROM", "POS", "VARID", "REF", "RL", "RU"], inplace=True)
     samples = repeat_df["SAMPLE"].unique()
@@ -72,9 +72,18 @@ def main(repeat_tsv, disease_thresholds, output_file):
         rename_col = col.replace("_motif_count", "")
         repeat_pivot_with_thresholds.rename(columns={col: rename_col}, inplace=True)
     # format for export
-    sample_cols = repeat_pivot_with_thresholds.columns[repeat_pivot_with_thresholds.columns.str.contains("EXP")]
-    sample_cols = [col for col in sample_cols if "_SO" not in col and "DISEASE_PREDICTION" not in col] 
-    disease_pred_cols = [col for col in repeat_pivot_with_thresholds.columns if "DISEASE_PREDICTION" in col]
+    samples = pd.read_csv(samples_tsv, sep="\t", dtype=str)
+    samples = samples["sample"].tolist()
+    sample_cols = []
+    disease_pred_cols = []
+    for sample in samples:
+        cols = [col for col in repeat_pivot_with_thresholds.columns if sample in col]
+        for col in cols:
+            if "DISEASE_PREDICTION" in col:
+                disease_pred_cols.append(col)
+            else:
+                if "_SO" not in col:
+                    sample_cols.append(col)
     report_cols = (
         [
             "CHROM",
@@ -129,15 +138,18 @@ if __name__ == "__main__":
     )
     parser.add_argument("--repeat_tsv", type=str, help="Repeat TSV", required=True)
     parser.add_argument("--disease_thresholds", type=str, help="Repeat loci", required=True)
+    parser.add_argument("--samples_tsv", type=str, help="Samples TSV", required=True)
     parser.add_argument("--output_file", type=str, help="Output filename", required=True)
 
     args = parser.parse_args()
     repeat_tsv = args.repeat_tsv
     disease_thresholds = args.disease_thresholds
+    samples_tsv = args.samples_tsv
     output_file =args.output_file
 
     main(
         repeat_tsv,
         disease_thresholds,
+        samples_tsv,
         output_file
     )
