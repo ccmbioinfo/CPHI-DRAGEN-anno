@@ -1,3 +1,5 @@
+import os
+
 def get_filt_vcf(wildcards):
     if wildcards.p == "coding":
         return "filtered/{family}.vcf.gz"
@@ -7,6 +9,22 @@ def get_filt_vcf(wildcards):
         return "filtered/{family}.denovo.vcf.gz"
     else:
         return "filtered/{p}/{family}.{p}.vcf.gz".format(p=wildcards.p,family=family)
+
+
+slivar_script_dir = os.path.join(workflow.basedir, "scripts", "slivar")
+cre_data_dir = os.path.join(workflow.basedir, "scripts", "cre", "data")
+
+
+def get_slivar_report_table_inputs():
+    return {
+        "gene_descriptions": os.path.join(cre_data_dir, "ensembl_w_description.txt"),
+        "omim": os.path.join(cre_data_dir, "OMIM_hgnc_join_omim_phenos_2025-07-10.tsv"),
+        "orphanet": os.path.join(cre_data_dir, "orphanet.txt"),
+        "constraint": os.path.join(cre_data_dir, "gnomad_scores_transcript_level_v4.1.1.csv"),
+        "imprinting": os.path.join(cre_data_dir, "imprinting.txt"),
+        "pseudoautosomal": os.path.join(cre_data_dir, "pseudoautosomal.txt"),
+    }
+
 
 rule input_prep:
     input:
@@ -187,6 +205,405 @@ rule allsnvreport:
          fi;
          ) > {log} 2>&1
          '''
+
+
+rule slivar_select_coding:
+    input:
+        vcf="annotated/coding/vcfanno/{family}.coding.vep.vcfanno.vcf.gz"
+    output:
+        rare_impactful="small_variants_slivar/coding/{family}/branches/{family}.coding.rare_impactful.vcf.gz",
+        rare_impactful_tbi="small_variants_slivar/coding/{family}/branches/{family}.coding.rare_impactful.vcf.gz.tbi",
+        rare_clinvar="small_variants_slivar/coding/{family}/branches/{family}.coding.rare_clinvar.vcf.gz",
+        rare_clinvar_tbi="small_variants_slivar/coding/{family}/branches/{family}.coding.rare_clinvar.vcf.gz.tbi",
+        common_pathogenic_clinvar="small_variants_slivar/coding/{family}/branches/{family}.coding.common_pathogenic_clinvar.vcf.gz",
+        common_pathogenic_clinvar_tbi="small_variants_slivar/coding/{family}/branches/{family}.coding.common_pathogenic_clinvar.vcf.gz.tbi",
+        rare_clinvar_allow_missing_faf="small_variants_slivar/coding/{family}/branches/{family}.coding.rare_clinvar_allow_missing_faf.vcf.gz",
+        rare_clinvar_allow_missing_faf_tbi="small_variants_slivar/coding/{family}/branches/{family}.coding.rare_clinvar_allow_missing_faf.vcf.gz.tbi",
+    log:
+        "logs/slivar/{family}.coding.select.log"
+    conda:
+        "../wrappers/slivar/environment.yaml"
+    params:
+        js=os.path.join(slivar_script_dir, "slivar_functions.js"),
+        order=os.path.join(slivar_script_dir, "default-order.txt"),
+        mode="coding"
+    wrapper:
+        get_wrapper_path("slivar")
+
+
+rule slivar_postfilter_coding:
+    input:
+        rare_impactful="small_variants_slivar/coding/{family}/branches/{family}.coding.rare_impactful.vcf.gz",
+        rare_clinvar="small_variants_slivar/coding/{family}/branches/{family}.coding.rare_clinvar.vcf.gz",
+        common_pathogenic_clinvar="small_variants_slivar/coding/{family}/branches/{family}.coding.common_pathogenic_clinvar.vcf.gz",
+        rare_clinvar_allow_missing_faf="small_variants_slivar/coding/{family}/branches/{family}.coding.rare_clinvar_allow_missing_faf.vcf.gz",
+    output:
+        vcf="small_variants_slivar/coding/{family}/{family}.coding.post_gemini_filter.vcf",
+        key_file="small_variants_slivar/coding/{family}/{family}.coding.post_gemini_filter.keys.txt",
+        audit="small_variants_slivar/coding/{family}/{family}.coding.post_gemini_filter.audit.tsv",
+        reasons="small_variants_slivar/coding/{family}/{family}.coding.post_gemini_filter.reasons.tsv",
+        summary="small_variants_slivar/coding/{family}/{family}.coding.post_gemini_filter.summary.txt",
+    log:
+        "logs/slivar/{family}.coding.postfilter.log"
+    conda:
+        "../envs/slivar.yaml"
+    params:
+        script=os.path.join(slivar_script_dir, "postfilter.py"),
+        out_prefix="small_variants_slivar/coding/{family}/{family}.coding",
+        order=os.path.join(slivar_script_dir, "default-order.txt")
+    shell:
+        """
+        (python3 {params.script} \
+        --mode coding \
+        --rare-impactful-vcf {input.rare_impactful} \
+        --rare-clinvar-vcf {input.rare_clinvar} \
+        --common-pathogenic-clinvar-vcf {input.common_pathogenic_clinvar} \
+        --rare-clinvar-allow-missing-faf-vcf {input.rare_clinvar_allow_missing_faf} \
+        --impact-order-file {params.order} \
+        --out-prefix {params.out_prefix}) > {log} 2>&1
+        """
+
+
+rule slivar_report_coding:
+    input:
+        vcf="small_variants_slivar/coding/{family}/{family}.coding.post_gemini_filter.vcf",
+        **get_slivar_report_table_inputs()
+    output:
+        "reports_slivar/{family}.wgs.coding.slivar.hg38.csv"
+    log:
+        "logs/slivar/{family}.coding.report.log"
+    conda:
+        "../envs/slivar.yaml"
+    params:
+        script=os.path.join(slivar_script_dir, "build_report.py"),
+        order=os.path.join(slivar_script_dir, "default-order.txt")
+    shell:
+        """
+        (mkdir -p $(dirname {output})
+        python3 {params.script} \
+        --mode coding \
+        --vcf {input.vcf} \
+        --out-csv {output} \
+        --impact-order-file {params.order} \
+        --gene-descriptions {input.gene_descriptions} \
+        --omim {input.omim} \
+        --orphanet {input.orphanet} \
+        --constraint {input.constraint} \
+        --imprinting {input.imprinting} \
+        --pseudoautosomal {input.pseudoautosomal}) > {log} 2>&1
+        """
+
+
+rule slivar_select_wgs_high_impact:
+    input:
+        vcf="annotated/wgs-high-impact/vcfanno/{family}.wgs-high-impact.vep.vcfanno.vcf.gz"
+    output:
+        rare_main="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.rare_main.vcf.gz",
+        rare_main_tbi="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.rare_main.vcf.gz.tbi",
+        rare_clinvar="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.rare_clinvar.vcf.gz",
+        rare_clinvar_tbi="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.rare_clinvar.vcf.gz.tbi",
+        rare_clinvar_allow_missing_faf="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.rare_clinvar_allow_missing_faf.vcf.gz",
+        rare_clinvar_allow_missing_faf_tbi="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.rare_clinvar_allow_missing_faf.vcf.gz.tbi",
+        common_pathogenic_clinvar="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.common_pathogenic_clinvar.vcf.gz",
+        common_pathogenic_clinvar_tbi="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.common_pathogenic_clinvar.vcf.gz.tbi",
+    log:
+        "logs/slivar/{family}.wgs-high-impact.select.log"
+    conda:
+        "../wrappers/slivar/environment.yaml"
+    params:
+        js=os.path.join(slivar_script_dir, "slivar_functions.js"),
+        order=os.path.join(slivar_script_dir, "default-order.txt"),
+        mode="wgs-high-impact"
+    wrapper:
+        get_wrapper_path("slivar")
+
+
+rule slivar_postfilter_wgs_high_impact:
+    input:
+        rare_main="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.rare_main.vcf.gz",
+        rare_clinvar="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.rare_clinvar.vcf.gz",
+        common_pathogenic_clinvar="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.common_pathogenic_clinvar.vcf.gz",
+        rare_clinvar_allow_missing_faf="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.rare_clinvar_allow_missing_faf.vcf.gz",
+    output:
+        vcf="small_variants_slivar/wgs-high-impact/{family}/{family}.wgs-high-impact.post_high_impact_filter.vcf",
+        key_file="small_variants_slivar/wgs-high-impact/{family}/{family}.wgs-high-impact.post_high_impact_filter.keys.txt",
+        audit="small_variants_slivar/wgs-high-impact/{family}/{family}.wgs-high-impact.post_high_impact_filter.audit.tsv",
+        reasons="small_variants_slivar/wgs-high-impact/{family}/{family}.wgs-high-impact.post_high_impact_filter.reasons.tsv",
+        summary="small_variants_slivar/wgs-high-impact/{family}/{family}.wgs-high-impact.post_high_impact_filter.summary.txt",
+    log:
+        "logs/slivar/{family}.wgs-high-impact.postfilter.log"
+    conda:
+        "../envs/slivar.yaml"
+    params:
+        script=os.path.join(slivar_script_dir, "postfilter.py"),
+        out_prefix="small_variants_slivar/wgs-high-impact/{family}/{family}.wgs-high-impact",
+        order=os.path.join(slivar_script_dir, "default-order.txt")
+    shell:
+        """
+        (python3 {params.script} \
+        --mode wgs-high-impact \
+        --rare-main-vcf {input.rare_main} \
+        --rare-clinvar-vcf {input.rare_clinvar} \
+        --common-pathogenic-clinvar-vcf {input.common_pathogenic_clinvar} \
+        --rare-clinvar-allow-missing-faf-vcf {input.rare_clinvar_allow_missing_faf} \
+        --impact-order-file {params.order} \
+        --out-prefix {params.out_prefix}) > {log} 2>&1
+        """
+
+
+rule slivar_report_wgs_high_impact:
+    input:
+        vcf="small_variants_slivar/wgs-high-impact/{family}/{family}.wgs-high-impact.post_high_impact_filter.vcf",
+        **get_slivar_report_table_inputs()
+    output:
+        "reports_slivar/{family}.wgs.high.impact.slivar.hg38.csv"
+    log:
+        "logs/slivar/{family}.wgs-high-impact.report.log"
+    conda:
+        "../envs/slivar.yaml"
+    params:
+        script=os.path.join(slivar_script_dir, "build_report.py"),
+        order=os.path.join(slivar_script_dir, "default-order.txt")
+    shell:
+        """
+        (mkdir -p $(dirname {output})
+        python3 {params.script} \
+        --mode wgs-high-impact \
+        --vcf {input.vcf} \
+        --out-csv {output} \
+        --impact-order-file {params.order} \
+        --gene-descriptions {input.gene_descriptions} \
+        --omim {input.omim} \
+        --orphanet {input.orphanet} \
+        --constraint {input.constraint} \
+        --imprinting {input.imprinting} \
+        --pseudoautosomal {input.pseudoautosomal}) > {log} 2>&1
+        """
+
+
+rule slivar_select_wgs:
+    input:
+        vcf="annotated/{p}/vcfanno/{family}.{p}.vep.vcfanno.vcf.gz"
+    output:
+        rare_main="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_main.vcf.gz",
+        rare_main_tbi="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_main.vcf.gz.tbi",
+        rare_clinvar="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar.vcf.gz",
+        rare_clinvar_tbi="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar.vcf.gz.tbi",
+        rare_clinvar_allow_missing_faf="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar_allow_missing_faf.vcf.gz",
+        rare_clinvar_allow_missing_faf_tbi="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar_allow_missing_faf.vcf.gz.tbi",
+        common_pathogenic_clinvar="small_variants_slivar/{p}/{family}/branches/{family}.{p}.common_pathogenic_clinvar.vcf.gz",
+        common_pathogenic_clinvar_tbi="small_variants_slivar/{p}/{family}/branches/{family}.{p}.common_pathogenic_clinvar.vcf.gz.tbi",
+    wildcard_constraints:
+        p="panel|panel-flank|denovo"
+    log:
+        "logs/slivar/{family}.{p}.select.log"
+    conda:
+        "../wrappers/slivar/environment.yaml"
+    params:
+        js=os.path.join(slivar_script_dir, "slivar_functions.js"),
+        order=os.path.join(slivar_script_dir, "default-order.txt"),
+        mode="wgs"
+    wrapper:
+        get_wrapper_path("slivar")
+
+
+rule slivar_postfilter_wgs:
+    input:
+        rare_main="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_main.vcf.gz",
+        rare_clinvar="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar.vcf.gz",
+        common_pathogenic_clinvar="small_variants_slivar/{p}/{family}/branches/{family}.{p}.common_pathogenic_clinvar.vcf.gz",
+        rare_clinvar_allow_missing_faf="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar_allow_missing_faf.vcf.gz",
+    output:
+        vcf="small_variants_slivar/{p}/{family}/{family}.{p}.post_wgs_filter.vcf",
+        key_file="small_variants_slivar/{p}/{family}/{family}.{p}.post_wgs_filter.keys.txt",
+        audit="small_variants_slivar/{p}/{family}/{family}.{p}.post_wgs_filter.audit.tsv",
+        reasons="small_variants_slivar/{p}/{family}/{family}.{p}.post_wgs_filter.reasons.tsv",
+        summary="small_variants_slivar/{p}/{family}/{family}.{p}.post_wgs_filter.summary.txt",
+    wildcard_constraints:
+        p="panel|panel-flank|denovo"
+    log:
+        "logs/slivar/{family}.{p}.postfilter.log"
+    conda:
+        "../envs/slivar.yaml"
+    params:
+        script=os.path.join(slivar_script_dir, "postfilter.py"),
+        out_prefix="small_variants_slivar/{p}/{family}/{family}.{p}",
+        order=os.path.join(slivar_script_dir, "default-order.txt")
+    shell:
+        """
+        (python3 {params.script} \
+        --mode wgs \
+        --rare-main-vcf {input.rare_main} \
+        --rare-clinvar-vcf {input.rare_clinvar} \
+        --common-pathogenic-clinvar-vcf {input.common_pathogenic_clinvar} \
+        --rare-clinvar-allow-missing-faf-vcf {input.rare_clinvar_allow_missing_faf} \
+        --impact-order-file {params.order} \
+        --out-prefix {params.out_prefix}) > {log} 2>&1
+        """
+
+
+rule slivar_report_panel_wgs:
+    input:
+        vcf="small_variants_slivar/{p}/{family}/{family}.{p}.post_wgs_filter.vcf",
+        **get_slivar_report_table_inputs()
+    output:
+        "reports_slivar/{family}.{p}.slivar.hg38.csv"
+    wildcard_constraints:
+        p="panel|panel-flank"
+    log:
+        "logs/slivar/{family}.{p}.report.log"
+    conda:
+        "../envs/slivar.yaml"
+    params:
+        script=os.path.join(slivar_script_dir, "build_report.py"),
+        order=os.path.join(slivar_script_dir, "default-order.txt")
+    shell:
+        """
+        (mkdir -p $(dirname {output})
+        python3 {params.script} \
+        --mode wgs \
+        --vcf {input.vcf} \
+        --out-csv {output} \
+        --impact-order-file {params.order} \
+        --gene-descriptions {input.gene_descriptions} \
+        --omim {input.omim} \
+        --orphanet {input.orphanet} \
+        --constraint {input.constraint} \
+        --imprinting {input.imprinting} \
+        --pseudoautosomal {input.pseudoautosomal}) > {log} 2>&1
+        """
+
+
+rule slivar_report_denovo_wgs:
+    input:
+        vcf="small_variants_slivar/denovo/{family}/{family}.denovo.post_wgs_filter.vcf",
+        **get_slivar_report_table_inputs()
+    output:
+        "reports_slivar/{family}.wgs.denovo.slivar.hg38.csv"
+    log:
+        "logs/slivar/{family}.denovo.report.log"
+    conda:
+        "../envs/slivar.yaml"
+    params:
+        script=os.path.join(slivar_script_dir, "build_report.py"),
+        order=os.path.join(slivar_script_dir, "default-order.txt")
+    shell:
+        """
+        (mkdir -p $(dirname {output})
+        python3 {params.script} \
+        --mode wgs \
+        --vcf {input.vcf} \
+        --out-csv {output} \
+        --impact-order-file {params.order} \
+        --gene-descriptions {input.gene_descriptions} \
+        --omim {input.omim} \
+        --orphanet {input.orphanet} \
+        --constraint {input.constraint} \
+        --imprinting {input.imprinting} \
+        --pseudoautosomal {input.pseudoautosomal}) > {log} 2>&1
+        """
+
+
+rule compare_coding_report_keys:
+    input:
+        gemini="reports/{family}.wgs.coding.CH.hg38.csv",
+        slivar="reports_slivar/{family}.wgs.coding.slivar.hg38.csv",
+    output:
+        summary="reports_slivar_compare/{family}.wgs.coding.summary.tsv",
+        shared="reports_slivar_compare/{family}.wgs.coding.shared.csv",
+        gemini_only="reports_slivar_compare/{family}.wgs.coding.gemini_only.csv",
+        slivar_only="reports_slivar_compare/{family}.wgs.coding.slivar_only.csv",
+    log:
+        "logs/slivar/{family}.coding.compare.log"
+    conda:
+        "../envs/slivar.yaml"
+    params:
+        script=os.path.join(slivar_script_dir, "compare_report_variant_keys.py"),
+        out_prefix="reports_slivar_compare/{family}.wgs.coding"
+    shell:
+        """
+        (python3 {params.script} \
+        --gemini-report {input.gemini} \
+        --slivar-report {input.slivar} \
+        --out-prefix {params.out_prefix}) > {log} 2>&1
+        """
+
+
+rule compare_wgs_high_impact_report_keys:
+    input:
+        gemini="reports/{family}.wgs.high.impact.CH.hg38.csv",
+        slivar="reports_slivar/{family}.wgs.high.impact.slivar.hg38.csv",
+    output:
+        summary="reports_slivar_compare/{family}.wgs.high.impact.summary.tsv",
+        shared="reports_slivar_compare/{family}.wgs.high.impact.shared.csv",
+        gemini_only="reports_slivar_compare/{family}.wgs.high.impact.gemini_only.csv",
+        slivar_only="reports_slivar_compare/{family}.wgs.high.impact.slivar_only.csv",
+    log:
+        "logs/slivar/{family}.wgs-high-impact.compare.log"
+    conda:
+        "../envs/slivar.yaml"
+    params:
+        script=os.path.join(slivar_script_dir, "compare_report_variant_keys.py"),
+        out_prefix="reports_slivar_compare/{family}.wgs.high.impact"
+    shell:
+        """
+        (python3 {params.script} \
+        --gemini-report {input.gemini} \
+        --slivar-report {input.slivar} \
+        --out-prefix {params.out_prefix}) > {log} 2>&1
+        """
+
+
+rule compare_panel_wgs_report_keys:
+    input:
+        gemini="reports/{family}.{p}.CH.hg38.csv",
+        slivar="reports_slivar/{family}.{p}.slivar.hg38.csv",
+    output:
+        summary="reports_slivar_compare/{family}.{p}.summary.tsv",
+        shared="reports_slivar_compare/{family}.{p}.shared.csv",
+        gemini_only="reports_slivar_compare/{family}.{p}.gemini_only.csv",
+        slivar_only="reports_slivar_compare/{family}.{p}.slivar_only.csv",
+    wildcard_constraints:
+        p="panel|panel-flank"
+    log:
+        "logs/slivar/{family}.{p}.compare.log"
+    conda:
+        "../envs/slivar.yaml"
+    params:
+        script=os.path.join(slivar_script_dir, "compare_report_variant_keys.py"),
+        out_prefix="reports_slivar_compare/{family}.{p}"
+    shell:
+        """
+        (python3 {params.script} \
+        --gemini-report {input.gemini} \
+        --slivar-report {input.slivar} \
+        --out-prefix {params.out_prefix}) > {log} 2>&1
+        """
+
+
+rule compare_denovo_wgs_report_keys:
+    input:
+        gemini="reports/{family}.wgs.denovo.CH.hg38.csv",
+        slivar="reports_slivar/{family}.wgs.denovo.slivar.hg38.csv",
+    output:
+        summary="reports_slivar_compare/{family}.wgs.denovo.summary.tsv",
+        shared="reports_slivar_compare/{family}.wgs.denovo.shared.csv",
+        gemini_only="reports_slivar_compare/{family}.wgs.denovo.gemini_only.csv",
+        slivar_only="reports_slivar_compare/{family}.wgs.denovo.slivar_only.csv",
+    log:
+        "logs/slivar/{family}.denovo.compare.log"
+    conda:
+        "../envs/slivar.yaml"
+    params:
+        script=os.path.join(slivar_script_dir, "compare_report_variant_keys.py"),
+        out_prefix="reports_slivar_compare/{family}.wgs.denovo"
+    shell:
+        """
+        (python3 {params.script} \
+        --gemini-report {input.gemini} \
+        --slivar-report {input.slivar} \
+        --out-prefix {params.out_prefix}) > {log} 2>&1
+        """
 
 if config["run"]["hpo"]:
 
