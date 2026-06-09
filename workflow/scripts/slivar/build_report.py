@@ -42,6 +42,80 @@ IMPACT_RANK = {
 }
 
 
+DOT_MISSING_FIELDS = {
+    "AA_position",
+    "AA_position_all",
+    "AlphaMissense",
+    "Cadd_score",
+    "Clinvar",
+    "ENH_cellline_tissue",
+    "Ensembl_gene_id",
+    "Ensembl_gene_id_all",
+    "Ensembl_transcript_id",
+    "Exon",
+    "Exon_all",
+    "Gene",
+    "Gene_all",
+    "Gene_description",
+    "Gene_description_all",
+    "Gerp_score",
+    "Gnomad_af",
+    "Gnomad_af_grpmax",
+    "Gnomad_fafmax_faf95_max",
+    "Gnomad_filter",
+    "Gnomad_hom",
+    "Gnomad_male_ac",
+    "Gnomad_mis_z_score",
+    "Gnomad_oe_ci_lower",
+    "Gnomad_oe_ci_upper",
+    "Gnomad_oe_lof_score",
+    "Gnomad_oe_mis_score",
+    "Gnomad_pLI_score",
+    "Gnomad_pnull_score",
+    "Gnomad_prec_score",
+    "GreenDB_closest_gene",
+    "GreenDB_controlled_gene",
+    "GreenDB_variant_type",
+    "HGMD_gene",
+    "HGMD_id",
+    "HGMD_ref",
+    "HGMD_tag",
+    "Imprinting_expressed_allele",
+    "Imprinting_status",
+    "LINSIGHT_score",
+    "Old_multiallelic",
+    "Orphanet",
+    "Orphanet_all",
+    "Polyphen_score",
+    "Polyphen_score_all",
+    "Protein_domains",
+    "Pseudoautosomal",
+    "ReMM_score",
+    "Refseq_change",
+    "Refseq_change_all",
+    "Revel_score",
+    "Sift_score",
+    "Sift_score_all",
+    "TF_binding_sites",
+    "Vest4_score",
+    "ncER_score",
+    "omim_inheritance",
+    "omim_inheritance_all",
+    "omim_phenotype",
+    "omim_phenotype_all",
+    "promoterAI_score",
+    "rsIDs",
+}
+
+
+DOT_IF_EMPTY_FIELDS = {
+    "CTCF_binding_site",
+    "DNaseI_hypersensitive_site",
+    "UCE_100bp",
+    "UCE_200bp",
+}
+
+
 def consequence_rank(csq, order_map):
     ranks = [order_map[term] for term in normalized_consequence_terms(csq) if term in order_map]
     return min(ranks) if ranks else 10**9
@@ -70,6 +144,15 @@ def parse_vep_score(value):
     if "(" in text and ")" in text:
         return text.rsplit("(", 1)[1].split(")", 1)[0]
     return text
+
+
+def normalize_report_value(field, value):
+    text = "" if value is None else str(value).strip()
+    if field in DOT_MISSING_FIELDS and text in {"", "NA", "None"}:
+        return "."
+    if field in DOT_IF_EMPTY_FIELDS and text == "":
+        return "."
+    return value
 
 
 def build_info_item(csq):
@@ -362,6 +445,9 @@ def make_columns(mode, samples):
                 "Gnomad_filter",
                 "Regeneron_exome_AF",
                 "Regeneron_exome_AC",
+                "thousandG_AF",
+                "thousandG_AC",
+                "thousandG_nhomalt",
                 "Ensembl_transcript_id",
                 "rsIDs",
                 "AA_position",
@@ -434,6 +520,9 @@ def make_columns(mode, samples):
             "Gnomad_filter",
             "Regeneron_exome_AF",
             "Regeneron_exome_AC",
+            "thousandG_AF",
+            "thousandG_AC",
+            "thousandG_nhomalt",
             "Ensembl_transcript_id",
             "rsIDs",
             "Gnomad_oe_lof_score",
@@ -647,6 +736,9 @@ def main():
                 ("Gnomad_filter", "gnomad_filter"),
                 ("Regeneron_exome_AF", "regeneron_exome_AF"),
                 ("Regeneron_exome_AC", "regeneron_exome_AC"),
+                ("thousandG_AF", "thousandG_AF"),
+                ("thousandG_AC", "thousandG_AC"),
+                ("thousandG_nhomalt", "thousandG_nhomalt"),
                 ("rsIDs", "rs_ids"),
                 ("Cadd_score", "CADD_phred"),
                 ("Vest4_score", "Vest4_score"),
@@ -756,6 +848,9 @@ def main():
                 row["Refseq_change"] = "NA"
                 row["Orphanet"] = "0"
                 row["HGMD_gene"] = "NA"
+
+            for field in row:
+                row[field] = normalize_report_value(field, row[field])
 
             rows.append(row)
 
