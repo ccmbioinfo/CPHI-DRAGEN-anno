@@ -6,7 +6,7 @@ run:
   ped: "" 
   flank: 100000
   acmg_sf: true
-  dragen_output_schema: ""
+  dragen_output_schema: "" # "" CPHI family, "modified" for non-CPHI family
   
 genes:
   ensembl: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/genes/ensembl/for_gene_panels/Homo_sapiens.GRCh38.115.gtf_subset.csv"
