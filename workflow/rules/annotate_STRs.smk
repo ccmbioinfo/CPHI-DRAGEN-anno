@@ -11,7 +11,6 @@ rule annotate_path_str_loci:
     input: 
         repeat_tsv="STRs/{family}.repeats.tsv",
         samples_tsv=config["run"]["samples"]
-
     output: "reports/{family}.known.path.str.loci.hg38.csv"
     params:
         cphi_dragen_anno = config["tools"]["cphi-dragen-anno"],
