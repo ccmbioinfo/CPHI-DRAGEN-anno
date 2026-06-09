@@ -38,7 +38,6 @@ def get_dragen_metrics_files(wildcards):
     return metrics_files
 
 def get_cnv_vcf(wildcards):
-    print(units.loc[family, "CNV_vcf"])
     input_vcf = units.loc[family, "CNV_vcf"]
     return input_vcf
 
