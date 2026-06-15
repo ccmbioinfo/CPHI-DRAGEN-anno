@@ -28,9 +28,9 @@ def remove_cols(df):
     # List of columns to be removed from the file
     remove_cols = [
         "TIER",
-        "REF DEPTH",
-        "TOTAL LOCUS DEPTH",
-        "VARIANT QUALITY",
+        "REF_DEPTH",
+        "TOTAL_LOCUS_DEPTH",
+        "VARIANT_QUALITY",
         "QUAL",
         "MQM_INFO",
         "MQMR_INFO",
@@ -67,15 +67,15 @@ def split_cols_by_sample(grouped_df):
     samples_info = {}
     for variant, row in grouped_df.iterrows():
         sample = str.split(row.SAMPLE, ";")
-        ALT_DEPTH = str.split(row["ALT DEPTH"], ";")
-        SAMPLE_DEPTH = str.split(row["TOTAL SAMPLE DEPTH"], ";")
-        VARIANT_HETEROPLASMY = str.split(row["VARIANT HETEROPLASMY"], ";")
+        ALT_DEPTH = str.split(row["ALT_DEPTH"], ";")
+        SAMPLE_DEPTH = str.split(row["TOTAL_SAMPLE_DEPTH"], ";")
+        VARIANT_HETEROPLASMY = str.split(row["VARIANT_HETEROPLASMY"], ";")
 
         x = {}
         for i in range(0, len(sample)):
-            x[f"{sample[i]}.VARIANT HETEROPLASMY"] = VARIANT_HETEROPLASMY[i]
-            x[f"{sample[i]}.ALT DEPTH"] = ALT_DEPTH[i]
-            x[f"{sample[i]}.TOTAL SAMPLE DEPTH"] = SAMPLE_DEPTH[i]
+            x[f"{sample[i]}.VARIANT_HETEROPLASMY"] = VARIANT_HETEROPLASMY[i]
+            x[f"{sample[i]}.ALT_DEPTH"] = ALT_DEPTH[i]
+            x[f"{sample[i]}.TOTAL_SAMPLE_DEPTH"] = SAMPLE_DEPTH[i]
         samples_info[variant] = x
     df = pd.DataFrame(samples_info).transpose().sort_index(axis=1).fillna("-")
     df["HGVS"] = df.index
@@ -89,26 +89,26 @@ def sort_by_sample(df):
         [
             "HGVS",
             "SAMPLE",
-            "ALT DEPTH",
-            "TOTAL SAMPLE DEPTH",
-            "VARIANT HETEROPLASMY",
+            "ALT_DEPTH",
+            "TOTAL_SAMPLE_DEPTH",
+            "VARIANT_HETEROPLASMY",
         ]
     ]
     grouped_df = subset_df.groupby("HGVS").agg(
         {
             "SAMPLE": lambda x: ";".join(str(i) for i in x),
-            "ALT DEPTH": lambda x: ";".join(str(i) for i in x),
-            "TOTAL SAMPLE DEPTH": lambda x: ";".join(str(i) for i in x),
-            "VARIANT HETEROPLASMY": lambda x: ";".join(str(i) for i in x),
+            "ALT_DEPTH": lambda x: ";".join(str(i) for i in x),
+            "TOTAL_SAMPLE_DEPTH": lambda x: ";".join(str(i) for i in x),
+            "VARIANT_HETEROPLASMY": lambda x: ";".join(str(i) for i in x),
         }
     )
 
     df = df.drop(
         [
             "SAMPLE",
-            "ALT DEPTH",
-            "TOTAL SAMPLE DEPTH",
-            "VARIANT HETEROPLASMY",
+            "ALT_DEPTH",
+            "TOTAL_SAMPLE_DEPTH",
+            "VARIANT_HETEROPLASMY",
         ],
         1,
     )
@@ -166,9 +166,9 @@ def get_vcf_info(vcf,report,samples):
             vafs.append(vaf)
             alt_depths.append(alt_depth)
 #add these info fields to the dataframe for each row in the sample, with blanks as "."
-        report[f"{sample}.TOTAL SAMPLE DEPTH"]=sample_depths
-        report[f"{sample}.VARIANT HETEROPLASMY"]=vafs
-        report[f"{sample}.ALT DEPTH"]=alt_depths
+        report[f"{sample}.TOTAL_SAMPLE_DEPTH"]=sample_depths
+        report[f"{sample}.VARIANT_HETEROPLASMY"]=vafs
+        report[f"{sample}.ALT_DEPTH"]=alt_depths
 
     return report
 
@@ -228,9 +228,9 @@ def add_additional_reported_disease_associations(row):
     def clean(s):
         return re.sub(r'[\s\-/]+', '', str(s)).lower().strip()
 
-    confirmed = clean(row.get("MITOMAP CONFIRMED DISEASE", ""))
+    confirmed = clean(row.get("MITOMAP_CONFIRMED_DISEASE", ""))
 
-    for col in ["MITOMAP MUTATIONS RNA DISEASE", "MITOMAP DISEASE DISEASE"]:
+    for col in ["MITOMAP_MUTATIONS_RNA_DISEASE", "MITOMAP_DISEASE_DISEASE"]:
         val = str(row.get(col, "")).strip()
         if val not in ("", ".") and clean(val) != confirmed:
             return val
@@ -239,54 +239,54 @@ def add_additional_reported_disease_associations(row):
 
 def create_collapsed_mitomap_columns(df):
     priority_fields = {
-        "MITOMAP AA CHANGE": [
-            "MITOMAP CONFIRMED MUTATIONS AMINOACIDCHANGE",
-            "MITOMAP DISEASE AACHANGE",
-            "MITOMAP VARIANTS CODING AMINOACIDCHANGE", #least interpretable format
-            "MITOMAP MUTATIONS CODING CONTROL AMINOACIDCHANGE",
+        "MITOMAP_AA_CHANGE": [
+            "MITOMAP_CONFIRMED_MUTATIONS_AMINOACIDCHANGE",
+            "MITOMAP_DISEASE_AACHANGE",
+            "MITOMAP_VARIANTS_CODING_AMINOACIDCHANGE", #least interpretable format
+            "MITOMAP_MUTATIONS_CODING_CONTROL_AMINOACIDCHANGE",
         ],
-        "MITOMAP STATUS [CLINGEN]": [
-            "MITOMAP CONFIRMED MUTATIONS STATUSMITOMAPCLINGEN", #from confirmed mutations annotations
-            "MITOMAP MUTATIONS RNA STATUS", #from RNA annotations 
-            "MITOMAP DISEASE DISEASE STATUS", #from coding and control annotations
+        "MITOMAP_STATUS_[CLINGEN]": [
+            "MITOMAP_CONFIRMED_MUTATIONS_STATUSMITOMAPCLINGEN", #from confirmed mutations annotations
+            "MITOMAP_MUTATIONS_RNA_STATUS", #from RNA annotations 
+            "MITOMAP_DISEASE_DISEASE_STATUS", #from coding and control annotations
         ],       
         #may differ from GENE/LOCUS field, eg MT-TER variants map to MT-TL1 in MITOMAP
-        "MITOMAP LOCUS": [
-            "MITOMAP CONFIRMED MUTATIONS LOCUS",
-            "MITOMAP MUTATIONS RNA LOCUS",
+        "MITOMAP_LOCUS": [
+            "MITOMAP_CONFIRMED_MUTATIONS_LOCUS",
+            "MITOMAP_MUTATIONS_RNA_LOCUS",
         ],
-								"MITOMAP HOMOPLASMY": [
-            "MITOMAP MUTATIONS RNA HOMOPLASMY",
-            "MITOMAP DISEASE HOMOPLASMY",
+								"MITOMAP_HOMOPLASMY": [
+            "MITOMAP_MUTATIONS_RNA_HOMOPLASMY",
+            "MITOMAP_DISEASE_HOMOPLASMY",
         ],
-        "MITOMAP HETEROPLASMY": [
-            "MITOMAP MUTATIONS RNA HETEROPLASMY",
-             "MITOMAP DISEASE HETEROPLASMY",
+        "MITOMAP_HETEROPLASMY": [
+            "MITOMAP_MUTATIONS_RNA_HETEROPLASMY",
+             "MITOMAP_DISEASE_HETEROPLASMY",
         ],
         "GB_SEQS": [
-            "MITOMAP MUTATIONS RNA GB SEQS",
-            "MITOMAP MUTATIONS CODING CONTROL GB SEQS",
-            "MITOMAP VARIANTS CODING GB SEQS",
-            "MITOMAP VARIANTS CONTROL GB SEQS"
+            "MITOMAP_MUTATIONS_RNA_GB_SEQS",
+            "MITOMAP_MUTATIONS_CODING_CONTROL_GB_SEQS",
+            "MITOMAP_VARIANTS_CODING_GB_SEQS",
+            "MITOMAP_VARIANTS_CONTROL_GB_SEQS"
         ],
         "GB_FREQ": [
-            "MITOMAP MUTATIONS RNA GB FREQ",
-            "MITOMAP MUTATIONS CODING CONTROL GB FREQ",
-            "MITOMAP VARIANTS CODING GB FREQ",
-            "MITOMAP VARIANTS CONTROL GB FREQ"
+            "MITOMAP_MUTATIONS_RNA_GB_FREQ",
+            "MITOMAP_MUTATIONS_CODING_CONTROL_GB_FREQ",
+            "MITOMAP_VARIANTS_CODING_GB_FREQ",
+            "MITOMAP_VARIANTS_CONTROL_GB_FREQ"
 								],
     }
 
     for new_column, original_cols in priority_fields.items():
         df[new_column] = df.apply(lambda row, cols=original_cols: return_first_value(*[row.get(c) for c in cols]),axis=1)
     
-    df["MITOMAP ADDITIONAL REPORTED DISEASE"] = df.apply(add_additional_reported_disease_associations, axis=1)
+    df["MITOMAP_ADDITIONAL_REPORTED_DISEASE"] = df.apply(add_additional_reported_disease_associations, axis=1)
         
     collapsed_fields = {
-        "MITOMAP REFERENCES": {
-            "RNA": "MITOMAP MUTATIONS RNA REFERENCES",
-            "Coding": "MITOMAP VARIANTS CODING CURATEDREFERENCES",
-            "Control": "MITOMAP VARIANTS CONTROL CURATEDREFERENCES",
+        "MITOMAP_REFERENCES": {
+            "RNA": "MITOMAP_MUTATIONS_RNA_REFERENCES",
+            "Coding": "MITOMAP_VARIANTS_CODING_CURATEDREFERENCES",
+            "Control": "MITOMAP_VARIANTS_CONTROL_CURATEDREFERENCES",
         },
     }
 
@@ -298,36 +298,36 @@ def create_collapsed_mitomap_columns(df):
 
 def remove_raw_collapsed_mitomap_columns(df):
     raw_mitomap_columns = [
-        "MITOMAP DISEASE AACHANGE",
-        "MITOMAP DISEASE HOMOPLASMY",
-        "MITOMAP DISEASE HETEROPLASMY",
-        "MITOMAP DISEASE DISEASE",
-        "MITOMAP DISEASE DISEASE STATUS",
-        "MITOMAP DISEASE HGFL",
-        "MITOMAP CONFIRMED MUTATIONS LOCUS",
-        "MITOMAP CONFIRMED MUTATIONS LOCUSTYPE",
-        "MITOMAP CONFIRMED MUTATIONS ALLELE",
-        "MITOMAP CONFIRMED MUTATIONS AMINOACIDCHANGE",
-        "MITOMAP CONFIRMED MUTATIONS STATUS MITOMAPCLINGEN",
-        "MITOMAP CONFIRMED MUTATIONS LASTUPDATE",
-        "MITOMAP MUTATIONS RNA LOCUS",
-        "MITOMAP MUTATIONS RNA DISEASE",
-        "MITOMAP MUTATIONS RNA ALLELE",
-        "MITOMAP MUTATIONS RNA HOMOPLASMY",
-        "MITOMAP MUTATIONS RNA HETEROPLASMY",
-        "MITOMAP MUTATIONS RNA STATUS",
-        "MITOMAP MUTATIONS RNA REFERENCES",
-        "MITOMAP VARIANTS CODING AMINOACIDCHANGE",
-        "MITOMAP VARIANTS CODING CURATEDREFERENCES",
-        "MITOMAP VARIANTS CONTROL CURATEDREFERENCES",
-        "MITOMAP MUTATIONS RNA GB SEQS",
-        "MITOMAP MUTATIONS CODING CONTROL GB SEQS",
-        "MITOMAP VARIANTS CODING GB SEQS",
-        "MITOMAP VARIANTS CONTROL GB SEQS",
-        "MITOMAP MUTATIONS RNA GB FREQ",
-        "MITOMAP MUTATIONS CODING CONTROL GB FREQ",
-        "MITOMAP VARIANTS CODING GB FREQ",
-        "MITOMAP VARIANTS CONTROL GB FREQ",
+        "MITOMAP_DISEASE_AACHANGE",
+        "MITOMAP_DISEASE_HOMOPLASMY",
+        "MITOMAP_DISEASE_HETEROPLASMY",
+        "MITOMAP_DISEASE_DISEASE",
+        "MITOMAP_DISEASE_DISEASE_STATUS",
+        "MITOMAP_DISEASE_HGFL",
+        "MITOMAP_CONFIRMED_MUTATIONS_LOCUS",
+        "MITOMAP_CONFIRMED_MUTATIONS_LOCUSTYPE",
+        "MITOMAP_CONFIRMED_MUTATIONS_ALLELE",
+        "MITOMAP_CONFIRMED_MUTATIONS_AMINOACIDCHANGE",
+        "MITOMAP_CONFIRMED_MUTATIONS_STATUSMITOMAPCLINGEN",
+        "MITOMAP_CONFIRMED_MUTATIONS_LASTUPDATE",
+        "MITOMAP_MUTATIONS_RNA_LOCUS",
+        "MITOMAP_MUTATIONS_RNA_DISEASE",
+        "MITOMAP_MUTATIONS_RNA_ALLELE",
+        "MITOMAP_MUTATIONS_RNA_HOMOPLASMY",
+        "MITOMAP_MUTATIONS_RNA_HETEROPLASMY",
+        "MITOMAP_MUTATIONS_RNA_STATUS",
+        "MITOMAP_MUTATIONS_RNA_REFERENCES",
+        "MITOMAP_VARIANTS_CODING_AMINOACIDCHANGE",
+        "MITOMAP_VARIANTS_CODING_CURATEDREFERENCES",
+        "MITOMAP_VARIANTS_CONTROL_CURATEDREFERENCES",
+        "MITOMAP_MUTATIONS_RNA_GB_SEQS",
+        "MITOMAP_MUTATIONS_CODING_CONTROL_GB_SEQS",
+        "MITOMAP_VARIANTS_CODING_GB_SEQS",
+        "MITOMAP_VARIANTS_CONTROL_GB_SEQS",
+        "MITOMAP_MUTATIONS_RNA_GB_FREQ",
+        "MITOMAP_MUTATIONS_CODING_CONTROL_GB_FREQ",
+        "MITOMAP_VARIANTS_CODING_GB_FREQ",
+        "MITOMAP_VARIANTS_CONTROL_GB_FREQ",
     ]
 
     df = df.drop(columns=raw_mitomap_columns, errors="ignore")
@@ -343,9 +343,9 @@ def reorder_cols(df):
 
     colnames = df.columns
 
-    variant_heteroplasmy = [x for x in colnames if x.endswith("VARIANT HETEROPLASMY")]
-    alt_depth = [x for x in colnames if x.endswith("ALT DEPTH")]
-    total_sample_depth = [x for x in colnames if x.endswith("TOTAL SAMPLE DEPTH")]
+    variant_heteroplasmy = [x for x in colnames if x.endswith("VARIANT_HETEROPLASMY")]
+    alt_depth = [x for x in colnames if x.endswith("ALT_DEPTH")]
+    total_sample_depth = [x for x in colnames if x.endswith("TOTAL_SAMPLE_DEPTH")]
 
     df=keep_only_pass(df)
 
@@ -356,13 +356,13 @@ def reorder_cols(df):
         "ALT",
         "HGVS",
         "GENE/LOCUS",
-        "GENE/LOCUS DESCRIPTION",
+        "GENE/LOCUS_DESCRIPTION",
         "COHORT COUNT",
         "SAMPLE",
     ]
 
     col_list2 = [
-        "MITOMAP AA CHANGE",
+        "MITOMAP_AA_CHANGE",
         "clinvar_significance",
         "clinvar_status",
         "gnomAD_AC_homoplasmy",
@@ -370,33 +370,33 @@ def reorder_cols(df):
         "gnomAD_AF_homoplasmy",
         "gnomAD_AF_heteroplasmy",
         "gnomAD_max_het_level",
-        "MITOMAP LOCUS",
+        "MITOMAP_LOCUS",
         "GB_SEQS",
         "GB_FREQ",
-        "MITOMAP CONFIRMED DISEASE",
-        "MITOMAP STATUS [CLINGEN]",
-        "MITOMAP DISEASE AC",
-        "MITOMAP DISEASE AF",
-        "MITOMAP ADDITIONAL REPORTED DISEASE",
-        "MITOMAP HOMOPLASMY",
-        "MITOMAP HETEROPLASMY",
-        "MITOMAP DISEASE PUBMED IDS",
-        "MITOMAP POLYMORPHISMS HGFL",
-        "MITOMAP MUTATIONS RNA MITOTIP",
-        "MITOTIP SCORE",
-        "MITOTIP PERCENTILE",
-        "MITOTIP QUARTILE",
-        "MITOTIP SCORE INTERPRETATION",
+        "MITOMAP_CONFIRMED_DISEASE",
+        "MITOMAP_STATUS_[CLINGEN]",
+        "MITOMAP_DISEASE_AC",
+        "MITOMAP_DISEASE_AF",
+        "MITOMAP_ADDITIONAL_REPORTED_DISEASE",
+        "MITOMAP_HOMOPLASMY",
+        "MITOMAP_HETEROPLASMY",
+        "MITOMAP_DISEASE_PUBMED_IDS",
+        "MITOMAP_POLYMORPHISMS_HGFL",
+        "MITOMAP_MUTATIONS_RNA_MITOTIP",
+        "MITOTIP_SCORE",
+        "MITOTIP_PERCENTILE",
+        "MITOTIP_QUARTILE",
+        "MITOTIP_SCORE_INTERPRETATION",
         "ANTICODON",
-        "MGRB FREQUENCY",
-        "MGRB FILTER",
-        "MGRB AC",
-        "MGRB AN",
-        "MITOMAP REFERENCES",
-        "MITOMAP POLYMORPHISMS AC",
-        "MITOMAP POLYMORPHISMS AF",
-        "PHYLOTREE MUT",
-        "PHYLOTREE HAPLOTYPE",
+        "MGRB_FREQUENCY",
+        "MGRB_FILTER",
+        "MGRB_AC",
+        "MGRB_AN",
+        "MITOMAP_REFERENCES",
+        "MITOMAP_POLYMORPHISMS_AC",
+        "MITOMAP_POLYMORPHISMS_AF",
+        "PHYLOTREE_MUT",
+        "PHYLOTREE_HAPLOTYPE",
     ]
 
     #reordering is tolerant of any missing columns (e.g. commented out in report-config.yaml)
@@ -406,8 +406,8 @@ def reorder_cols(df):
 
     # replace '.'/'-' with '0' for some columns
     replace_col_values = [ 
-        "MITOMAP POLYMORPHISMS AF",
-        "MITOMAP POLYMORPHISMS AC",
+        "MITOMAP_POLYMORPHISMS_AF",
+        "MITOMAP_POLYMORPHISMS_AC",
         "gnomAD_AC_homoplasmy",
         "gnomAD_AC_heteroplasmy",
         "gnomAD_AF_homoplasmy",
@@ -420,8 +420,8 @@ def reorder_cols(df):
         if col in reordered_df.columns:
             reordered_df[col] = reordered_df[col].replace(".", 0)
             
-    if "MITOMAP DISEASE PUBMED IDS" in reordered_df.columns:
-        reordered_df["MITOMAP DISEASE PUBMED IDS"] = reordered_df["MITOMAP DISEASE PUBMED IDS"].replace({"0": "."})
+    if "MITOMAP_DISEASE_PUBMED_IDS" in reordered_df.columns:
+        reordered_df["MITOMAP_DISEASE_PUBMED_IDS"] = reordered_df["MITOMAP_DISEASE_PUBMED_IDS"].replace({"0": "."})
     
     log_message(
         "Replaced . and - with 0 for frequency columns and rearanged the columns in the dataframe"
@@ -461,6 +461,7 @@ def main(vcf, report, family):
     final_report = remove_raw_collapsed_mitomap_columns(final_report)
     final_report = check_sort(vcf_df,final_report)
     final_report = reorder_cols(final_report)
+    final_report.columns = [col.replace(" ", "_") for col in final_report.columns]
 
     today = date.today()
     today = today.strftime("%Y-%m-%d")
