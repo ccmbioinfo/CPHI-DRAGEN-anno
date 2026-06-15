@@ -97,6 +97,10 @@ def ad_rule(depths, threshold):
     return any(depth >= threshold for depth in depths) or all(depth == -1 for depth in depths)
 
 
+def final_report_ad_rule(depths, threshold):
+    return any(depth >= threshold for depth in depths)
+
+
 def base_exclusion_reason(record):
     if record.alts is None or len(record.alts) == 0:
         return False, "missing_alt"
@@ -564,6 +568,10 @@ def main():
                     record_key = variant_key(record)
                     input_counts[branch] += 1
                     keep, reason = evaluate_record(args.mode, record, branch, csq_fields, order_map)
+                    if keep:
+                        depths = sample_alt_depths(record)
+                        if not final_report_ad_rule(depths, 3):
+                            keep, reason = False, "final_report_ad_lt_3"
                     audit_rows.append(audit_row(args.mode, record, branch, keep, reason, csq_fields, order_map))
 
                     if not keep:

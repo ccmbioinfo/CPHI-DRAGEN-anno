@@ -506,7 +506,7 @@ rule slivar_report_denovo_wgs:
 
 rule compare_coding_report_keys:
     input:
-        gemini="reports/{family}.wgs.coding.CH.hg38.csv",
+        gemini=f"reports/{{family}}.wgs.coding.CH{sf_suffix}.hg38.csv",
         slivar="reports_slivar/{family}.wgs.coding.slivar.hg38.csv",
     output:
         summary="reports_slivar_compare/{family}.wgs.coding.summary.tsv",
@@ -531,7 +531,7 @@ rule compare_coding_report_keys:
 
 rule compare_wgs_high_impact_report_keys:
     input:
-        gemini="reports/{family}.wgs.high.impact.CH.hg38.csv",
+        gemini=f"reports/{{family}}.wgs.high.impact.CH{sf_suffix}.hg38.csv",
         slivar="reports_slivar/{family}.wgs.high.impact.slivar.hg38.csv",
     output:
         summary="reports_slivar_compare/{family}.wgs.high.impact.summary.tsv",
@@ -583,7 +583,7 @@ rule compare_panel_wgs_report_keys:
 
 rule compare_denovo_wgs_report_keys:
     input:
-        gemini="reports/{family}.wgs.denovo.CH.hg38.csv",
+        gemini=f"reports/{{family}}.wgs.denovo.CH{sf_suffix}.hg38.csv",
         slivar="reports_slivar/{family}.wgs.denovo.slivar.hg38.csv",
     output:
         summary="reports_slivar_compare/{family}.wgs.denovo.summary.tsv",
