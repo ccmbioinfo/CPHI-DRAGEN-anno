@@ -462,6 +462,7 @@ def main(vcf, report, family):
     final_report = check_sort(vcf_df,final_report)
     final_report = reorder_cols(final_report)
     final_report.columns = [col.replace(" ", "_") for col in final_report.columns]
+    final_report = final_report.fillna(".").replace(r"^\s*$", ".", regex=True)
 
     today = date.today()
     today = today.strftime("%Y-%m-%d")
