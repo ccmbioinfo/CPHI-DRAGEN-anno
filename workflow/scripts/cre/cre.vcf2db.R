@@ -16,7 +16,7 @@ get_variants_from_file <- function (filename){
 }
 
 # returns Hom / Het / - (for HOM reference)
-genotype2zygocity <- function (genotype_str, ref, alt_depth, type){
+genotype2zygocity <- function (genotype_str, ref, alt_depth, type, position){
     # test
     # genotype_str = "A|A|B"
     # genotype_str = "./." - call not possible
@@ -42,7 +42,22 @@ genotype2zygocity <- function (genotype_str, ref, alt_depth, type){
                 else
                     result <- "Hom"
             }else result <- "Het"
-        }else result <- genotype_str
+        }else if (grepl("X", position) || grepl("Y", position)){
+            if (genotype_str == "."){
+                result <- "Missing"
+            }
+            else if (genotype_str != ref){
+                result <- "Hom" # gemini represents hemizygous GTs as just the alternate allele, e.g. A means hemizygous for the alternate allele
+            }
+            else if (genotype_str == ref){
+                result <- "-"
+            }
+            else{
+                result <- genotype_str
+            }
+        }else{
+            result <- genotype_str
+        }
     }
     return(result)
 }
@@ -222,7 +237,7 @@ create_report <- function(family, samples, type){
         #t = lapply(variants[,paste0("gts.",sample),"Ref"],genotype2zygocity)
         #t = lapply(variants[,paste0("gts.",sample),"Ref"],genotype2zygocity)
         t <- unlist(mapply(genotype2zygocity, variants[,paste0("gts.",sample)], 
-                           variants[,"Ref"], variants[,paste0("gt_alt_depths.",sample)], type))
+                           variants[,"Ref"], variants[,paste0("gt_alt_depths.",sample)], type, variants[,"Position"]))
         variants[,zygocity_column_name] <- unlist(t)
     
         burden_column_name <- paste0("Burden.", sample)
@@ -324,7 +339,7 @@ create_report <- function(family, samples, type){
     # Column19 - Omim_phenotype
     # Column20 - Omim_inheritance 
     # Column20 - Omim_inheritance 
-    omim_map_file <- paste0(default_tables_path,"/OMIM_hgnc_join_omim_phenos_2025-07-10.tsv")
+    omim_map_file <- paste0(default_tables_path,"/OMIM_hgnc_join_omim_phenos_2026-06-02.tsv")
     if(file.exists(omim_map_file)){
     # read in tsv
     hgnc_join_omim_phenos <- read.delim(omim_map_file, stringsAsFactors=FALSE)
@@ -780,7 +795,7 @@ merge_reports <- function(family, samples, type){
             #print("gt")
             gts <- unlist(strsplit(ensemble[i,"gts"],","))
             #print(gts[sample_index])
-            fixed_zygosity <- genotype2zygocity(gts[sample_index],ensemble[i,"Ref"],ensemble[i,field_depth], type)
+            fixed_zygosity <- genotype2zygocity(gts[sample_index],ensemble[i,"Ref"],ensemble[i,field_depth], type, ensemble[i,"Position"])
             #print("after")
             #print(fixed_zygosity)
             ensemble[i,zygocity_column_name] <- fixed_zygosity
