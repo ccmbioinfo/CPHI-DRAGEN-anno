@@ -379,13 +379,6 @@ def first_csq_value(csq_records, field, primary=None, default=""):
     return default
 
 
-def first_info_or_csq(records, csq_records, field, primary=None, default=""):
-    value = first_info(records, field, default="")
-    if present(value):
-        return value
-    return first_csq_value(csq_records, field, primary, default)
-
-
 def merged_clinvar_text(records):
     values = []
     for record in records:
@@ -620,6 +613,20 @@ def set_row_value(row, field, value):
         row[field] = value
 
 
+def drop_empty_optional_columns(columns, rows, prefixes):
+    drop_columns = {
+        column
+        for column in columns
+        if column.startswith(prefixes) and not any(present(row.get(column, "")) for row in rows)
+    }
+    if not drop_columns:
+        return columns
+    for row in rows:
+        for column in drop_columns:
+            row.pop(column, None)
+    return [column for column in columns if column not in drop_columns]
+
+
 def cre_sample_name(sample):
     return sample.replace("-", "_")
 
@@ -795,7 +802,6 @@ def main():
                 ("Revel_score", "REVEL_score"),
                 ("Gerp_score", "Gerp_score"),
                 ("AlphaMissense", "AlphaMissense"),
-                ("phylop100way", "phyloP100way"),
                 ("ncER_score", "ncER"),
                 ("ReMM_score", "ReMM"),
                 ("LINSIGHT_score", "LinSight_Score"),
@@ -812,7 +818,7 @@ def main():
             ]:
                 set_row_value(row, field, as_text(first_info(records, source)))
 
-            set_row_value(row, "phylop100way", as_text(first_info_or_csq(records, csq_records, "phyloP100way", primary)))
+            set_row_value(row, "phylop100way", as_text(first_csq_value(csq_records, "phyloP100way", primary)))
 
             if "Gnomad_filter" in row:
                 row["Gnomad_filter"] = row["Gnomad_filter"] or "None"
@@ -922,6 +928,8 @@ def main():
     for row in rows:
         for sample in samples:
             row[f"Burden.{sample_headers[sample]}"] = str(burden_by_sample[sample].get(row["Gene"], 0))
+
+    columns = drop_empty_optional_columns(columns, rows, ("denovo.", "denovo_quality."))
 
     rows.sort(key=lambda row: row["Position"])
     with open(args.out_csv, "w", newline="") as handle:
