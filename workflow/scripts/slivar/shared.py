@@ -224,7 +224,7 @@ def sample_gq(sample_data):
     return "" if gq is None else str(gq)
 
 
-def zygosity(sample_data):
+def zygosity(sample_data, chrom=""):
     gt = sample_data.get("GT")
     ad = sample_data.get("AD")
     if gt is None or all(allele is None for allele in gt):
@@ -242,6 +242,10 @@ def zygosity(sample_data):
         return "Missing"
     if all(allele == 0 for allele in called):
         return "-"
+    if len(called) == 1 and called[0] != 0:
+        chrom_text = str(chrom)
+        if "X" in chrom_text or "Y" in chrom_text:
+            return "Hom"
     if len(called) == 2 and called[0] == called[1] and called[0] != 0:
         return "Hom"
     return "Het"

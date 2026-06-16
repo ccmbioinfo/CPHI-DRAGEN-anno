@@ -73,6 +73,10 @@ DOT_MISSING_FIELDS = {
     "Gnomad_pLI_score",
     "Gnomad_pnull_score",
     "Gnomad_prec_score",
+    "GSO_AC",
+    "GSO_AF",
+    "GSO_hemi",
+    "GSO_nhomalt",
     "GreenDB_closest_gene",
     "GreenDB_controlled_gene",
     "GreenDB_variant_type",
@@ -448,6 +452,10 @@ def make_columns(mode, samples):
                 "thousandG_AF",
                 "thousandG_AC",
                 "thousandG_nhomalt",
+                "GSO_AF",
+                "GSO_AC",
+                "GSO_nhomalt",
+                "GSO_hemi",
                 "Ensembl_transcript_id",
                 "rsIDs",
                 "AA_position",
@@ -523,6 +531,10 @@ def make_columns(mode, samples):
             "thousandG_AF",
             "thousandG_AC",
             "thousandG_nhomalt",
+            "GSO_AF",
+            "GSO_AC",
+            "GSO_nhomalt",
+            "GSO_hemi",
             "Ensembl_transcript_id",
             "rsIDs",
             "Gnomad_oe_lof_score",
@@ -713,7 +725,7 @@ def main():
                 sample_depths.append(sample_depth(sample_data))
                 sample_alt_depths.append(sample_alt_depth(sample_data))
                 sample_gqs.append(sample_gq(sample_data))
-                row[f"Zygosity.{sample_header}"] = zygosity(sample_data)
+                row[f"Zygosity.{sample_header}"] = zygosity(sample_data, record.chrom)
                 row[f"Alt_depths.{sample_header}"] = sample_alt_depths[-1]
                 row[f"gt_quals.{sample_header}"] = sample_gqs[-1]
 
@@ -739,6 +751,10 @@ def main():
                 ("thousandG_AF", "thousandG_AF"),
                 ("thousandG_AC", "thousandG_AC"),
                 ("thousandG_nhomalt", "thousandG_nhomalt"),
+                ("GSO_AF", "GSO_AF"),
+                ("GSO_AC", "GSO_AC"),
+                ("GSO_nhomalt", "GSO_nhomalt"),
+                ("GSO_hemi", "GSO_hemi"),
                 ("rsIDs", "rs_ids"),
                 ("Cadd_score", "CADD_phred"),
                 ("Vest4_score", "Vest4_score"),

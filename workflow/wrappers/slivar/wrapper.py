@@ -9,9 +9,12 @@ custom_order = snakemake.params.order
 log = snakemake.log_fmt_shell(stdout=False, stderr=True)
 
 
-def run(output_vcf, expr, extra_env=""):
+def run(output_vcf, expr, extra_env=None):
+    env = f"SLIVAR_IMPACTFUL_ORDER={custom_order} "
+    if extra_env:
+        env = f"{env}{extra_env}"
     shell(
-        f"""({extra_env}slivar expr \
+        f"""({env}slivar expr \
         --vcf {vcf} \
         --js {js} \
         --info '{expr}' \
@@ -77,7 +80,6 @@ INFO.genic &&
   (("clinvar_sig" in INFO) && present(INFO.clinvar_sig)) ||
   (("clinvar_sig_conf" in INFO) && present(INFO.clinvar_sig_conf))
 )""",
-        extra_env=f"SLIVAR_IMPACTFUL_ORDER={custom_order} ",
     )
 elif mode == "wgs-high-impact":
     run(

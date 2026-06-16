@@ -23,13 +23,13 @@ structural_interaction_variant
 bidirectional_gene_fusion
 incomplete_terminal_codon
 start_retained
-stop_retained
 rare_amino_acid
 5_prime_utr_truncation
 3_prime_utr_truncation
 # `IMPACT_CUTOFF` is a special value that slivar uses to set INFO.impactful for any variant with
 # any CSQ that has an impact that falls above this sentinel
 IMPACTFUL_CUTOFF
+stop_retained
 synonymous
 gene
 coding_sequence
