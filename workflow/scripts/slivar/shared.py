@@ -224,6 +224,16 @@ def sample_gq(sample_data):
     return "" if gq is None else str(gq)
 
 
+def sample_format_value(sample_data, field):
+    value = sample_data.get(field)
+    if value is None:
+        return ""
+    if isinstance(value, tuple):
+        return ",".join(str(item) for item in value if present(item))
+    text = str(value)
+    return "" if text in MISSING else text
+
+
 def zygosity(sample_data, chrom=""):
     gt = sample_data.get("GT")
     ad = sample_data.get("AD")

@@ -27,6 +27,7 @@ from shared import (
     present,
     sample_alt_depth,
     sample_depth,
+    sample_format_value,
     sample_gq,
     uniq_join,
     variant_key,
@@ -40,6 +41,16 @@ IMPACT_RANK = {
     "LOW": 2,
     "MODIFIER": 3,
 }
+
+
+TRAILING_ALL_COLUMNS = [
+    "Info_all",
+    "CSQ_impact_all",
+    "Ensembl_transcript_id_all",
+    "Variation_all",
+    "Refseq_change_all",
+    "Constraint_all",
+]
 
 
 DOT_MISSING_FIELDS = {
@@ -108,7 +119,21 @@ DOT_MISSING_FIELDS = {
     "omim_phenotype",
     "omim_phenotype_all",
     "promoterAI_score",
+    "phylop100way",
     "rsIDs",
+}
+
+
+ZERO_MISSING_FIELDS = {
+    "GSO_AC",
+    "GSO_AF",
+    "GSO_hemi",
+    "GSO_nhomalt",
+    "Regeneron_exome_AF",
+    "Regeneron_exome_AC",
+    "thousandG_AF",
+    "thousandG_AC",
+    "thousandG_nhomalt",
 }
 
 
@@ -152,6 +177,8 @@ def parse_vep_score(value):
 
 def normalize_report_value(field, value):
     text = "" if value is None else str(value).strip()
+    if field in ZERO_MISSING_FIELDS and text in {"", ".", "-1", "NA", "None"}:
+        return "0"
     if field in DOT_MISSING_FIELDS and text in {"", "NA", "None"}:
         return "."
     if field in DOT_IF_EMPTY_FIELDS and text == "":
@@ -243,7 +270,7 @@ def choose_primary_csq(csq_records, order_map, mode):
 
 def parse_spliceai(value):
     if not present(value):
-        return "NA|NA|NA", "0"
+        return "NA|NA|NA", "."
     annotations = []
     if isinstance(value, tuple):
         for item in value:
@@ -252,7 +279,7 @@ def parse_spliceai(value):
         annotations = str(value).split(",")
     best_gene = "NA"
     best_impact = "NA"
-    best_score = 0.0
+    best_score = None
     best_pos = "NA"
     fields = [("acceptor_gain", 2, 6), ("acceptor_loss", 3, 7), ("donor_gain", 4, 8), ("donor_loss", 5, 9)]
     for annotation in annotations:
@@ -265,11 +292,13 @@ def parse_spliceai(value):
                 score = float(parts[score_idx])
             except Exception:
                 continue
-            if score > best_score:
+            if best_score is None or score > best_score:
                 best_score = score
                 best_gene = gene
                 best_impact = impact_name
                 best_pos = parts[pos_idx]
+    if best_score is None:
+        return "NA|NA|NA", "."
     if best_score == 0:
         return "NA|NA|NA", "0"
     return f"{best_gene}|{best_impact}|{best_pos}", str(best_score)
@@ -277,7 +306,7 @@ def parse_spliceai(value):
 
 def parse_promoterai(value):
     if not present(value):
-        return "0"
+        return "."
     raw_values = value if isinstance(value, tuple) else str(value).split(",")
     parsed = []
     for raw in raw_values:
@@ -288,7 +317,7 @@ def parse_promoterai(value):
             parsed.append(abs(float(text)))
         except Exception:
             continue
-    return str(max(parsed)) if parsed else "0"
+    return str(max(parsed)) if parsed else "."
 
 
 def noncoding_pred_fraction(cadd, ncer, remm, linsight):
@@ -336,6 +365,25 @@ def first_info(records, field, default=""):
         if present(value):
             return value
     return default
+
+
+def first_csq_value(csq_records, field, primary=None, default=""):
+    if primary is not None:
+        value = primary.get(field, "")
+        if present(value):
+            return value
+    for csq in csq_records:
+        value = csq.get(field, "")
+        if present(value):
+            return value
+    return default
+
+
+def first_info_or_csq(records, csq_records, field, primary=None, default=""):
+    value = first_info(records, field, default="")
+    if present(value):
+        return value
+    return first_csq_value(csq_records, field, primary, default)
 
 
 def merged_clinvar_text(records):
@@ -417,24 +465,28 @@ def constraint_all_summary(transcripts, constraint_by_transcript):
     return uniq_join(parts, sep=";")
 
 
-def make_columns(mode, samples):
+def make_columns(mode, samples, include_denovo=False, include_denovo_quality=False):
     sample_headers = [cre_sample_name(sample) for sample in samples]
     columns = ["Position", "UCSC_Link", "GNOMAD_Link", "Ref", "Alt"]
     columns.extend([f"Zygosity.{sample}" for sample in sample_headers])
-    columns.append("Gene")
+    columns.extend(["Gene", "Gene_all"])
     columns.extend([f"Burden.{sample}" for sample in sample_headers])
     columns.extend(["gts", "Variation", "Info", "Refseq_change", "Depth", "Quality"])
     columns.extend([f"Alt_depths.{sample}" for sample in sample_headers])
     columns.extend([f"gt_quals.{sample}" for sample in sample_headers])
+    if include_denovo:
+        columns.extend([f"denovo.{sample}" for sample in sample_headers])
+    if include_denovo_quality:
+        columns.extend([f"denovo_quality.{sample}" for sample in sample_headers])
     if mode == "coding":
         columns.extend(
             [
                 "Trio_coverage",
-                "Ensembl_gene_id",
-                "Gene_description",
-                "omim_phenotype",
-                "omim_inheritance",
-                "Orphanet",
+                "Ensembl_gene_id_all",
+                "Gene_description_all",
+                "omim_phenotype_all",
+                "omim_inheritance_all",
+                "Orphanet_all",
                 "Clinvar",
                 "HGMD_id",
                 "HGMD_gene",
@@ -485,35 +537,22 @@ def make_columns(mode, samples):
                 "Old_multiallelic",
                 "CSQ_biotype",
                 "CSQ_impact",
-                "Gene_all",
-                "Ensembl_gene_id_all",
-                "Ensembl_transcript_id_all",
-                "Variation_all",
-                "Info_all",
-                "Refseq_change_all",
-                "AA_position_all",
-                "Exon_all",
                 "Sift_score_all",
                 "Polyphen_score_all",
-                "Gene_description_all",
-                "omim_phenotype_all",
-                "omim_inheritance_all",
-                "Orphanet_all",
-                "constraint_all",
                 "CSQ_biotype_all",
-                "CSQ_impact_all",
             ]
         )
+        columns.extend(TRAILING_ALL_COLUMNS)
         return columns
 
     columns.extend(
         [
             "Trio_coverage",
-            "Ensembl_gene_id",
-            "Gene_description",
-            "omim_phenotype",
-            "omim_inheritance",
-            "Orphanet",
+            "Ensembl_gene_id_all",
+            "Gene_description_all",
+            "omim_phenotype_all",
+            "omim_inheritance_all",
+            "Orphanet_all",
             "Clinvar",
             "HGMD_id",
             "HGMD_gene",
@@ -569,21 +608,10 @@ def make_columns(mode, samples):
             "UCE_200bp",
             "CSQ_biotype",
             "CSQ_impact",
-            "Gene_all",
-            "Ensembl_gene_id_all",
-            "Ensembl_transcript_id_all",
-            "Variation_all",
-            "Info_all",
-            "Refseq_change_all",
-            "Gene_description_all",
-            "omim_phenotype_all",
-            "omim_inheritance_all",
-            "Orphanet_all",
-            "constraint_all",
             "CSQ_biotype_all",
-            "CSQ_impact_all",
         ]
     )
+    columns.extend(TRAILING_ALL_COLUMNS)
     return columns
 
 
@@ -691,7 +719,9 @@ def main():
     with pysam.VariantFile(args.vcf) as vcf:
         samples = list(vcf.header.samples)
         sample_headers = {sample: cre_sample_name(sample) for sample in samples}
-        columns = make_columns(args.mode, samples)
+        include_denovo = "DN" in vcf.header.formats
+        include_denovo_quality = "DQ" in vcf.header.formats
+        columns = make_columns(args.mode, samples, include_denovo, include_denovo_quality)
         csq_fields = parse_csq_header(vcf)
         if not csq_fields:
             raise SystemExit("VCF header does not contain a usable INFO/CSQ definition")
@@ -728,6 +758,10 @@ def main():
                 row[f"Zygosity.{sample_header}"] = zygosity(sample_data, record.chrom)
                 row[f"Alt_depths.{sample_header}"] = sample_alt_depths[-1]
                 row[f"gt_quals.{sample_header}"] = sample_gqs[-1]
+                if include_denovo:
+                    row[f"denovo.{sample_header}"] = sample_format_value(sample_data, "DN")
+                if include_denovo_quality:
+                    row[f"denovo_quality.{sample_header}"] = sample_format_value(sample_data, "DQ")
 
             row["gts"] = ",".join(sample_gt_strings)
             row["Depth"] = as_text(first_info(records, "DP"))
@@ -777,6 +811,8 @@ def main():
                 ("Old_multiallelic", "OLD_MULTIALLELIC"),
             ]:
                 set_row_value(row, field, as_text(first_info(records, source)))
+
+            set_row_value(row, "phylop100way", as_text(first_info_or_csq(records, csq_records, "phyloP100way", primary)))
 
             if "Gnomad_filter" in row:
                 row["Gnomad_filter"] = row["Gnomad_filter"] or "None"
@@ -831,7 +867,7 @@ def main():
             row["omim_phenotype_all"] = uniq_join(omim_pheno_all)
             row["omim_inheritance_all"] = uniq_join(omim_inh_all)
             row["Orphanet_all"] = uniq_join(orphanet_all)
-            row["constraint_all"] = constraint_all_summary(row["Ensembl_transcript_id_all"].split(","), constraint)
+            row["Constraint_all"] = constraint_all_summary(row["Ensembl_transcript_id_all"].split(","), constraint)
 
             if primary is not None:
                 primary_gene = gene_symbol(primary)
@@ -839,7 +875,7 @@ def main():
                 primary_feature = primary.get("Feature", "")
                 primary_tx = primary_feature if primary_feature.startswith("ENST") else ""
                 row["Gene"] = primary_gene
-                row["Ensembl_gene_id"] = primary_ensg
+                set_row_value(row, "Ensembl_gene_id", primary_ensg)
                 row["Variation"] = consequence_display(primary, order_map)
                 row["Info"] = build_info_item(primary) or "NA"
                 row["Refseq_change"] = best_refseq_change_for_gene(csq_records, primary_gene, order_map, args.mode)
@@ -851,9 +887,11 @@ def main():
                 set_row_value(row, "Polyphen_score", parse_vep_score(primary.get("PolyPhen", "")) or "None")
                 row["CSQ_biotype"] = primary.get("BIOTYPE", "")
                 row["CSQ_impact"] = primary.get("IMPACT", "")
-                row["Gene_description"] = join_gene_description(primary_ensg, gene_descriptions)
-                row["omim_phenotype"], row["omim_inheritance"] = join_omim(primary_gene, omim)
-                row["Orphanet"] = join_orphanet(primary_ensg, orphanet)
+                set_row_value(row, "Gene_description", join_gene_description(primary_ensg, gene_descriptions))
+                omim_phenotype, omim_inheritance = join_omim(primary_gene, omim)
+                set_row_value(row, "omim_phenotype", omim_phenotype)
+                set_row_value(row, "omim_inheritance", omim_inheritance)
+                set_row_value(row, "Orphanet", join_orphanet(primary_ensg, orphanet))
                 row["Imprinting_status"], row["Imprinting_expressed_allele"] = join_imprinting(primary_gene, imprinting)
                 row["Pseudoautosomal"] = join_pseudoautosomal(primary_ensg, pseudoautosomal)
                 row["HGMD_gene"] = primary_gene or "NA"
@@ -862,7 +900,7 @@ def main():
             else:
                 row["Info"] = "NA"
                 row["Refseq_change"] = "NA"
-                row["Orphanet"] = "0"
+                set_row_value(row, "Orphanet", "0")
                 row["HGMD_gene"] = "NA"
 
             for field in row:
