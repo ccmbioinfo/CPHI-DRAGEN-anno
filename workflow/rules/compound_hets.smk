@@ -83,8 +83,7 @@ if len(children) > 0:
             seq_type="short",
             hpo_panel_args=get_hpo_panel_args,
             acmg_sf_flag = str(config["run"].get("acmg_sf", "false")).lower(),
-            mavedb_tsv = config["annotation"]["general"]["mavedb_tsv"],
-            mavedb_script = workflow.basedir + "/scripts/add_mavedb_columns.py"
+            mavedb_tsv = config["annotation"]["general"]["mavedb_tsv"]
         conda:
             "../envs/str_sv.yaml"
         log:
@@ -105,7 +104,7 @@ if len(children) > 0:
             --sample_order {input.sample_order}  \
             --family {wildcards.family}  \
             --acmg_sf {params.acmg_sf_flag} && \
-            python3 {params.mavedb_script} \
+            python3 {params.crg2_pacbio}/scripts/add_mavedb_columns.py \
             --family {wildcards.family} \
             --reports-dir reports \
             --mavedb-tsv {params.mavedb_tsv}) > {log} 2>&1
@@ -136,8 +135,7 @@ else:
                 seq_type="short",
                 hpo_panel_args=get_hpo_panel_args,
                 acmg_sf_flag = str(config["run"].get("acmg_sf", "false")).lower(),
-                mavedb_tsv = config["annotation"]["general"]["mavedb_tsv"],
-                mavedb_script = workflow.basedir + "/scripts/add_mavedb_columns.py"
+                mavedb_tsv = config["annotation"]["general"]["mavedb_tsv"]
             conda:
                 "../envs/str_sv.yaml"
             log:
@@ -157,7 +155,7 @@ else:
                 --sample_order {input.sample_order}  \
                 --family {wildcards.family}  \
                 --acmg_sf {params.acmg_sf_flag} && \
-                python3 {params.mavedb_script} \
+                python3 {params.crg2_pacbio}/scripts/add_mavedb_columns.py \
                 --family {wildcards.family} \
                 --reports-dir reports \
                 --mavedb-tsv {params.mavedb_tsv}) > {log} 2>&1
