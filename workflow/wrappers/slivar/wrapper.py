@@ -32,7 +32,7 @@ if mode == "coding":
 variant.FILTER == "PASS" &&
 variant.ALT[0] != "*" &&
 (
-  (("gnomad_fafmax_faf95_max" in INFO) && INFO.gnomad_fafmax_faf95_max < 0.01) ||
+  (("gnomad_fafmax_faf95_max" in INFO) && INFO.gnomad_fafmax_faf95_max <= 0.01) ||
   !("gnomad_fafmax_faf95_max" in INFO)
 )""",
     )
@@ -41,7 +41,7 @@ variant.ALT[0] != "*" &&
         """variant.FILTER == "PASS" &&
 variant.ALT[0] != "*" &&
 ("gnomad_fafmax_faf95_max" in INFO) &&
-INFO.gnomad_fafmax_faf95_max < 0.01 &&
+INFO.gnomad_fafmax_faf95_max <= 0.01 &&
 (
   (("clinvar_pathogenic" in INFO) && present(INFO.clinvar_pathogenic)) ||
   (("clinvar_sig" in INFO) && present(INFO.clinvar_sig)) ||
@@ -53,7 +53,7 @@ INFO.gnomad_fafmax_faf95_max < 0.01 &&
         """variant.FILTER == "PASS" &&
 variant.ALT[0] != "*" &&
 ("gnomad_fafmax_faf95_max" in INFO) &&
-INFO.gnomad_fafmax_faf95_max >= 0.01 &&
+INFO.gnomad_fafmax_faf95_max > 0.01 &&
 ("clinvar_status" in INFO) &&
 present(INFO.clinvar_status) &&
 INFO.clinvar_status != "no_assertion_criteria_provided" &&
@@ -71,7 +71,7 @@ INFO.genic &&
 (
   (
     ("gnomad_fafmax_faf95_max" in INFO) &&
-    INFO.gnomad_fafmax_faf95_max < 0.01
+    INFO.gnomad_fafmax_faf95_max <= 0.01
   ) ||
   !("gnomad_fafmax_faf95_max" in INFO)
 ) &&

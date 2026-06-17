@@ -18,12 +18,16 @@ cre_data_dir = os.path.join(workflow.basedir, "scripts", "cre", "data")
 def get_slivar_report_table_inputs():
     return {
         "gene_descriptions": os.path.join(cre_data_dir, "ensembl_w_description.txt"),
-        "omim": os.path.join(cre_data_dir, "OMIM_hgnc_join_omim_phenos_2025-07-10.tsv"),
+        "omim": os.path.join(cre_data_dir, "OMIM_hgnc_join_omim_phenos_2026-06-02.tsv"),
         "orphanet": os.path.join(cre_data_dir, "orphanet.txt"),
         "constraint": os.path.join(cre_data_dir, "gnomad_scores_transcript_level_v4.1.1.csv"),
         "imprinting": os.path.join(cre_data_dir, "imprinting.txt"),
         "pseudoautosomal": os.path.join(cre_data_dir, "pseudoautosomal.txt"),
     }
+
+
+def get_slivar_hgmd_path():
+    return os.path.join(config["annotation"]["cre"]["database_path"], "hgmd_hg38.csv")
 
 
 rule input_prep:
@@ -260,7 +264,9 @@ rule slivar_postfilter_coding:
         --common-pathogenic-clinvar-vcf {input.common_pathogenic_clinvar} \
         --rare-clinvar-allow-missing-faf-vcf {input.rare_clinvar_allow_missing_faf} \
         --impact-order-file {params.order} \
-        --out-prefix {params.out_prefix}) > {log} 2>&1
+        --out-prefix {params.out_prefix} &&
+        bcftools sort -O v -o {output.vcf}.sorted {output.vcf} &&
+        mv {output.vcf}.sorted {output.vcf}) > {log} 2>&1
         """
 
 
@@ -276,7 +282,8 @@ rule slivar_report_coding:
         "../envs/slivar.yaml"
     params:
         script=os.path.join(slivar_script_dir, "build_report.py"),
-        order=os.path.join(slivar_script_dir, "default-order.txt")
+        order=os.path.join(slivar_script_dir, "default-order.txt"),
+        hgmd=get_slivar_hgmd_path()
     shell:
         """
         (mkdir -p $(dirname {output})
@@ -290,7 +297,8 @@ rule slivar_report_coding:
         --orphanet {input.orphanet} \
         --constraint {input.constraint} \
         --imprinting {input.imprinting} \
-        --pseudoautosomal {input.pseudoautosomal}) > {log} 2>&1
+        --pseudoautosomal {input.pseudoautosomal} \
+        --hgmd {params.hgmd}) > {log} 2>&1
         """
 
 
@@ -347,7 +355,9 @@ rule slivar_postfilter_wgs_high_impact:
         --common-pathogenic-clinvar-vcf {input.common_pathogenic_clinvar} \
         --rare-clinvar-allow-missing-faf-vcf {input.rare_clinvar_allow_missing_faf} \
         --impact-order-file {params.order} \
-        --out-prefix {params.out_prefix}) > {log} 2>&1
+        --out-prefix {params.out_prefix} &&
+        bcftools sort -O v -o {output.vcf}.sorted {output.vcf} &&
+        mv {output.vcf}.sorted {output.vcf}) > {log} 2>&1
         """
 
 
@@ -363,7 +373,8 @@ rule slivar_report_wgs_high_impact:
         "../envs/slivar.yaml"
     params:
         script=os.path.join(slivar_script_dir, "build_report.py"),
-        order=os.path.join(slivar_script_dir, "default-order.txt")
+        order=os.path.join(slivar_script_dir, "default-order.txt"),
+        hgmd=get_slivar_hgmd_path()
     shell:
         """
         (mkdir -p $(dirname {output})
@@ -377,7 +388,8 @@ rule slivar_report_wgs_high_impact:
         --orphanet {input.orphanet} \
         --constraint {input.constraint} \
         --imprinting {input.imprinting} \
-        --pseudoautosomal {input.pseudoautosomal}) > {log} 2>&1
+        --pseudoautosomal {input.pseudoautosomal} \
+        --hgmd {params.hgmd}) > {log} 2>&1
         """
 
 
@@ -438,7 +450,9 @@ rule slivar_postfilter_wgs:
         --common-pathogenic-clinvar-vcf {input.common_pathogenic_clinvar} \
         --rare-clinvar-allow-missing-faf-vcf {input.rare_clinvar_allow_missing_faf} \
         --impact-order-file {params.order} \
-        --out-prefix {params.out_prefix}) > {log} 2>&1
+        --out-prefix {params.out_prefix} &&
+        bcftools sort -O v -o {output.vcf}.sorted {output.vcf} &&
+        mv {output.vcf}.sorted {output.vcf}) > {log} 2>&1
         """
 
 
@@ -456,7 +470,8 @@ rule slivar_report_panel_wgs:
         "../envs/slivar.yaml"
     params:
         script=os.path.join(slivar_script_dir, "build_report.py"),
-        order=os.path.join(slivar_script_dir, "default-order.txt")
+        order=os.path.join(slivar_script_dir, "default-order.txt"),
+        hgmd=get_slivar_hgmd_path()
     shell:
         """
         (mkdir -p $(dirname {output})
@@ -470,7 +485,8 @@ rule slivar_report_panel_wgs:
         --orphanet {input.orphanet} \
         --constraint {input.constraint} \
         --imprinting {input.imprinting} \
-        --pseudoautosomal {input.pseudoautosomal}) > {log} 2>&1
+        --pseudoautosomal {input.pseudoautosomal} \
+        --hgmd {params.hgmd}) > {log} 2>&1
         """
 
 
@@ -486,7 +502,8 @@ rule slivar_report_denovo_wgs:
         "../envs/slivar.yaml"
     params:
         script=os.path.join(slivar_script_dir, "build_report.py"),
-        order=os.path.join(slivar_script_dir, "default-order.txt")
+        order=os.path.join(slivar_script_dir, "default-order.txt"),
+        hgmd=get_slivar_hgmd_path()
     shell:
         """
         (mkdir -p $(dirname {output})
@@ -500,7 +517,8 @@ rule slivar_report_denovo_wgs:
         --orphanet {input.orphanet} \
         --constraint {input.constraint} \
         --imprinting {input.imprinting} \
-        --pseudoautosomal {input.pseudoautosomal}) > {log} 2>&1
+        --pseudoautosomal {input.pseudoautosomal} \
+        --hgmd {params.hgmd}) > {log} 2>&1
         """
 
 

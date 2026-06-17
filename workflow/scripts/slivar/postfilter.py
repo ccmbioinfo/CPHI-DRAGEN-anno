@@ -16,6 +16,7 @@ from shared import (
     parse_csq_header,
     parse_csq_records,
     present,
+    sample_alt_depth_value,
 )
 
 
@@ -75,21 +76,8 @@ def sample_alt_depths(record):
     depths = []
     for sample_name in record.samples:
         sample = record.samples[sample_name]
-        if "AD" not in sample:
-            depths.append(-1)
-            continue
-        ad = sample.get("AD")
-        if ad is None or len(ad) < 2:
-            depths.append(-1)
-            continue
-        alt_depth = ad[1]
-        if alt_depth is None:
-            depths.append(-1)
-            continue
-        try:
-            depths.append(int(alt_depth))
-        except Exception:
-            depths.append(-1)
+        alt_depth = sample_alt_depth_value(sample)
+        depths.append(-1 if alt_depth is None else alt_depth)
     return depths
 
 
@@ -192,8 +180,8 @@ def pass_common_pathogenic_clinvar(record, common_min_af):
     faf = as_float(info(record, "gnomad_fafmax_faf95_max"))
     if faf is None:
         return False, "missing_faf"
-    if faf < common_min_af:
-        return False, "faf_lt_common_min"
+    if faf <= common_min_af:
+        return False, "faf_lte_common_min"
 
     clinvar_status = info(record, "clinvar_status")
     if not present(clinvar_status):

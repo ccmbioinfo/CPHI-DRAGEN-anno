@@ -2,6 +2,7 @@
 
 import argparse
 import csv
+import os
 from collections import Counter, defaultdict
 
 import pysam
@@ -428,6 +429,52 @@ def join_pseudoautosomal(ensembl_gene_id_value, pseudo_by_ensg):
     return pseudo_by_ensg.get(ensembl_gene_id_value, {}).get("Pseudoautosomal", "")
 
 
+def load_hgmd(path):
+    if not path or not os.path.exists(path):
+        return {}, set()
+
+    by_variant = {}
+    genes = set()
+    with open(path, newline="", encoding="utf-8-sig") as handle:
+        reader = csv.reader(handle)
+        for row in reader:
+            if len(row) < 7:
+                continue
+            row = [value.strip() for value in row]
+            if row[0].lower() == "chrom":
+                continue
+            row.extend([""] * (13 - len(row)))
+            chrom, pos, hgmd_id, ref, alt, hgmd_gene, hgmd_tag, author, allname, vol, page, year, pmid = row[:13]
+
+            if present(hgmd_gene):
+                genes.add(hgmd_gene)
+            if not all(present(value) for value in (chrom, pos, ref, alt)):
+                continue
+
+            variant_key_text = f"{chrom}:{pos}-{ref}-{alt}"
+            match = by_variant.setdefault(
+                variant_key_text,
+                {"HGMD_id": [], "HGMD_tag": [], "HGMD_ref": []},
+            )
+            match["HGMD_id"].append(hgmd_id)
+            match["HGMD_tag"].append(hgmd_tag)
+
+            reference_parts = [author, allname, vol, page, year, "PMID:", pmid]
+            if any(present(value) for value in [author, allname, vol, page, year, pmid]):
+                match["HGMD_ref"].append(" ".join(reference_parts).strip())
+
+    return (
+        {
+            key: {
+                field: uniq_join(values, sep=";") or "NA"
+                for field, values in fields.items()
+            }
+            for key, fields in by_variant.items()
+        },
+        genes,
+    )
+
+
 def primary_constraint_values(transcript, constraint_by_transcript):
     keys = [
         "Gnomad_oe_lof_score",
@@ -709,6 +756,7 @@ def parse_args():
     parser.add_argument("--constraint", default="")
     parser.add_argument("--imprinting", default="")
     parser.add_argument("--pseudoautosomal", default="")
+    parser.add_argument("--hgmd", default="")
     return parser.parse_args()
 
 
@@ -721,6 +769,7 @@ def main():
     constraint = index_constraint(load_table(args.constraint))
     imprinting = index_first(load_table(args.imprinting), "Gene")
     pseudoautosomal = index_first(load_table(args.pseudoautosomal), "Ensembl_gene_id")
+    hgmd_by_variant, hgmd_genes = load_hgmd(args.hgmd)
 
     rows = []
     with pysam.VariantFile(args.vcf) as vcf:
@@ -775,9 +824,11 @@ def main():
             row["Quality"] = "" if record.qual is None else str(record.qual)
             row["Trio_coverage"] = "_".join(sample_depths)
             row["Clinvar"] = merged_clinvar_text(records) or "."
-            row["HGMD_id"] = "NA"
-            row["HGMD_tag"] = "NA"
-            row["HGMD_ref"] = "NA"
+            hgmd_match = hgmd_by_variant.get(f"{position}-{ref}-{alt}", {})
+            row["HGMD_id"] = hgmd_match.get("HGMD_id", "NA")
+            row["HGMD_gene"] = "NA"
+            row["HGMD_tag"] = hgmd_match.get("HGMD_tag", "NA")
+            row["HGMD_ref"] = hgmd_match.get("HGMD_ref", "NA")
 
             for field, source in [
                 ("Gnomad_af_grpmax", "gnomad_af_grpmax"),
@@ -900,7 +951,7 @@ def main():
                 set_row_value(row, "Orphanet", join_orphanet(primary_ensg, orphanet))
                 row["Imprinting_status"], row["Imprinting_expressed_allele"] = join_imprinting(primary_gene, imprinting)
                 row["Pseudoautosomal"] = join_pseudoautosomal(primary_ensg, pseudoautosomal)
-                row["HGMD_gene"] = primary_gene or "NA"
+                row["HGMD_gene"] = primary_gene if primary_gene in hgmd_genes else "NA"
                 for field, value in primary_constraint_values(primary_tx, constraint).items():
                     row[field] = value
             else:

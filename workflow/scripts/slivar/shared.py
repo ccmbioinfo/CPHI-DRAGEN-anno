@@ -204,14 +204,33 @@ def gt_string(sample_data, ref, alts):
     return ("|" if sample_data.phased else "/").join(alleles)
 
 
-def sample_alt_depth(sample_data):
+def sample_alt_depth_value(sample_data):
     ad = sample_data.get("AD")
-    if ad is None or len(ad) < 2:
-        return ""
-    try:
-        return str(ad[1])
-    except Exception:
-        return ""
+    if ad is None:
+        return None
+
+    if isinstance(ad, str):
+        alt_depths = ad.split(",")[1:]
+    else:
+        try:
+            alt_depths = list(ad)[1:]
+        except Exception:
+            return None
+
+    parsed = []
+    for depth in alt_depths:
+        if depth is None or str(depth) in MISSING:
+            continue
+        try:
+            parsed.append(int(depth))
+        except Exception:
+            continue
+    return max(parsed) if parsed else None
+
+
+def sample_alt_depth(sample_data):
+    value = sample_alt_depth_value(sample_data)
+    return "" if value is None else str(value)
 
 
 def sample_depth(sample_data):
@@ -236,15 +255,9 @@ def sample_format_value(sample_data, field):
 
 def zygosity(sample_data, chrom=""):
     gt = sample_data.get("GT")
-    ad = sample_data.get("AD")
     if gt is None or all(allele is None for allele in gt):
         return "Missing"
-    alt_ad = 0
-    if ad is not None and len(ad) > 1 and ad[1] is not None:
-        try:
-            alt_ad = int(ad[1])
-        except Exception:
-            alt_ad = 0
+    alt_ad = sample_alt_depth_value(sample_data) or 0
     if alt_ad == 0:
         return "-"
     called = [allele for allele in gt if allele is not None]
