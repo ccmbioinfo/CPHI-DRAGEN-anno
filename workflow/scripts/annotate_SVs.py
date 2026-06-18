@@ -884,6 +884,7 @@ def annotate_gene_CDS(annotsv_df, ensembl):
     intersect = annotsv_bed.intersect(ensembl_bed, wa=True, wb=True).to_dataframe(names=intersect_cols)
     intersect = intersect.drop_duplicates(subset=["GENE_NAME"]).groupby(["CHROM", "POS", "END", "SVTYPE", "ID"]).agg({"GENE_NAME": ";".join}).reset_index()
     intersect.rename(columns={"GENE_NAME": "GENE_NAME_CDS"}, inplace=True)
+    intersect["CHROM"] =  intersect["CHROM"].astype(str)
     annotsv_df = pd.merge(
         annotsv_df,
         intersect,
