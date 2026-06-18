@@ -6,6 +6,7 @@ import re
 
 import pysam
 
+
 from shared import (
     as_float,
     as_text,
