@@ -2,8 +2,8 @@ run:
   family: "FAM-000000"
   samples: samples.tsv
   units: units.tsv
-  hpo: "" # proband-specific HPO terms
-  ped: "" 
+  hpo: "" # proband-specific HPO terms, optional
+  ped: "" # pedigree file, mandatory
   flank: 100000
   acmg_sf: true
   dragen_output_schema: "" # "" CPHI family, "modified" for non-CPHI family

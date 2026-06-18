@@ -23,18 +23,16 @@ def get_sv_vcf(wildcards):
     return input_vcf
 
 def get_cram(wildcards):
-    results_path = samples.loc[wildcards.sample, "DRAGEN_results_dir"]
-    cram = f"{results_path}/output/{wildcards.sample}.cram"
-    if not os.path.exists(cram): # non-CPHI family
-        cram =  f"{results_path}/{wildcards.sample}.cram"
-    return cram
+    return samples.loc[wildcards.sample, "CRAM"]
+
+def get_str_vcf(wildcards):
+    return samples.loc[wildcards.sample, "STR"]
+
+def get_metrics(wildcards):
+    return samples.loc[wildcards.sample, "metrics"]
 
 def get_dragen_metrics_files(wildcards):
-    results_paths = samples["DRAGEN_results_dir"].tolist()
-    if config["run"].get("dragen_output_schema", "") == "":
-        metrics_files = [glob.glob(f"{dir}/*metrics.tsv")[0] for dir in results_paths]
-    else: # non-CPHI family
-        metrics_files = glob.glob(f"{results_paths[0]}/{wildcards.family}*metrics.tsv")
+    metrics_files = samples["metrics"].tolist()
     return metrics_files
 
 def get_cnv_vcf(wildcards):

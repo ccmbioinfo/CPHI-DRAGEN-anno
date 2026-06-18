@@ -16,14 +16,8 @@ def recode_gt(gt):
 
 def main(repeat_vcfs, family, output_file):
     samples_df = pd.read_csv(samples_tsv, sep="\t", dtype=str)
-    results_paths = samples_df["DRAGEN_results_dir"].tolist()
-    try:
-        vcf_files = [glob.glob(f"{dir}/output/*repeats.vcf.gz")[0] for dir in results_paths]
-    except IndexError: # non-CPHI family
-        try:
-            vcf_files = glob.glob(f"{results_paths[0]}/{family}*repeats.vcf.gz")
-        except IndexError:
-            raise ValueError(f"No repeats VCF found in {results_paths}")
+    vcf_files = samples_df["STR"].tolist()
+
     with open(output_file, "w") as f:
         for repeat_vcf in vcf_files:
             variants = VariantFile(repeat_vcf)
