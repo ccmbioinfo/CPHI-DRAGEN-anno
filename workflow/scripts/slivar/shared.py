@@ -182,6 +182,119 @@ def gene_symbol(csq):
     return ""
 
 
+IMPACT_RANK = {
+    "HIGH": 0,
+    "MODERATE": 1,
+    "LOW": 2,
+    "MODIFIER": 3,
+}
+
+
+def consequence_rank(csq, order_map):
+    ranks = [order_map[term] for term in normalized_consequence_terms(csq) if term in order_map]
+    return min(ranks) if ranks else 10**9
+
+
+def consequence_display(csq, order_map):
+    terms = consequence_terms(csq)
+    if not terms:
+        return ""
+    return sorted(terms, key=lambda term: (order_map.get(normalize_consequence_term(term), 10**9), term))[0]
+
+
+def ensembl_gene_id(csq):
+    gene = csq.get("Gene", "")
+    return gene if gene.startswith("ENSG") else ""
+
+
+def best_ensembl_gene_id_for_symbol(csq_records, symbol):
+    candidates = []
+    for csq in csq_records:
+        if gene_symbol(csq) != symbol:
+            continue
+        gene = ensembl_gene_id(csq)
+        if gene:
+            candidates.append(gene)
+    return candidates[0] if candidates else ""
+
+
+def gene_id_with_fallback_for_csq(csq_records, primary):
+    if primary is None:
+        return ""
+    symbol = gene_symbol(primary)
+    ensg = best_ensembl_gene_id_for_symbol(csq_records, symbol)
+    if present(ensg):
+        return ensg
+    gene = primary.get("Gene", "")
+    return gene if present(gene) else ""
+
+
+def canonical_rank(csq):
+    return 0 if csq.get("CANONICAL", "") == "YES" else 1
+
+
+def mane_value(csq, field):
+    value = csq.get(field, "")
+    return value if present(value) else ""
+
+
+def mane_select_value(csq):
+    return mane_value(csq, "MANE_SELECT")
+
+
+def mane_plus_clinical_value(csq):
+    return mane_value(csq, "MANE_PLUS_CLINICAL")
+
+
+def mane_rank(csq):
+    if mane_select_value(csq):
+        return 0
+    if mane_plus_clinical_value(csq):
+        return 1
+    return 2
+
+
+def biotype_rank(csq, mode):
+    biotype = csq.get("BIOTYPE", "")
+    if biotype == "protein_coding":
+        return 0
+    if mode != "coding" and "pseudogene" in biotype:
+        return 2
+    return 1
+
+
+def gene_symbol_rank(csq):
+    return 0 if present(gene_symbol(csq)) else 1
+
+
+def csq_sort_key(csq, order_map, mode):
+    if mode == "coding":
+        return (
+            mane_rank(csq),
+            consequence_rank(csq, order_map),
+            IMPACT_RANK.get(csq.get("IMPACT", ""), 99),
+            canonical_rank(csq),
+            biotype_rank(csq, mode),
+            csq.get("Feature", ""),
+            csq.get("_csq_index", ""),
+        )
+    return (
+        mane_rank(csq),
+        biotype_rank(csq, mode),
+        consequence_rank(csq, order_map),
+        gene_symbol_rank(csq),
+        canonical_rank(csq),
+        csq.get("Feature", ""),
+        csq.get("_csq_index", ""),
+    )
+
+
+def choose_primary_csq(csq_records, order_map, mode):
+    if not csq_records:
+        return None
+    return sorted(csq_records, key=lambda csq: csq_sort_key(csq, order_map, mode))[0]
+
+
 def variant_key(record):
     return (record.chrom, record.pos, record.ref, record.alts[0] if record.alts else "")
 

@@ -25,3 +25,19 @@ function contains_pathogenic(x) {
 
   return String(x).toLowerCase().indexOf("pathogenic") !== -1;
 }
+
+function is_ch_common_clinvar_rescue(x) {
+  if (!present(x)) return false;
+
+  if (Array.isArray(x)) {
+    for (var i = 0; i < x.length; i++) {
+      if (is_ch_common_clinvar_rescue(x[i])) return true;
+    }
+    return false;
+  }
+
+  var s = String(x);
+  return s === "Pathogenic" ||
+    s === "Likely_pathogenic" ||
+    s === "Conflicting_interpretations_of_pathogenicity";
+}

@@ -189,5 +189,31 @@ INFO.clinvar_status != "no_assertion_criteria_provided" &&
   (("clinvar_sig_conf" in INFO) && contains_pathogenic(INFO.clinvar_sig_conf))
 )""",
     )
+elif mode == "compound-hets":
+    run(
+        snakemake.output.candidates[:-3],
+        """variant.FILTER == "PASS" &&
+variant.ALT[0] != "*" &&
+(
+  (
+    !("gnomad_af_grpmax" in INFO) ||
+    !present(INFO.gnomad_af_grpmax) ||
+    INFO.gnomad_af_grpmax <= 0.01
+  ) ||
+  (
+    ("gnomad_af_grpmax" in INFO) &&
+    present(INFO.gnomad_af_grpmax) &&
+    INFO.gnomad_af_grpmax > 0.01 &&
+    ("clinvar_status" in INFO) &&
+    present(INFO.clinvar_status) &&
+    INFO.clinvar_status != "no_assertion_criteria_provided" &&
+    (
+      (("clinvar_pathogenic" in INFO) && is_ch_common_clinvar_rescue(INFO.clinvar_pathogenic)) ||
+      (("clinvar_sig" in INFO) && is_ch_common_clinvar_rescue(INFO.clinvar_sig)) ||
+      (("clinvar_sig_conf" in INFO) && is_ch_common_clinvar_rescue(INFO.clinvar_sig_conf))
+    )
+  )
+)""",
+    )
 else:
     raise ValueError(f"Unsupported slivar mode: {mode}")
