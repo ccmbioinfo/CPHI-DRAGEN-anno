@@ -10,10 +10,12 @@
 - CPHI identifiers follow the format `XXXX-000000_EXP_0000`, i.e. `project-participant_EXP_experimentnumber`. DRAGEN VCF sample IDs will conform to this format.
 - For joint-genotyped data from a family, DRAGEN VCF filenames will include a family identifier in the format `FAM-000000`. 
 - The pipeline is also compatible with research identifiers from other studies. The IDs in the `samples.tsv` file must match the IDs in the VCFs used as input to the pipeline.
+- If you are annotating DRAGEN output for a non-CPHI family, make sure the family ID does not contain any underscores.
 
 ## Running the pipeline
-1. Clone this repo to your home directory: `git clone https://github.com/ccmbioinfo/CPHI-DRAGEN-anno/`
-2. Make a folder in a directory with sufficient space. Copy over the template files `CPHI-DRAGEN-anno/config/config.yaml`, `CPHI-DRAGEN-anno/config/samples.tsv`, `CPHI-DRAGEN-anno/config/units.tsv`, `CPHI-DRAGEN-anno/workflow/CPHI_DRAGEN_anno.sh`. 
+1. Clone this repo to your home directory: `git clone https://github.com/ccmbioinfo/CPHI-DRAGEN-anno/`. NOTE: you can clone the directory elsewhere, but make sure to change the relevant paths in `config.yaml` and `CPHI-DRAGEN-anno.sh`. 
+2. Clone crg2-pacbio to your home directory: `git clone https://github.com/ccmbioinfo/crg2-pacbio/`. NOTE: you can clone the directory elsewhere, but make sure to change the relevant path in `config.yaml`.
+3. Make a folder in a directory with sufficient space. Copy over the template files `CPHI-DRAGEN-anno/config/config.yaml`, `CPHI-DRAGEN-anno/config/samples.tsv`, `CPHI-DRAGEN-anno/config/units.tsv`, `CPHI-DRAGEN-anno/workflow/CPHI_DRAGEN_anno.sh`. 
 
 ```
 $ mkdir FAM-000000
@@ -22,7 +24,7 @@ $ cd FAM-000000
 ```
 
 3. Set up pipeline run: 
-- reconfigure `samples.tsv` and `units.tsv` to reflect sample names and input files. Note that because several of the inputs are joint-genotyped, one row in the units.tsv file corresponds to one family, not one sample. `units.tsv` must be configured with the path to: the joint-genotyped (or singleton, if no family members were sequenced) DRAGEN `sequence_variant_vcf`, the joint-genotyped (or singleton) DRAGEN `SV_vcf`, and the joint-genotyped (or singleton) DRAGEN `CNV_vcf`. The `samples.tsv` file should contain one row per family member, with the `sample` column corresponding to the sample ID, and the `DRAGEN_results_dir` corresponding to that sample's DRAGEN results directory (i.e. the directory that contains single-sample STR and VNTR VCFs and CRAMs, but not joint-genotyped VCFs).
+- reconfigure `samples.tsv` and `units.tsv` to reflect sample names and input files. Note that because several of the inputs are joint-genotyped, one row in the units.tsv file corresponds to one family, not one sample. `units.tsv` must be configured with the path to: the joint-genotyped (or singleton, if no family members were sequenced) DRAGEN `sequence_variant_vcf`, the joint-genotyped (or singleton) DRAGEN `SV_vcf`, and the joint-genotyped (or singleton) DRAGEN `CNV_vcf`. The `samples.tsv` file should contain one row per family member, with the `sample` column corresponding to the sample ID, `CRAM` corresponding to the CRAM file, `STR` corresponding to the STR VCF, and `metrics` corresponding to the metrics TSV file. 
 
 `units.tsv` example:
 ```
@@ -31,19 +33,21 @@ FAM-000000	/path/to/FAM-000000.hard-filtered.vcf.gz	/path/to/FAM-000000.sv.vcf.g
 ```
 `samples.tsv` example:
 ```
-sample  DRAGEN_results_dir
-XXXX-000000_EXP_0000    /path/to/XXXX-000000_EXP_0000
-XXXX-000001_EXP_0000    /path/to/XXXX-000001_EXP_0000
-XXXX-000002_EXP_0000    /path/to/XXXX-000002_EXP_0000
+sample  CRAM    STR metrics
+XXXX-000000_EXP_0000    /path/to/XXXX-000000_EXP_0000.cram  /path/to/XXXX-000000_EXP_0000.repeats.vcf.gz    /path/to/XXXX-000000_EXP_0000.metrics.tsv   
+XXXX-000001_EXP_0000    /path/to/XXXX-000001_EXP_0000.cram  /path/to/XXXX-000001_EXP_0000.repeats.vcf.gz    /path/to/XXXX-000001_EXP_0000.metrics.tsv
+XXXX-000002_EXP_0000    /path/to/XXXX-000002_EXP_0000.cram  /path/to/XXXX-000002_EXP_0000.repeats.vcf.gz    /path/to/XXXX-000002_EXP_0000.metrics.tsv
 ```
-- Add paths to the HPO term file and pedigree file to `config.yaml`. 
+- Add paths to the HPO term file and pedigree file to `config.yaml`. The HPO term file is optional; if it is not provided, the small variant `wgs.panel` and `wgs.panel-flank` reports will not be produced, and variant reports will not include proband- or family-specific HPO terms. **A pedigree file is mandatory**, because the compound heterozygosity module determines the proband based on the pedigree. If you are running a singleton, the 'Phenotype' status for that individual in the pedigree must be `2`.
 - Do a dry run: add a `-n` flag to the Snakemake command in `CPHI_DRAGEN_anno.sh`. This will print out the rules that will be run, but not actually run them.
 - If the dry run is successful, run the pipeline: `sbatch CPHI_DRAGEN_anno.sh`.
 - If you just want to generate a single report, you can specify the report name in the Snakemake command in `CPHI_DRAGEN_anno.sh`. 
 
 4. Optional parameters
-- If the data is coming from a non-CPHI family, change the `dragen_output_schema` in `config.yaml` to `modified`
 - If you do not want to generate the ACMG secondary findings report, set `acmg` in `config.yaml` to `false`
+
+5. Running the pipeline for older DRAGEN outputs
+-  If the DRAGEN SV files includes inversions (e.g. `family.sv.with-inv.vcf.gz`), change the `dragen_output_schema` in `config.yaml` to `modified`
 
 ## Pipeline outputs
 - See the [variant report documentation folder](https://github.com/ccmbioinfo/CPHI-DRAGEN-anno/tree/main/docs/variant_report_docs) for a description of the outputs generated by this pipeline, which are all output to the `reports` directory generated when the pipeline is run. 
