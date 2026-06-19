@@ -34,6 +34,8 @@ slivar_preview_outputs = [
     "reports_slivar/{family}.wgs.high.impact.slivar.hg38.csv".format(family=family),
     "reports_slivar/{family}.wgs.coding.CH.hg38.csv".format(family=family),
     "reports_slivar/{family}.wgs.high.impact.CH.hg38.csv".format(family=family),
+    "reports_slivar/{family}.sv.CH.hg38.csv".format(family=family),
+    "reports_slivar/{family}.cnv.CH.hg38.csv".format(family=family),
     "reports_slivar/{family}.compound.het.status.CH.hg38.csv".format(family=family),
     "reports_slivar_compare/{family}.wgs.coding.summary.tsv".format(family=family),
     "reports_slivar_compare/{family}.wgs.high.impact.summary.tsv".format(family=family),
@@ -53,6 +55,18 @@ if slivar_preview_enabled and len(children) > 0:
         "reports_slivar/{family}.wgs.denovo.CH.hg38.csv".format(family=family),
         "reports_slivar_compare/{family}.wgs.denovo.summary.tsv".format(family=family),
     ])
+if slivar_preview_enabled and acmg_sf_enabled:
+    slivar_preview_outputs.extend([
+        "reports_slivar/{family}.wgs.coding.CH.SF.hg38.csv".format(family=family),
+        "reports_slivar/{family}.wgs.high.impact.CH.SF.hg38.csv".format(family=family),
+        "reports_slivar/{family}.sv.CH.SF.hg38.csv".format(family=family),
+        "reports_slivar/{family}.cnv.CH.SF.hg38.csv".format(family=family),
+        "reports_slivar/{family}.ACMG.SF.hg38.csv".format(family=family),
+    ])
+if slivar_preview_enabled and acmg_sf_enabled and len(children) > 0:
+    slivar_preview_outputs.append(
+        "reports_slivar/{family}.wgs.denovo.CH.SF.hg38.csv".format(family=family)
+    )
 
 ##### load rules #####
 include: "rules/common.smk"

@@ -135,16 +135,24 @@ def ad_rule(depths, threshold):
 
 def gt_type(sample_data, chrom=""):
     gt = sample_data.get("GT")
-    if gt is None or all(allele is None for allele in gt):
+    if gt is None:
         return 2
 
-    alt_depth = sample_alt_depth_value(sample_data) or 0
-    if alt_depth == 0:
-        return 0
+    # vcf2db/Gemini exports phased full-missing calls (.|.) as ./. with
+    # gt_type=3. annotate_compound_hets.py later resets GT == "./." to missing,
+    # so this preserves raw TSV compatibility without changing CH zygosity.
+    if all(allele is None for allele in gt):
+        return 3 if sample_data.phased else 2
 
     called = [allele for allele in gt if allele is not None]
     if not called:
         return 2
+
+    # Match Gemini/vcf2db gt_types semantics for compatibility with the CRE
+    # compound-het reports: partial-missing calls such as 0/. or ./1 are HET
+    # even when the alternate depth is zero.
+    if len(called) != len(gt):
+        return 1
 
     if all(allele == 0 for allele in called):
         return 0
@@ -153,6 +161,7 @@ def gt_type(sample_data, chrom=""):
         chrom_text = str(chrom)
         if "X" in chrom_text or "Y" in chrom_text:
             return 3
+        return 1
 
     if len(called) == 2 and all(allele == called[0] for allele in called) and called[0] != 0:
         return 3

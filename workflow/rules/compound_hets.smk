@@ -261,6 +261,8 @@ if len(children) > 0:
             small_variant_report_CH="reports_slivar/{family}.wgs.coding.CH.hg38.csv",
             wgs_high_impact_variant_report_CH="reports_slivar/{family}.wgs.high.impact.CH.hg38.csv",
             wgs_denovo_variant_report_CH="reports_slivar/{family}.wgs.denovo.CH.hg38.csv",
+            SV_report_CH="reports_slivar/{family}.sv.CH.hg38.csv",
+            CNV_report_CH="reports_slivar/{family}.cnv.CH.hg38.csv",
             compound_het_status="reports_slivar/{family}.compound.het.status.CH.hg38.csv",
             **slivar_hpo_panel_outputs,
         params:
@@ -270,8 +272,7 @@ if len(children) > 0:
             stage_hpo_panel_reports=stage_slivar_hpo_panel_reports,
             copy_hpo_panel_reports=copy_slivar_hpo_panel_reports,
             acmg_sf_flag=str(config["run"].get("acmg_sf", "false")).lower(),
-            mavedb_tsv=config["annotation"]["general"]["mavedb_tsv"],
-            mavedb_script=workflow.basedir + "/scripts/add_mavedb_columns.py"
+            mavedb_tsv=config["annotation"]["general"]["mavedb_tsv"]
         conda:
             "../envs/str_sv.yaml"
         log:
@@ -314,9 +315,11 @@ if len(children) > 0:
             cp -L reports/{wildcards.family}.wgs.coding.CH.hg38.csv "$root/{output.small_variant_report_CH}"
             cp -L reports/{wildcards.family}.wgs.high.impact.CH.hg38.csv "$root/{output.wgs_high_impact_variant_report_CH}"
             cp -L reports/{wildcards.family}.wgs.denovo.CH.hg38.csv "$root/{output.wgs_denovo_variant_report_CH}"
+            cp -L reports/{wildcards.family}.sv.CH.hg38.csv "$root/{output.SV_report_CH}"
+            cp -L reports/{wildcards.family}.cnv.CH.hg38.csv "$root/{output.CNV_report_CH}"
             cp -L reports/{wildcards.family}.compound.het.status.CH.hg38.csv "$root/{output.compound_het_status}"
             {params.copy_hpo_panel_reports}
-            python3 {params.mavedb_script} \
+            python3 {params.crg2_pacbio}/scripts/add_mavedb_columns.py \
             --family {wildcards.family} \
             --reports-dir "$root/reports_slivar" \
             --mavedb-tsv {params.mavedb_tsv}) > {log} 2>&1
@@ -338,6 +341,8 @@ else:
         output:
             small_variant_report_CH="reports_slivar/{family}.wgs.coding.CH.hg38.csv",
             wgs_high_impact_variant_report_CH="reports_slivar/{family}.wgs.high.impact.CH.hg38.csv",
+            SV_report_CH="reports_slivar/{family}.sv.CH.hg38.csv",
+            CNV_report_CH="reports_slivar/{family}.cnv.CH.hg38.csv",
             compound_het_status="reports_slivar/{family}.compound.het.status.CH.hg38.csv",
             **slivar_hpo_panel_outputs,
         params:
@@ -347,8 +352,7 @@ else:
             stage_hpo_panel_reports=stage_slivar_hpo_panel_reports,
             copy_hpo_panel_reports=copy_slivar_hpo_panel_reports,
             acmg_sf_flag=str(config["run"].get("acmg_sf", "false")).lower(),
-            mavedb_tsv=config["annotation"]["general"]["mavedb_tsv"],
-            mavedb_script=workflow.basedir + "/scripts/add_mavedb_columns.py"
+            mavedb_tsv=config["annotation"]["general"]["mavedb_tsv"]
         conda:
             "../envs/str_sv.yaml"
         log:
@@ -387,9 +391,11 @@ else:
             --acmg_sf {params.acmg_sf_flag}
             cp -L reports/{wildcards.family}.wgs.coding.CH.hg38.csv "$root/{output.small_variant_report_CH}"
             cp -L reports/{wildcards.family}.wgs.high.impact.CH.hg38.csv "$root/{output.wgs_high_impact_variant_report_CH}"
+            cp -L reports/{wildcards.family}.sv.CH.hg38.csv "$root/{output.SV_report_CH}"
+            cp -L reports/{wildcards.family}.cnv.CH.hg38.csv "$root/{output.CNV_report_CH}"
             cp -L reports/{wildcards.family}.compound.het.status.CH.hg38.csv "$root/{output.compound_het_status}"
             {params.copy_hpo_panel_reports}
-            python3 {params.mavedb_script} \
+            python3 {params.crg2_pacbio}/scripts/add_mavedb_columns.py \
             --family {wildcards.family} \
             --reports-dir "$root/reports_slivar" \
             --mavedb-tsv {params.mavedb_tsv}) > {log} 2>&1

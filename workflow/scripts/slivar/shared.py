@@ -303,6 +303,8 @@ def gt_string(sample_data, ref, alts):
     gt = sample_data.get("GT")
     if gt is None:
         return "./."
+    if all(allele_index is None for allele_index in gt):
+        return "./."
     alleles = []
     for allele_index in gt:
         if allele_index is None:

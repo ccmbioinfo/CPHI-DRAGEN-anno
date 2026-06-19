@@ -124,6 +124,11 @@ ZERO_MISSING_FIELDS = {
     "GSO_AF",
     "GSO_hemi",
     "GSO_nhomalt",
+    "Gnomad_ac",
+    "Gnomad_af",
+    "Gnomad_af_grpmax",
+    "Gnomad_fafmax_faf95_max",
+    "Gnomad_hom",
     "Regeneron_exome_AF",
     "Regeneron_exome_AC",
     "thousandG_AF",
@@ -191,7 +196,7 @@ def mane_plus_clinical_value(csq):
 
 def parse_spliceai(value):
     if not present(value):
-        return "NA|NA|NA", "."
+        return "NA|NA|NA", "0"
     annotations = []
     if isinstance(value, tuple):
         for item in value:
@@ -200,29 +205,59 @@ def parse_spliceai(value):
         annotations = str(value).split(",")
     best_gene = "NA"
     best_impact = "NA"
-    best_score = None
+    best_score = 0.0
     best_pos = "NA"
     fields = [("acceptor_gain", 2, 6), ("acceptor_loss", 3, 7), ("donor_gain", 4, 8), ("donor_loss", 5, 9)]
     for annotation in annotations:
         parts = annotation.split("|")
         if len(parts) < 10:
             continue
+        scores = []
         gene = parts[1]
         for impact_name, score_idx, pos_idx in fields:
             try:
                 score = float(parts[score_idx])
             except Exception:
                 continue
-            if best_score is None or score > best_score:
-                best_score = score
-                best_gene = gene
-                best_impact = impact_name
-                best_pos = parts[pos_idx]
-    if best_score is None:
-        return "NA|NA|NA", "."
+            scores.append((impact_name, score, parts[pos_idx]))
+        if not scores:
+            continue
+        max_score = max(score for _, score, _ in scores)
+        impact = "NA"
+        pos = "NA"
+        for impact_name, score, pos_value in scores:
+            if score == max_score:
+                impact = impact_name
+                pos = pos_value
+        if best_score < max_score:
+            best_score = max_score
+            best_gene = gene
+            best_impact = impact
+            best_pos = pos
     if best_score == 0:
         return "NA|NA|NA", "0"
     return f"{best_gene}|{best_impact}|{best_pos}", str(best_score)
+
+
+def max_numeric_csv(value):
+    if not present(value):
+        return ""
+    best_score = None
+    best_text = ""
+    items = value if isinstance(value, tuple) else [value]
+    for item in items:
+        for text in str(item).split(","):
+            text = text.strip()
+            try:
+                score = float(text)
+            except Exception:
+                continue
+            if best_score is None or score > best_score:
+                best_score = score
+                best_text = text
+    if best_score is None:
+        return ""
+    return best_text
 
 
 def parse_promoterai(value):
@@ -728,7 +763,7 @@ def main():
                 sample_gqs.append(sample_gq(sample_data))
                 row[f"Zygosity.{sample_header}"] = zygosity(sample_data, record.chrom)
                 row[f"Alt_depths.{sample_header}"] = sample_alt_depths[-1]
-                row[f"gt_quals.{sample_header}"] = sample_gqs[-1]
+                row[f"gt_quals.{sample_header}"] = sample_gqs[-1] if present(sample_gqs[-1]) else "-1"
                 if include_denovo:
                     row[f"denovo.{sample_header}"] = sample_format_value(sample_data, "DN")
                 if include_denovo_quality:
@@ -782,7 +817,11 @@ def main():
                 ("UCE_200bp", "uce_200bp"),
                 ("Old_multiallelic", "OLD_MULTIALLELIC"),
             ]:
-                set_row_value(row, field, as_text(first_info(records, source)))
+                value = first_info(records, source)
+                if field == "Vest4_score":
+                    set_row_value(row, field, max_numeric_csv(value))
+                else:
+                    set_row_value(row, field, as_text(value))
 
             set_row_value(row, "phylop100way", as_text(first_csq_value(csq_records, "phyloP100way", primary)))
 
@@ -804,12 +843,12 @@ def main():
                 )
 
             all_gene_symbols = [gene_symbol(csq) for csq in csq_records if present(gene_symbol(csq))]
-            all_ensg = [best_ensembl_gene_id_for_symbol(csq_records, symbol) for symbol in all_gene_symbols]
-            all_ensg = [g for g in all_ensg if present(g)]
+            all_gene_ids = [gene_id_with_fallback_for_csq(csq_records, csq) for csq in csq_records if present(gene_symbol(csq))]
+            all_gene_ids = [g for g in all_gene_ids if present(g)]
             all_ensembl_transcripts = [csq.get("Feature", "") for csq in csq_records if csq.get("Feature", "").startswith("ENST")]
 
             row["Gene_all"] = uniq_join(all_gene_symbols)
-            row["Ensembl_gene_id_all"] = uniq_join(all_ensg)
+            row["Ensembl_gene_id_all"] = uniq_join(all_gene_ids)
             row["Ensembl_transcript_id_all"] = uniq_join(all_ensembl_transcripts)
             row["Variation_all"] = uniq_join(csq.get("Consequence", "") for csq in csq_records)
             row["Info_all"] = build_info_all(csq_records)

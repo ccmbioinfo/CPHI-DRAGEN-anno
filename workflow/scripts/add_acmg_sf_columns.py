@@ -26,8 +26,22 @@ def find_acmg_sf_gene_matches(report_gene_string, acmg_sf_genes):
             matches.append(gene)
     return matches
 
-def main(family, input_report_type, input_csv, output_csv, acmg_sf_tsv, acmg_sf_version, seq_type):
-    logfile = f"logs/report/acmg_sf/{family}.{input_report_type}.acmg_sf.log"
+def make_dated_output_path(output_csv, today, seq_type):
+    output_dir = os.path.dirname(output_csv) or "."
+    basename = os.path.basename(output_csv)
+
+    if seq_type == "long" and basename.endswith(".csv"):
+        return os.path.join(output_dir, f"{basename[:-4]}.{today}.csv")
+
+    if basename.endswith(".hg38.csv"):
+        return os.path.join(output_dir, f"{basename[:-9]}.{today}.hg38.csv")
+
+    root, ext = os.path.splitext(basename)
+    return os.path.join(output_dir, f"{root}.{today}{ext}")
+
+def main(family, input_report_type, input_csv, output_csv, acmg_sf_tsv, acmg_sf_version, seq_type, log_path=None):
+    logfile = log_path or f"logs/report/acmg_sf/{family}.{input_report_type}.acmg_sf.log"
+    os.makedirs(os.path.dirname(logfile) or ".", exist_ok=True)
     logging.basicConfig(
         filename=logfile,
         filemode="w",
@@ -37,7 +51,7 @@ def main(family, input_report_type, input_csv, output_csv, acmg_sf_tsv, acmg_sf_
     )
     today = date.today()
     today = today.strftime("%Y-%m-%d")
-    suffix = "csv" if seq_type == "long" else "hg38.csv"
+    os.makedirs(os.path.dirname(output_csv) or ".", exist_ok=True)
     
     acmg_df = pd.read_csv(acmg_sf_tsv, sep="\t")
     acmg_genes = set(acmg_df["Gene"].dropna())
@@ -57,7 +71,7 @@ def main(family, input_report_type, input_csv, output_csv, acmg_sf_tsv, acmg_sf_
     if gene_col is None:
         log_message(f"ERROR: No gene column found in {input_report_type} report. Expected header names: Gene, GENE_NAME, GENE, gene.")
         df[acmg_col] = "."
-        dated_output_csv = f"reports/{family}.{input_report_type}.SF.{today}.{suffix}"
+        dated_output_csv = make_dated_output_path(output_csv, today, seq_type)
         df.to_csv(dated_output_csv, index=False)
         try:
             if os.path.islink(output_csv) or os.path.exists(output_csv):
@@ -82,7 +96,7 @@ def main(family, input_report_type, input_csv, output_csv, acmg_sf_tsv, acmg_sf_
     num_rows_matching_ACMG_SF_list = (df[acmg_col] != ".").sum()
     log_message(f"{num_rows_matching_ACMG_SF_list} variants impacting ACMG SF v{acmg_sf_version} genes")
 
-    dated_output_csv = f"reports/{family}.{input_report_type}.SF.{today}.{suffix}"
+    dated_output_csv = make_dated_output_path(output_csv, today, seq_type)
     df.to_csv(dated_output_csv, index=False)
     log_message(f"{dated_output_csv} created")
     
@@ -103,4 +117,5 @@ if __name__ == "__main__":
     acmg_tsv = snakemake.input.acmg_sf_list
     acmg_sf_version = snakemake.params.acmg_sf_version
     seq_type = snakemake.params.seq_type
-    main(family, input_report_type, input_csv, output_csv, acmg_tsv, acmg_sf_version, seq_type)
+    log_path = str(snakemake.log[0]) if len(snakemake.log) > 0 else None
+    main(family, input_report_type, input_csv, output_csv, acmg_tsv, acmg_sf_version, seq_type, log_path)
