@@ -43,6 +43,7 @@ rule peddy:
         peddy \
           --prefix ./qc/peddy/{wildcards.family} \
           --plot \
+          --sites hg38 \
           {input.vcf} \
           {input.ped} \
           2>&1 | tee {log}
