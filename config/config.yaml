@@ -6,6 +6,7 @@ run:
   ped: "" # pedigree file, mandatory
   flank: 100000
   acmg_sf: true
+  slivar_preview: true
   dragen_output_schema: "" # "" CPHI family, "modified" for non-CPHI family
   
 genes:

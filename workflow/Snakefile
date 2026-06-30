@@ -26,8 +26,47 @@ else:
 #### define file suffix if acmg_sf flag is set to true in config file ####
 acmg_sf_enabled = str(config["run"].get("acmg_sf", "")).lower() == "true"
 sf_suffix = ".SF" if acmg_sf_enabled else ""
+slivar_preview_enabled = str(config["run"].get("slivar_preview", "")).lower() == "true"
 
 acmg_sf_report_output = ["reports/{family}.ACMG.SF.hg38.csv".format(family=family)] if acmg_sf_enabled else []
+slivar_preview_outputs = [
+    "reports_slivar/{family}.wgs.coding.slivar.hg38.csv".format(family=family),
+    "reports_slivar/{family}.wgs.high.impact.slivar.hg38.csv".format(family=family),
+    "reports_slivar/{family}.wgs.coding.CH.hg38.csv".format(family=family),
+    "reports_slivar/{family}.wgs.high.impact.CH.hg38.csv".format(family=family),
+    "reports_slivar/{family}.sv.CH.hg38.csv".format(family=family),
+    "reports_slivar/{family}.cnv.CH.hg38.csv".format(family=family),
+    "reports_slivar/{family}.compound.het.status.CH.hg38.csv".format(family=family),
+    "reports_slivar_compare/{family}.wgs.coding.summary.tsv".format(family=family),
+    "reports_slivar_compare/{family}.wgs.high.impact.summary.tsv".format(family=family),
+] if slivar_preview_enabled else []
+if slivar_preview_enabled and config["run"].get("hpo", ""):
+    slivar_preview_outputs.extend([
+        "reports_slivar/{family}.panel.slivar.hg38.csv".format(family=family),
+        "reports_slivar/{family}.panel-flank.slivar.hg38.csv".format(family=family),
+        "reports_slivar/{family}.panel.CH.hg38.csv".format(family=family),
+        "reports_slivar/{family}.panel-flank.CH.hg38.csv".format(family=family),
+        "reports_slivar_compare/{family}.panel.summary.tsv".format(family=family),
+        "reports_slivar_compare/{family}.panel-flank.summary.tsv".format(family=family),
+    ])
+if slivar_preview_enabled and len(children) > 0:
+    slivar_preview_outputs.extend([
+        "reports_slivar/{family}.wgs.denovo.slivar.hg38.csv".format(family=family),
+        "reports_slivar/{family}.wgs.denovo.CH.hg38.csv".format(family=family),
+        "reports_slivar_compare/{family}.wgs.denovo.summary.tsv".format(family=family),
+    ])
+if slivar_preview_enabled and acmg_sf_enabled:
+    slivar_preview_outputs.extend([
+        "reports_slivar/{family}.wgs.coding.CH.SF.hg38.csv".format(family=family),
+        "reports_slivar/{family}.wgs.high.impact.CH.SF.hg38.csv".format(family=family),
+        "reports_slivar/{family}.sv.CH.SF.hg38.csv".format(family=family),
+        "reports_slivar/{family}.cnv.CH.SF.hg38.csv".format(family=family),
+        "reports_slivar/{family}.ACMG.SF.hg38.csv".format(family=family),
+    ])
+if slivar_preview_enabled and acmg_sf_enabled and len(children) > 0:
+    slivar_preview_outputs.append(
+        "reports_slivar/{family}.wgs.denovo.CH.SF.hg38.csv".format(family=family)
+    )
 
 ##### load rules #####
 include: "rules/common.smk"
@@ -63,3 +102,4 @@ rule all:
         "reports/{family}.compound.het.status.CH.hg38.csv".format(family=family),
         *hpo_report_outputs,
         *acmg_sf_report_output,
+        *slivar_preview_outputs,
