@@ -202,11 +202,13 @@ create_report <- function(family, samples, type){
     #SpliceAI_score >= 0.5 or Cadd_score >= 10 (or Cadd_score is missing; not all indels are scored)
     if (type == 'wgs.high.impact'){
         print("Selecting high impact variants")
+        # Convert Cadd_score, SpliceAI_score, and promoterAD_score to numeric, keeping NA for "None" values
         variants$SpliceAI_score_num <- as.numeric(variants$SpliceAI_score)
         variants$Cadd_score_num <- as.numeric(variants$Cadd_score)
         variants$promoterAI_score_num <- as.numeric(variants$promoterAI_score_parsed)
-
+        # Filter based on SpliceAI_score or Cadd_score conditions
         variants <- variants[variants$SpliceAI_score_num >= 0.2 | variants$Cadd_score == "None" | variants$Cadd_score_num >= 10 | variants$promoterAI_score_num >= 0.1,]
+        # Remove the temporary numeric column
         variants$SpliceAI_score_num <- NULL
         variants$Cadd_score_num <- NULL
         variants$promoterAI_score_num <- NULL
