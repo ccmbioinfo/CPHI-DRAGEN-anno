@@ -179,7 +179,7 @@ rule multiqc:
         dragen_mapping="qc/multiqc_custom/{family}/dragen_mapping_mqc.tsv",
         dragen_qc_summary="qc/multiqc_custom/{family}/dragen_qc_summary_mqc.tsv",
     output:
-        report="qc/multiqc/{family}.multiqc_report.html"
+        report=temp("qc/multiqc/{family}.multiqc_report.html")
     log:
         "logs/qc/multiqc/{family}.multiqc.log"
     conda:

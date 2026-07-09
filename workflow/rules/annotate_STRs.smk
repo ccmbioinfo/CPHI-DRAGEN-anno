@@ -1,6 +1,6 @@
 rule repeat_VCF_to_df:
     input: config["run"]["samples"]
-    output: "STRs/{family}.repeats.tsv"
+    output: temp("STRs/{family}.repeats.tsv")
     params:
         cphi_dragen_anno = config["tools"]["cphi-dragen-anno"]
     log: "logs/STRs/{family}.repeats.log"
