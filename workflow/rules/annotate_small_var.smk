@@ -221,8 +221,6 @@ rule slivar_select_coding:
         rare_clinvar_tbi="small_variants_slivar/coding/{family}/branches/{family}.coding.rare_clinvar.vcf.gz.tbi",
         common_pathogenic_clinvar="small_variants_slivar/coding/{family}/branches/{family}.coding.common_pathogenic_clinvar.vcf.gz",
         common_pathogenic_clinvar_tbi="small_variants_slivar/coding/{family}/branches/{family}.coding.common_pathogenic_clinvar.vcf.gz.tbi",
-        rare_clinvar_allow_missing_faf="small_variants_slivar/coding/{family}/branches/{family}.coding.rare_clinvar_allow_missing_faf.vcf.gz",
-        rare_clinvar_allow_missing_faf_tbi="small_variants_slivar/coding/{family}/branches/{family}.coding.rare_clinvar_allow_missing_faf.vcf.gz.tbi",
     log:
         "logs/slivar/{family}.coding.select.log"
     conda:
@@ -240,7 +238,6 @@ rule slivar_postfilter_coding:
         rare_impactful="small_variants_slivar/coding/{family}/branches/{family}.coding.rare_impactful.vcf.gz",
         rare_clinvar="small_variants_slivar/coding/{family}/branches/{family}.coding.rare_clinvar.vcf.gz",
         common_pathogenic_clinvar="small_variants_slivar/coding/{family}/branches/{family}.coding.common_pathogenic_clinvar.vcf.gz",
-        rare_clinvar_allow_missing_faf="small_variants_slivar/coding/{family}/branches/{family}.coding.rare_clinvar_allow_missing_faf.vcf.gz",
     output:
         vcf="small_variants_slivar/coding/{family}/{family}.coding.post_gemini_filter.vcf",
         key_file="small_variants_slivar/coding/{family}/{family}.coding.post_gemini_filter.keys.txt",
@@ -262,7 +259,6 @@ rule slivar_postfilter_coding:
         --rare-impactful-vcf {input.rare_impactful} \
         --rare-clinvar-vcf {input.rare_clinvar} \
         --common-pathogenic-clinvar-vcf {input.common_pathogenic_clinvar} \
-        --rare-clinvar-allow-missing-faf-vcf {input.rare_clinvar_allow_missing_faf} \
         --impact-order-file {params.order} \
         --out-prefix {params.out_prefix} &&
         bcftools sort -O v -o {output.vcf}.sorted {output.vcf} &&
@@ -310,8 +306,6 @@ rule slivar_select_wgs_high_impact:
         rare_main_tbi="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.rare_main.vcf.gz.tbi",
         rare_clinvar="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.rare_clinvar.vcf.gz",
         rare_clinvar_tbi="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.rare_clinvar.vcf.gz.tbi",
-        rare_clinvar_allow_missing_faf="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.rare_clinvar_allow_missing_faf.vcf.gz",
-        rare_clinvar_allow_missing_faf_tbi="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.rare_clinvar_allow_missing_faf.vcf.gz.tbi",
         common_pathogenic_clinvar="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.common_pathogenic_clinvar.vcf.gz",
         common_pathogenic_clinvar_tbi="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.common_pathogenic_clinvar.vcf.gz.tbi",
     log:
@@ -331,7 +325,6 @@ rule slivar_postfilter_wgs_high_impact:
         rare_main="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.rare_main.vcf.gz",
         rare_clinvar="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.rare_clinvar.vcf.gz",
         common_pathogenic_clinvar="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.common_pathogenic_clinvar.vcf.gz",
-        rare_clinvar_allow_missing_faf="small_variants_slivar/wgs-high-impact/{family}/branches/{family}.wgs-high-impact.rare_clinvar_allow_missing_faf.vcf.gz",
     output:
         vcf="small_variants_slivar/wgs-high-impact/{family}/{family}.wgs-high-impact.post_high_impact_filter.vcf",
         key_file="small_variants_slivar/wgs-high-impact/{family}/{family}.wgs-high-impact.post_high_impact_filter.keys.txt",
@@ -353,7 +346,6 @@ rule slivar_postfilter_wgs_high_impact:
         --rare-main-vcf {input.rare_main} \
         --rare-clinvar-vcf {input.rare_clinvar} \
         --common-pathogenic-clinvar-vcf {input.common_pathogenic_clinvar} \
-        --rare-clinvar-allow-missing-faf-vcf {input.rare_clinvar_allow_missing_faf} \
         --impact-order-file {params.order} \
         --out-prefix {params.out_prefix} &&
         bcftools sort -O v -o {output.vcf}.sorted {output.vcf} &&
@@ -401,8 +393,6 @@ rule slivar_select_wgs:
         rare_main_tbi="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_main.vcf.gz.tbi",
         rare_clinvar="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar.vcf.gz",
         rare_clinvar_tbi="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar.vcf.gz.tbi",
-        rare_clinvar_allow_missing_faf="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar_allow_missing_faf.vcf.gz",
-        rare_clinvar_allow_missing_faf_tbi="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar_allow_missing_faf.vcf.gz.tbi",
         common_pathogenic_clinvar="small_variants_slivar/{p}/{family}/branches/{family}.{p}.common_pathogenic_clinvar.vcf.gz",
         common_pathogenic_clinvar_tbi="small_variants_slivar/{p}/{family}/branches/{family}.{p}.common_pathogenic_clinvar.vcf.gz.tbi",
     wildcard_constraints:
@@ -424,7 +414,6 @@ rule slivar_postfilter_wgs:
         rare_main="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_main.vcf.gz",
         rare_clinvar="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar.vcf.gz",
         common_pathogenic_clinvar="small_variants_slivar/{p}/{family}/branches/{family}.{p}.common_pathogenic_clinvar.vcf.gz",
-        rare_clinvar_allow_missing_faf="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar_allow_missing_faf.vcf.gz",
     output:
         vcf="small_variants_slivar/{p}/{family}/{family}.{p}.post_wgs_filter.vcf",
         key_file="small_variants_slivar/{p}/{family}/{family}.{p}.post_wgs_filter.keys.txt",
@@ -448,7 +437,6 @@ rule slivar_postfilter_wgs:
         --rare-main-vcf {input.rare_main} \
         --rare-clinvar-vcf {input.rare_clinvar} \
         --common-pathogenic-clinvar-vcf {input.common_pathogenic_clinvar} \
-        --rare-clinvar-allow-missing-faf-vcf {input.rare_clinvar_allow_missing_faf} \
         --impact-order-file {params.order} \
         --out-prefix {params.out_prefix} &&
         bcftools sort -O v -o {output.vcf}.sorted {output.vcf} &&

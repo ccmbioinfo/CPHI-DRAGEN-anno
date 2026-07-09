@@ -81,14 +81,6 @@ def sample_alt_depths(record):
     return depths
 
 
-def ad_rule(depths, threshold):
-    return any(depth >= threshold for depth in depths) or all(depth == -1 for depth in depths)
-
-
-def final_report_ad_rule(depths, threshold):
-    return any(depth >= threshold for depth in depths)
-
-
 def base_exclusion_reason(record):
     if record.alts is None or len(record.alts) == 0:
         return False, "missing_alt"
@@ -127,11 +119,7 @@ def pass_rare_impactful(record, max_af):
     if not is_impactful_non_low(record):
         return False, "not_impactful_non_low"
 
-    depths = sample_alt_depths(record)
-    if not ad_rule(depths, 3):
-        return False, "ad_lt_3"
-
-    return (True, "rare_impactful_ad3_missing_faf") if faf is None else (True, "rare_impactful_ad3")
+    return (True, "rare_impactful_missing_faf") if faf is None else (True, "rare_impactful")
 
 
 def pass_rare_main(record, max_af):
@@ -143,33 +131,22 @@ def pass_rare_main(record, max_af):
     if faf is not None and faf > max_af:
         return False, "faf_gt_main_max"
 
-    depths = sample_alt_depths(record)
-    if not ad_rule(depths, 3):
-        return False, "ad_lt_3"
-
-    return (True, "rare_main_ad3_missing_faf") if faf is None else (True, "rare_main_ad3")
+    return (True, "rare_main_missing_faf") if faf is None else (True, "rare_main")
 
 
-def pass_rare_clinvar(record, max_af, allow_missing_faf):
+def pass_rare_clinvar(record, max_af):
     ok, reason = base_exclusion_reason(record)
     if not ok:
         return False, reason
 
     faf = as_float(info(record, "gnomad_fafmax_faf95_max"))
-    if faf is None:
-        if not allow_missing_faf:
-            return False, "missing_faf"
-    elif faf > max_af:
+    if faf is not None and faf > max_af:
         return False, "faf_gt_clinvar_max"
 
     if not has_clinvar(record):
         return False, "no_clinvar"
 
-    depths = sample_alt_depths(record)
-    if not ad_rule(depths, 1):
-        return False, "ad_lt_1"
-
-    return (True, "rare_clinvar_ad1_missing_faf") if faf is None else (True, "rare_clinvar_ad1")
+    return (True, "rare_clinvar_missing_faf") if faf is None else (True, "rare_clinvar")
 
 
 def pass_common_pathogenic_clinvar(record, common_min_af):
@@ -364,9 +341,7 @@ def evaluate_record(mode, record, branch, csq_fields, order_map):
         if branch == "rare_impactful":
             return pass_rare_impactful(record, 0.01)
         if branch == "rare_clinvar":
-            return pass_rare_clinvar(record, 0.01, allow_missing_faf=False)
-        if branch == "rare_clinvar_allow_missing_faf":
-            return pass_rare_clinvar(record, 0.01, allow_missing_faf=True)
+            return pass_rare_clinvar(record, 0.01)
         if branch == "common_pathogenic_clinvar":
             return pass_common_pathogenic_clinvar(record, 0.01)
         raise ValueError(f"Unknown coding branch: {branch}")
@@ -376,9 +351,7 @@ def evaluate_record(mode, record, branch, csq_fields, order_map):
     if branch == "rare_main":
         keep, reason = pass_rare_main(record, rare_main_af)
     elif branch == "rare_clinvar":
-        keep, reason = pass_rare_clinvar(record, 0.01, allow_missing_faf=False)
-    elif branch == "rare_clinvar_allow_missing_faf":
-        keep, reason = pass_rare_clinvar(record, 0.01, allow_missing_faf=True)
+        keep, reason = pass_rare_clinvar(record, 0.01)
     elif branch == "common_pathogenic_clinvar":
         keep, reason = pass_common_pathogenic_clinvar(record, 0.01)
     else:
@@ -498,7 +471,6 @@ def parse_args():
     parser.add_argument("--rare-main-vcf")
     parser.add_argument("--rare-clinvar-vcf", required=True)
     parser.add_argument("--common-pathogenic-clinvar-vcf", required=True)
-    parser.add_argument("--rare-clinvar-allow-missing-faf-vcf", required=True)
     return parser.parse_args()
 
 
@@ -511,7 +483,6 @@ def main():
             ("rare_impactful", args.rare_impactful_vcf),
             ("rare_clinvar", args.rare_clinvar_vcf),
             ("common_pathogenic_clinvar", args.common_pathogenic_clinvar_vcf),
-            ("rare_clinvar_allow_missing_faf", args.rare_clinvar_allow_missing_faf_vcf),
         ]
         out_vcf_path = f"{args.out_prefix}.post_gemini_filter.vcf"
     elif args.mode == "wgs-high-impact":
@@ -519,7 +490,6 @@ def main():
             ("rare_main", args.rare_main_vcf),
             ("rare_clinvar", args.rare_clinvar_vcf),
             ("common_pathogenic_clinvar", args.common_pathogenic_clinvar_vcf),
-            ("rare_clinvar_allow_missing_faf", args.rare_clinvar_allow_missing_faf_vcf),
         ]
         out_vcf_path = f"{args.out_prefix}.post_high_impact_filter.vcf"
     else:
@@ -527,7 +497,6 @@ def main():
             ("rare_main", args.rare_main_vcf),
             ("rare_clinvar", args.rare_clinvar_vcf),
             ("common_pathogenic_clinvar", args.common_pathogenic_clinvar_vcf),
-            ("rare_clinvar_allow_missing_faf", args.rare_clinvar_allow_missing_faf_vcf),
         ]
         out_vcf_path = f"{args.out_prefix}.post_wgs_filter.vcf"
 
@@ -556,10 +525,6 @@ def main():
                     record_key = variant_key(record)
                     input_counts[branch] += 1
                     keep, reason = evaluate_record(args.mode, record, branch, csq_fields, order_map)
-                    if keep:
-                        depths = sample_alt_depths(record)
-                        if not final_report_ad_rule(depths, 3):
-                            keep, reason = False, "final_report_ad_lt_3"
                     audit_rows.append(audit_row(args.mode, record, branch, keep, reason, csq_fields, order_map))
 
                     if not keep:
