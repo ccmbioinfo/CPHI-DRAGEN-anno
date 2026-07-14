@@ -56,6 +56,7 @@ DOT_MISSING_FIELDS = {
     "Cadd_score",
     "Clinvar",
     "ENH_cellline_tissue",
+    "Ensembl_gene_id",
     "Ensembl_gene_id_all",
     "Ensembl_transcript_id",
     "Exon",
@@ -100,6 +101,7 @@ DOT_MISSING_FIELDS = {
     "Polyphen_score_all",
     "Protein_domains",
     "Pseudoautosomal",
+    "Quality",
     "ReMM_score",
     "Refseq_change",
     "Refseq_change_all",
@@ -137,12 +139,15 @@ ZERO_MISSING_FIELDS = {
 }
 
 
-DOT_IF_EMPTY_FIELDS = {
+FLAG_BINARY_FIELDS = {
     "CTCF_binding_site",
     "DNaseI_hypersensitive_site",
     "UCE_100bp",
     "UCE_200bp",
 }
+
+
+ZERO_MISSING_PREFIXES = ("Alt_depths.",)
 
 
 def parse_vep_score(value):
@@ -156,12 +161,12 @@ def parse_vep_score(value):
 
 def normalize_report_value(field, value):
     text = "" if value is None else str(value).strip()
-    if field in ZERO_MISSING_FIELDS and text in {"", ".", "-1", "NA", "None"}:
+    if (field in ZERO_MISSING_FIELDS or field.startswith(ZERO_MISSING_PREFIXES)) and text in {"", ".", "-1", "NA", "None"}:
         return "0"
     if field in DOT_MISSING_FIELDS and text in {"", "NA", "None"}:
         return "."
-    if field in DOT_IF_EMPTY_FIELDS and text == "":
-        return "."
+    if field in FLAG_BINARY_FIELDS:
+        return "1" if text == "1" else "0"
     return value
 
 
@@ -264,16 +269,13 @@ def parse_promoterai(value):
     if not present(value):
         return "."
     raw_values = value if isinstance(value, tuple) else str(value).split(",")
-    parsed = []
+    kept = []
     for raw in raw_values:
-        text = str(raw)
+        text = str(raw).strip()
         if text in MISSING or text in {"No", "no"}:
             continue
-        try:
-            parsed.append(abs(float(text)))
-        except Exception:
-            continue
-    return str(max(parsed)) if parsed else "."
+        kept.append(text)
+    return ",".join(kept) if kept else "."
 
 
 def noncoding_pred_fraction(cadd, ncer, remm, linsight):
@@ -380,8 +382,12 @@ def join_imprinting(gene, imprinting_by_gene):
     return match.get("Imprinting_status", ""), match.get("Imprinting_expressed_allele", "")
 
 
-def join_pseudoautosomal(ensembl_gene_id_value, pseudo_by_ensg):
-    return pseudo_by_ensg.get(ensembl_gene_id_value, {}).get("Pseudoautosomal", "")
+def join_pseudoautosomal(ensembl_gene_ids, pseudo_by_ensg):
+    for gene_id in ensembl_gene_ids:
+        value = pseudo_by_ensg.get(gene_id, {}).get("Pseudoautosomal", "")
+        if present(value):
+            return value
+    return ""
 
 
 def load_hgmd(path):
@@ -676,8 +682,8 @@ def refseq_change_for_csq(csq):
     if not accession or not hgvsc_suffix:
         return ""
     if hgvsp_suffix:
-        return f"{accession}:{hgvsc_suffix}:{hgvsp_suffix}"
-    return f"{accession}:{hgvsc_suffix}"
+        return f"{accession}:{hgvsc_suffix}:{hgvsp_suffix}".replace("%3D", "=")
+    return f"{accession}:{hgvsc_suffix}".replace("%3D", "=")
 
 
 def best_refseq_change_for_gene(csq_records, symbol, order_map, mode):
@@ -761,7 +767,7 @@ def main():
                 sample_depths.append(sample_depth(sample_data))
                 sample_alt_depths.append(sample_alt_depth(sample_data))
                 sample_gqs.append(sample_gq(sample_data))
-                row[f"Zygosity.{sample_header}"] = zygosity(sample_data, record.chrom)
+                row[f"Zygosity.{sample_header}"] = zygosity(sample_data, ref, record.alts or [], record.chrom)
                 row[f"Alt_depths.{sample_header}"] = sample_alt_depths[-1]
                 row[f"gt_quals.{sample_header}"] = sample_gqs[-1] if present(sample_gqs[-1]) else "-1"
                 if include_denovo:
@@ -772,7 +778,7 @@ def main():
             row["gts"] = ",".join(sample_gt_strings)
             row["Depth"] = as_text(first_info(records, "DP"))
             row["Quality"] = "" if record.qual is None else str(record.qual)
-            row["Trio_coverage"] = "_".join(sample_depths)
+            row["Trio_coverage"] = "_".join(depth if present(depth) else "0" for depth in sample_depths)
             row["Clinvar"] = merged_clinvar_text(records) or "."
             hgmd_match = hgmd_by_variant.get(f"{position}-{ref}-{alt}", {})
             row["HGMD_id"] = hgmd_match.get("HGMD_id", "NA")
@@ -810,16 +816,18 @@ def main():
                 ("GreenDB_variant_type", "GreenDB_variant_type"),
                 ("GreenDB_closest_gene", "GreenDB_closest_gene"),
                 ("GreenDB_controlled_gene", "GreenDB_controlled_gene"),
-                ("CTCF_binding_site", "ctcf_binding_site"),
-                ("DNaseI_hypersensitive_site", "dnasei_hypersensitive_site"),
-                ("ENH_cellline_tissue", "enh_cellline_tissue"),
-                ("UCE_100bp", "uce_100bp"),
-                ("UCE_200bp", "uce_200bp"),
+                ("CTCF_binding_site", "CTCF_binding_site"),
+                ("DNaseI_hypersensitive_site", "DNaseI_hypersensitive_site"),
+                ("ENH_cellline_tissue", "ENH_cellline_tissue"),
+                ("UCE_100bp", "UCE_100bp"),
+                ("UCE_200bp", "UCE_200bp"),
                 ("Old_multiallelic", "OLD_MULTIALLELIC"),
             ]:
                 value = first_info(records, source)
                 if field == "Vest4_score":
                     set_row_value(row, field, max_numeric_csv(value))
+                elif field in FLAG_BINARY_FIELDS:
+                    set_row_value(row, field, "1" if present(value) else "0")
                 else:
                     set_row_value(row, field, as_text(value))
 
@@ -904,7 +912,7 @@ def main():
                 set_row_value(row, "omim_inheritance", omim_inheritance)
                 set_row_value(row, "Orphanet", join_orphanet(primary_ensg, orphanet))
                 row["Imprinting_status"], row["Imprinting_expressed_allele"] = join_imprinting(primary_gene, imprinting)
-                row["Pseudoautosomal"] = join_pseudoautosomal(primary_ensg, pseudoautosomal)
+                row["Pseudoautosomal"] = join_pseudoautosomal(all_gene_ids, pseudoautosomal)
                 row["HGMD_gene"] = primary_gene if primary_gene in hgmd_genes else "NA"
                 for field, value in primary_constraint_values(primary_tx, constraint).items():
                     row[field] = value

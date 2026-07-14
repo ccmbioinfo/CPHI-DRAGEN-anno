@@ -9,10 +9,13 @@ import pysam
 from shared import (
     MISSING,
     as_float,
+    choose_primary_csq,
+    consequence_rank,
+    consequence_display,
     consequence_terms,
+    cre_report_gene,
     info,
     load_impact_order,
-    normalize_consequence_term,
     parse_csq_header,
     parse_csq_records,
     present,
@@ -214,88 +217,6 @@ def parse_promoterai_score(record):
     return max(parsed) if parsed else 0.0
 
 
-def top_consequence(csq, order_map):
-    terms = consequence_terms(csq)
-    if not terms:
-        return ""
-    return sorted(
-        terms,
-        key=lambda term: (order_map.get(normalize_consequence_term(term), 999), term),
-    )[0]
-
-
-def csq_gene_symbol(csq):
-    for field in ("SYMBOL", "HGNC"):
-        value = csq.get(field, "")
-        if present(value):
-            return value
-    gene_field = csq.get("Gene", "")
-    if present(gene_field) and not str(gene_field).startswith("ENSG"):
-        return gene_field
-    return ""
-
-
-def csq_is_pseudogene(csq):
-    biotype = csq.get("BIOTYPE", "")
-    return present(biotype) and "pseudogene" in str(biotype).lower()
-
-
-def csq_is_protein_coding(csq):
-    return csq.get("BIOTYPE", "") == "protein_coding"
-
-
-def csq_is_canonical(csq):
-    return csq.get("CANONICAL", "") == "YES"
-
-
-def csq_mane_select(csq):
-    value = csq.get("MANE_SELECT", "")
-    return value if present(value) else ""
-
-
-def csq_mane_plus_clinical(csq):
-    value = csq.get("MANE_PLUS_CLINICAL", "")
-    return value if present(value) else ""
-
-
-def csq_mane_rank(csq):
-    if csq_mane_select(csq):
-        return 0
-    if csq_mane_plus_clinical(csq):
-        return 1
-    return 2
-
-
-def primary_csq_sort_key(csq, order_map, mode):
-    consequence = top_consequence(csq, order_map)
-    if csq_is_pseudogene(csq):
-        biotype_rank = 2
-    elif csq_is_protein_coding(csq):
-        biotype_rank = 0
-    else:
-        biotype_rank = 1
-    pseudogene_rank = 1 if csq_is_pseudogene(csq) else 0
-    gene_symbol_rank = 0 if present(csq_gene_symbol(csq)) else 1
-    canonical_rank = 0 if csq_is_canonical(csq) else 1
-    if mode == "coding":
-        sort_prefix = (consequence_rank := order_map.get(normalize_consequence_term(consequence), 999), canonical_rank, biotype_rank)
-    else:
-        sort_prefix = (biotype_rank, consequence_rank := order_map.get(normalize_consequence_term(consequence), 999), gene_symbol_rank, canonical_rank)
-    return (
-        csq_mane_rank(csq),
-        pseudogene_rank,
-        *sort_prefix,
-        csq.get("Feature", ""),
-        csq.get("_csq_index", 0),
-    )
-
-
-def choose_primary_csq(csq_records, order_map, mode):
-    if not csq_records:
-        return None
-    return sorted(csq_records, key=lambda csq: primary_csq_sort_key(csq, order_map, mode))[0]
-
-
 def all_csq_intergenic(csq_records):
     if not csq_records:
         return False
@@ -310,7 +231,54 @@ def all_csq_intergenic(csq_records):
     return saw_any_term
 
 
-def pass_high_impact_r_style(record, csq_fields, order_map, mode):
+# High-impact filtering intentionally uses the legacy slivar-style CSQ choice.
+# Final report display still uses the shared selector in shared.py/build_report.py.
+def high_impact_filter_mane_rank(csq):
+    if present(csq.get("MANE_SELECT", "")):
+        return 0
+    if present(csq.get("MANE_PLUS_CLINICAL", "")):
+        return 1
+    return 2
+
+
+def high_impact_filter_pseudogene_rank(csq):
+    biotype = str(csq.get("BIOTYPE", "")).lower()
+    return 1 if "pseudogene" in biotype else 0
+
+
+def high_impact_filter_biotype_rank(csq):
+    biotype = str(csq.get("BIOTYPE", "")).lower()
+    if biotype == "protein_coding":
+        return 0
+    if "pseudogene" in biotype:
+        return 2
+    return 1
+
+
+def high_impact_filter_gene_rank(csq):
+    return 0 if present(cre_report_gene(csq)) else 1
+
+
+def high_impact_filter_csq_sort_key(csq, order_map):
+    return (
+        high_impact_filter_mane_rank(csq),
+        high_impact_filter_pseudogene_rank(csq),
+        high_impact_filter_biotype_rank(csq),
+        consequence_rank(csq, order_map),
+        high_impact_filter_gene_rank(csq),
+        0 if csq.get("CANONICAL", "") == "YES" else 1,
+        csq.get("Feature", ""),
+        csq.get("_csq_index", 0),
+    )
+
+
+def choose_high_impact_filter_csq(csq_records, order_map):
+    if not csq_records:
+        return None
+    return sorted(csq_records, key=lambda csq: high_impact_filter_csq_sort_key(csq, order_map))[0]
+
+
+def pass_high_impact_r_style(record, csq_fields, order_map):
     spliceai_score = parse_spliceai_score(record)
     cadd_score = info(record, "CADD_phred")
     promoterai_score = parse_promoterai_score(record)
@@ -330,9 +298,9 @@ def pass_high_impact_r_style(record, csq_fields, order_map, mode):
     if all_csq_intergenic(csq_records):
         return False, "all_csq_intergenic"
 
-    primary = choose_primary_csq(csq_records, order_map, mode)
-    if primary is not None and not present(csq_gene_symbol(primary)):
-        return False, "missing_primary_gene_symbol"
+    primary = choose_high_impact_filter_csq(csq_records, order_map)
+    if primary is None or not present(cre_report_gene(primary)):
+        return False, "missing_gene_symbol"
     return True, "passes_numeric_score_gate"
 
 
@@ -360,7 +328,7 @@ def evaluate_record(mode, record, branch, csq_fields, order_map):
     if not keep:
         return False, reason
     if mode == "wgs-high-impact":
-        return pass_high_impact_r_style(record, csq_fields, order_map, mode)
+        return pass_high_impact_r_style(record, csq_fields, order_map)
     return True, reason
 
 
@@ -391,12 +359,15 @@ def audit_row(mode, record, branch, keep, reason, csq_fields, order_map):
         return base
 
     csq_records = parse_csq_records(record, csq_fields)
-    primary = choose_primary_csq(csq_records, order_map, mode)
+    if mode == "wgs-high-impact":
+        primary = choose_high_impact_filter_csq(csq_records, order_map)
+    else:
+        primary = choose_primary_csq(csq_records, order_map, mode)
     base["cadd_phred"] = stringify(info(record, "CADD_phred"))
     base["spliceai_max_score"] = parse_spliceai_score(record)
     base["promoterAI_abs_max"] = parse_promoterai_score(record)
-    base["primary_gene_symbol"] = csq_gene_symbol(primary) if primary is not None else ""
-    base["primary_consequence"] = top_consequence(primary, order_map) if primary is not None else ""
+    base["primary_gene_symbol"] = cre_report_gene(primary) if primary is not None else ""
+    base["primary_consequence"] = consequence_display(primary, order_map) if primary is not None else ""
     return base
 
 

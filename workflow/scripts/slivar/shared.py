@@ -10,6 +10,8 @@ MISSING = {"", ".", "None", "NA"}
 def present(value):
     if value is None:
         return False
+    if isinstance(value, bool):
+        return value
     if isinstance(value, tuple):
         return any(present(v) for v in value)
     return str(value) not in MISSING
@@ -172,6 +174,8 @@ def normalized_consequence_terms(csq):
 
 
 def gene_symbol(csq):
+    if csq is None:
+        return ""
     for field in ("SYMBOL", "HGNC"):
         value = csq.get(field, "")
         if present(value):
@@ -182,12 +186,9 @@ def gene_symbol(csq):
     return ""
 
 
-IMPACT_RANK = {
-    "HIGH": 0,
-    "MODERATE": 1,
-    "LOW": 2,
-    "MODIFIER": 3,
-}
+def cre_report_gene(csq):
+    # High-impact filtering should use the same value shown in the report Gene column.
+    return gene_symbol(csq)
 
 
 def consequence_rank(csq, order_map):
@@ -254,38 +255,75 @@ def mane_rank(csq):
     return 2
 
 
-def biotype_rank(csq, mode):
-    biotype = csq.get("BIOTYPE", "")
+def pseudogene_rank(csq):
+    biotype = str(csq.get("BIOTYPE", "")).lower()
+    return 1 if "pseudogene" in biotype else 0
+
+
+def protein_coding_biotype_rank(csq):
+    biotype = str(csq.get("BIOTYPE", "")).lower()
     if biotype == "protein_coding":
         return 0
-    if mode != "coding" and "pseudogene" in biotype:
-        return 2
-    return 1
+    if biotype.startswith("protein_coding_") or biotype in {"nonsense_mediated_decay", "non_stop_decay"}:
+        return 1
+    return 2
 
 
-def gene_symbol_rank(csq):
-    return 0 if present(gene_symbol(csq)) else 1
+def transcript_biotype_rank(csq):
+    biotype = str(csq.get("BIOTYPE", "")).lower()
+    if biotype == "processed_transcript":
+        return 0
+    if biotype in {"nonsense_mediated_decay", "non_stop_decay", "retained_intron"}:
+        return 1
+    if biotype.endswith("_transcript"):
+        return 1
+    return 2
+
+
+def consequence_above_cutoff_rank(csq, order_map, cutoff):
+    cutoff_rank = order_map.get(cutoff)
+    if cutoff_rank is None:
+        return 1
+    return 0 if consequence_rank(csq, order_map) < cutoff_rank else 1
+
+
+def impactful_consequence_rank(csq, order_map):
+    return consequence_above_cutoff_rank(csq, order_map, "IMPACTFUL_CUTOFF")
+
+
+def genic_consequence_rank(csq, order_map):
+    return consequence_above_cutoff_rank(csq, order_map, "GENIC_CUTOFF")
+
+
+def weak_gene_symbol(symbol):
+    if not present(symbol):
+        return False
+    text = str(symbol).upper()
+    if text.startswith(("ENSG", "LOC", "LINC", "MIR", "RN7", "RNU", "SNORD", "SNORA", "SCARNA", "Y_RNA")):
+        return True
+    for prefix in ("AC", "AL", "AP"):
+        if text.startswith(prefix) and len(text) > len(prefix) and text[len(prefix)].isdigit():
+            return True
+    return text.startswith("RP") and len(text) > 2 and (text[2].isdigit() or text[2] == "-")
+
+
+def strong_gene_rank(csq):
+    return 0 if not weak_gene_symbol(gene_symbol(csq)) else 1
 
 
 def csq_sort_key(csq, order_map, mode):
-    if mode == "coding":
-        return (
-            mane_rank(csq),
-            consequence_rank(csq, order_map),
-            IMPACT_RANK.get(csq.get("IMPACT", ""), 99),
-            canonical_rank(csq),
-            biotype_rank(csq, mode),
-            csq.get("Feature", ""),
-            csq.get("_csq_index", ""),
-        )
     return (
-        mane_rank(csq),
-        biotype_rank(csq, mode),
+        pseudogene_rank(csq),
+        impactful_consequence_rank(csq, order_map),
+        protein_coding_biotype_rank(csq),
         consequence_rank(csq, order_map),
-        gene_symbol_rank(csq),
+        strong_gene_rank(csq),
+        mane_rank(csq),
         canonical_rank(csq),
+        transcript_biotype_rank(csq),
+        genic_consequence_rank(csq, order_map),
         csq.get("Feature", ""),
-        csq.get("_csq_index", ""),
+        csq.get("_csq_index", 0),
     )
 
 
@@ -368,22 +406,20 @@ def sample_format_value(sample_data, field):
     return "" if text in MISSING else text
 
 
-def zygosity(sample_data, chrom=""):
-    gt = sample_data.get("GT")
-    if gt is None or all(allele is None for allele in gt):
+def zygosity(sample_data, ref, alts, chrom=""):
+    genotype = gt_string(sample_data, ref, alts).replace("|", "/").replace("./.", "Missing")
+    if "Missing" in genotype:
         return "Missing"
-    alt_ad = sample_alt_depth_value(sample_data) or 0
-    if alt_ad == 0:
+    if sample_alt_depth_value(sample_data) == 0:
         return "-"
-    called = [allele for allele in gt if allele is not None]
-    if not called:
-        return "Missing"
-    if all(allele == 0 for allele in called):
-        return "-"
-    if len(called) == 1 and called[0] != 0:
-        chrom_text = str(chrom)
-        if "X" in chrom_text or "Y" in chrom_text:
-            return "Hom"
-    if len(called) == 2 and called[0] == called[1] and called[0] != 0:
-        return "Hom"
-    return "Het"
+    alleles = genotype.split("/")
+    if len(alleles) == 2:
+        if alleles[0] == alleles[1]:
+            return "-" if alleles[0] == ref else "Hom"
+        return "Het"
+    chrom_text = str(chrom)
+    if "X" in chrom_text or "Y" in chrom_text:
+        if genotype == ".":
+            return "Missing"
+        return "-" if genotype == ref else "Hom"
+    return genotype
