@@ -1,7 +1,7 @@
 rule cnv_snpeff:
     input: get_cnv_vcf
     output:
-        vcf = "cnv/{family}.cnv.snpeff.vcf",
+        vcf = temp("cnv/{family}.cnv.snpeff.vcf"),
     log:
         "logs/cnv/{family}.snpeff.log"
     params:
@@ -15,7 +15,7 @@ rule cnv_snpeff:
 rule cnv_annotsv:
     input: get_cnv_vcf
     output:
-        annotsv_annotated =  "cnv/{family}.AnnotSV.tsv",
+        annotsv_annotated =  temp("cnv/{family}.AnnotSV.tsv"),
         annotsv_unannotated =  temp("cnv/{family}.AnnotSV.unannotated.tsv")
     log: "logs/cnv/{family}.annotsv.log"
     params:
@@ -37,7 +37,7 @@ rule cnv_report:
     input: 
         snpeff = "cnv/{family}.cnv.snpeff.vcf",
         annotsv = "cnv/{family}.AnnotSV.tsv"
-    output: "cnv/{family}.cnv.csv"
+    output: temp("cnv/{family}.cnv.csv")
     log: "logs/cnv/{family}.cnv.report.log"
     params:
         cphi_dragen = config["tools"]["cphi-dragen-anno"],

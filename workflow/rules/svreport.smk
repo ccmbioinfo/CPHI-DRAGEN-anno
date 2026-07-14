@@ -2,7 +2,7 @@ rule bnd_to_inv:
     input:
         vcf = get_sv_vcf
     output:
-        vcf = "sv/{family}.sv.bnd_to_inv.vcf"
+        vcf = temp("sv/{family}.sv.bnd_to_inv.vcf")
     log:
         "logs/sv/{family}.bnd_to_inv.log"
     params:
@@ -28,7 +28,7 @@ rule snpeff:
     input:
         "sv/{family}.sv.bnd_to_inv.vcf"
     output:
-        vcf = "sv/{family}.sv.snpeff.vcf",
+        vcf = temp("sv/{family}.sv.snpeff.vcf"),
     log:
         "logs/sv/{family}.snpeff.log"
     params:
@@ -43,7 +43,7 @@ rule annotsv:
     input:
         "sv/{family}.sv.bnd_to_inv.vcf"
     output:
-        annotsv_annotated =  "sv/{family}.AnnotSV.tsv",
+        annotsv_annotated =  temp("sv/{family}.AnnotSV.tsv"),
         annotsv_unannotated =  temp("sv/{family}.AnnotSV.unannotated.tsv")
     log: "logs/sv/{family}.annotsv.log"
     params:
@@ -65,7 +65,7 @@ rule sv_report:
     input: 
         snpeff = "sv/{family}.sv.snpeff.vcf",
         annotsv = "sv/{family}.AnnotSV.tsv"
-    output: "sv/{family}.sv.csv"
+    output: temp("sv/{family}.sv.csv")
     log: "logs/sv/{family}.sv.report.log"
     params:
         cphi_dragen = config["tools"]["cphi-dragen-anno"],

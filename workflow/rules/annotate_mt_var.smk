@@ -30,8 +30,8 @@ rule mity_report:
     input:
         "mitochondrial_variants/{family}.mt.normalise.decompose.vcf.gz"
     output:
-        "mitochondrial_variants/{family}.mity.annotated.vcf.gz",
-        "mitochondrial_variants/{family}.mity.report.xlsx"
+        temp("mitochondrial_variants/{family}.mity.annotated.vcf.gz"),
+        temp("mitochondrial_variants/{family}.mity.report.xlsx")
     params:
         outdir="mitochondrial_variants/",
         tool=config["tools"]["mity"],

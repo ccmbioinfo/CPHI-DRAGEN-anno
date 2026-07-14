@@ -36,7 +36,7 @@ rule input_prep:
     params:
         outdir="filtered"
     output:
-        "filtered/{family}.vcf.gz"
+        temp("filtered/{family}.vcf.gz")
     wildcard_constraints:
         family = "(?!.*panel|.*coding|.*denovo).*"
     log:
@@ -139,7 +139,7 @@ rule vcf2db:
     input:
         "annotated/{p}/vcfanno/{family}.{p}.vep.vcfanno.vcf.gz",
     output:
-         db="annotated/{p}/{family}-gemini.db",
+         db=temp("annotated/{p}/{family}-gemini.db"),
     log:
         "logs/vcf2db/{family}.vcf2db.{p}.log"
     threads: 1
@@ -190,7 +190,8 @@ rule allsnvreport:
          ref=config["ref"]["genome"]
     shell:
          '''
-         (mkdir -p {output}
+         (set -eou pipefail;
+         mkdir -p {output}
          cd {output}
          ln -s ../../../{input.db} {family}-ensemble.db
          #bgzip ../../../{input.vcf} -c > {family}-gatk-haplotype-annotated-decomposed.vcf.gz
