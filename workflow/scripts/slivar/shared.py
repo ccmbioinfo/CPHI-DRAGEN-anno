@@ -308,7 +308,10 @@ def weak_gene_symbol(symbol):
 
 
 def strong_gene_rank(csq):
-    return 0 if not weak_gene_symbol(gene_symbol(csq)) else 1
+    symbol = gene_symbol(csq)
+    if not present(symbol):
+        return 2
+    return 1 if weak_gene_symbol(symbol) else 0
 
 
 def csq_sort_key(csq, order_map, mode):
