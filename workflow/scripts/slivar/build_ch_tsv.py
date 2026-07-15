@@ -133,37 +133,41 @@ def ad_rule(depths, threshold):
     return any(depth >= threshold for depth in depths) or all(depth == -1 for depth in depths)
 
 
-def gt_type(sample_data, chrom=""):
+def gt_type(sample_data):
+    """Reproduce Gemini/vcf2db gt_types (0 hom-ref, 1 het, 2 missing, 3 hom-alt).
+
+    compound_hets.py selects candidates on gt_types == 1, so this column decides which
+    variants enter the CH analysis and has to agree with the CRE TSVs exactly. Two of
+    Gemini's rules are artifacts we reproduce deliberately rather than correct:
+      - a hemizygous X/Y call is reported as het, not hom-alt
+      - a ref-only half-call is hom-ref when unphased but het when phased, even though
+        neither carries an alt read
+    """
     gt = sample_data.get("GT")
     if gt is None:
         return 2
 
-    # vcf2db/Gemini exports phased full-missing calls (.|.) as ./. with
-    # gt_type=3. annotate_compound_hets.py later resets GT == "./." to missing,
-    # so this preserves raw TSV compatibility without changing CH zygosity.
-    if all(allele is None for allele in gt):
-        return 3 if sample_data.phased else 2
-
     called = [allele for allele in gt if allele is not None]
-    if not called:
-        return 2
 
-    # Match Gemini/vcf2db gt_types semantics for compatibility with the CRE
-    # compound-het reports: partial-missing calls such as 0/. or ./1 are HET
-    # even when the alternate depth is zero.
+    if not called:
+        # A diploid phased no-call (.|.) is exported as hom-alt; a haploid one is missing.
+        # pysam reports phased=True for any single-allele call, hence the ploidy check.
+        # annotate_compound_hets.py resets GT == "./." to missing, so this only affects
+        # raw-TSV parity, not CH results.
+        return 3 if sample_data.phased and len(gt) > 1 else 2
+
     if len(called) != len(gt):
-        return 1
+        # Half-call. An alt allele makes it het. A lone ref allele is hom-ref, except that
+        # Gemini calls it het when the genotype is phased and the missing allele is not
+        # the leading one (0|. but not .|0) -- despite neither carrying an alt read.
+        if any(allele != 0 for allele in called):
+            return 1
+        return 1 if sample_data.phased and gt[0] is not None else 0
 
     if all(allele == 0 for allele in called):
         return 0
 
-    if len(called) == 1 and called[0] != 0:
-        chrom_text = str(chrom)
-        if "X" in chrom_text or "Y" in chrom_text:
-            return 3
-        return 1
-
-    if len(called) == 2 and all(allele == called[0] for allele in called) and called[0] != 0:
+    if len(called) == 2 and called[0] == called[1]:
         return 3
 
     return 1
@@ -264,7 +268,7 @@ def row_for_record(record, csq_records, primary, samples, variant_index, order_m
         total_depth = sample_total_depth_value(sample_data)
         genotype_quality = sample_gq_value(sample_data)
         row[f"gts.{sample_column}"] = gt_string(sample_data, ref, record.alts or [])
-        row[f"gt_types.{sample_column}"] = gt_type(sample_data, record.chrom)
+        row[f"gt_types.{sample_column}"] = gt_type(sample_data)
         row[f"gt_phases.{sample_column}"] = gt_phase(sample_data)
         row[f"gt_alt_depths.{sample_column}"] = -1 if alt_depth is None else alt_depth
         row[f"gt_depths.{sample_column}"] = -1 if total_depth is None else total_depth

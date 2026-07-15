@@ -357,6 +357,10 @@ def gt_string(sample_data, ref, alts):
                 alleles.append(alts[allele_index - 1])
             except Exception:
                 alleles.append(".")
+    # sample_data.phased matches the separator in the VCF for every diploid genotype,
+    # including a genuinely phased half-call such as 0|. -- so use it as-is. (A haploid
+    # call reports phased=True but joins to a single allele, so no separator is emitted.)
+    # Gemini drops the bar from .|0 but keeps it on 0|.; we do not reproduce that.
     return ("|" if sample_data.phased else "/").join(alleles)
 
 

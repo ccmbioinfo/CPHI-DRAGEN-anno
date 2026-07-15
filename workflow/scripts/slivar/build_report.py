@@ -17,6 +17,7 @@ from shared import (
     consequence_terms,
     csq_sort_key,
     best_ensembl_gene_id_for_symbol,
+    ensembl_gene_id,
     gene_id_with_fallback_for_csq,
     gene_symbol,
     gt_string,
@@ -56,7 +57,11 @@ DOT_MISSING_FIELDS = {
     "Cadd_score",
     "Clinvar",
     "ENH_cellline_tissue",
-    "Ensembl_gene_id",
+    # Ensembl_gene_id is deliberately absent: annotate_compound_hets.py left-merges the
+    # compound-het table onto the report on this column, and compound_hets.py groups
+    # gene-less variants under the literal ".". Writing "." here would make every
+    # gene-less row match that pseudo-gene and inherit its CH_status. Leave it empty --
+    # Gemini does the same, and annotate_compound_hets fills it back to "." on output.
     "Ensembl_gene_id_all",
     "Ensembl_transcript_id",
     "Exon",
@@ -159,6 +164,22 @@ def parse_vep_score(value):
     return text
 
 
+ALIGNED_LIST_FIELDS = {
+    "GreenDB_variant_type",
+    "GreenDB_closest_gene",
+    "GreenDB_controlled_gene",
+}
+
+
+def as_aligned_text(value):
+    # The GreenDB columns hold one entry per overlapping region and are read across
+    # by position, so an entry with no value has to keep its slot rather than vanish.
+    if not present(value):
+        return ""
+    items = value if isinstance(value, tuple) else (value,)
+    return ",".join("" if item is None or str(item) in MISSING else str(item) for item in items)
+
+
 def normalize_report_value(field, value):
     text = "" if value is None else str(value).strip()
     if (field in ZERO_MISSING_FIELDS or field.startswith(ZERO_MISSING_PREFIXES)) and text in {"", ".", "-1", "NA", "None"}:
@@ -201,7 +222,8 @@ def mane_plus_clinical_value(csq):
 
 def parse_spliceai(value):
     if not present(value):
-        return "NA|NA|NA", "0"
+        # No SpliceAI record for this variant. A real max score of 0 is reported as 0 below.
+        return "NA|NA|NA", "."
     annotations = []
     if isinstance(value, tuple):
         for item in value:
@@ -374,12 +396,34 @@ def join_omim(gene, omim_by_gene):
 
 
 def join_orphanet(ensembl_gene_id_value, orphanet_by_ensg):
-    return orphanet_by_ensg.get(ensembl_gene_id_value, {}).get("Orphanet", "0") or "0"
+    # The Orphanet table writes 0 for a gene with no entry; report that as missing.
+    value = orphanet_by_ensg.get(ensembl_gene_id_value, {}).get("Orphanet", "")
+    return "" if str(value).strip() in {"0", ""} else value
 
 
-def join_imprinting(gene, imprinting_by_gene):
-    match = imprinting_by_gene.get(gene, {})
-    return match.get("Imprinting_status", ""), match.get("Imprinting_expressed_allele", "")
+def genes_primary_first(primary_gene, gene_all_text):
+    genes = [primary_gene] if present(primary_gene) else []
+    for gene in gene_all_text.split(","):
+        if present(gene) and gene not in genes:
+            genes.append(gene)
+    return genes
+
+
+def join_imprinting(genes, imprinting_by_gene):
+    # The imprinted gene at a locus is not always the one chosen as primary: at
+    # chr11:1992314 H19 is imprinted but MRPL23 wins, so check every overlapping gene.
+    for gene in genes:
+        match = imprinting_by_gene.get(gene)
+        if match:
+            return match.get("Imprinting_status", ""), match.get("Imprinting_expressed_allele", "")
+    return "", ""
+
+
+def first_hgmd_gene(genes, hgmd_genes):
+    for gene in genes:
+        if gene in hgmd_genes:
+            return gene
+    return "NA"
 
 
 def join_pseudoautosomal(ensembl_gene_ids, pseudo_by_ensg):
@@ -600,15 +644,15 @@ def make_columns(mode, samples, include_denovo=False, include_denovo_quality=Fal
             "Imprinting_expressed_allele",
             "Pseudoautosomal",
             "Old_multiallelic",
+            "UCE_100bp",
+            "UCE_200bp",
+            "DNaseI_hypersensitive_site",
+            "CTCF_binding_site",
+            "ENH_cellline_tissue",
             "TF_binding_sites",
             "GreenDB_variant_type",
             "GreenDB_closest_gene",
             "GreenDB_controlled_gene",
-            "CTCF_binding_site",
-            "DNaseI_hypersensitive_site",
-            "ENH_cellline_tissue",
-            "UCE_100bp",
-            "UCE_200bp",
             "CSQ_biotype",
             "CSQ_impact",
             "CSQ_biotype_all",
@@ -828,6 +872,8 @@ def main():
                     set_row_value(row, field, max_numeric_csv(value))
                 elif field in FLAG_BINARY_FIELDS:
                     set_row_value(row, field, "1" if present(value) else "0")
+                elif field in ALIGNED_LIST_FIELDS:
+                    set_row_value(row, field, as_aligned_text(value))
                 else:
                     set_row_value(row, field, as_text(value))
 
@@ -853,10 +899,16 @@ def main():
             all_gene_symbols = [gene_symbol(csq) for csq in csq_records if present(gene_symbol(csq))]
             all_gene_ids = [gene_id_with_fallback_for_csq(csq_records, csq) for csq in csq_records if present(gene_symbol(csq))]
             all_gene_ids = [g for g in all_gene_ids if present(g)]
+            # Unnamed genes (novel lncRNAs / pseudogenes) carry a valid ENSG but no VEP SYMBOL,
+            # so the symbol-gated lists above skip them. Surface their ENSG in the id column only:
+            # there is no symbol to add to Gene_all, and OMIM/HPO/Orphanet/panels all key off
+            # Gene_all, so they stay untouched. Pseudoautosomal keeps using all_gene_ids as-is.
+            unnamed_gene_ids = [ensembl_gene_id(csq) for csq in csq_records
+                                if not present(gene_symbol(csq)) and present(ensembl_gene_id(csq))]
             all_ensembl_transcripts = [csq.get("Feature", "") for csq in csq_records if csq.get("Feature", "").startswith("ENST")]
 
             row["Gene_all"] = uniq_join(all_gene_symbols)
-            row["Ensembl_gene_id_all"] = uniq_join(all_gene_ids)
+            row["Ensembl_gene_id_all"] = uniq_join(all_gene_ids + unnamed_gene_ids)
             row["Ensembl_transcript_id_all"] = uniq_join(all_ensembl_transcripts)
             row["Variation_all"] = uniq_join(csq.get("Consequence", "") for csq in csq_records)
             row["Info_all"] = build_info_all(csq_records)
@@ -911,15 +963,16 @@ def main():
                 set_row_value(row, "omim_phenotype", omim_phenotype)
                 set_row_value(row, "omim_inheritance", omim_inheritance)
                 set_row_value(row, "Orphanet", join_orphanet(primary_ensg, orphanet))
-                row["Imprinting_status"], row["Imprinting_expressed_allele"] = join_imprinting(primary_gene, imprinting)
+                overlapping_genes = genes_primary_first(primary_gene, row["Gene_all"])
+                row["Imprinting_status"], row["Imprinting_expressed_allele"] = join_imprinting(overlapping_genes, imprinting)
                 row["Pseudoautosomal"] = join_pseudoautosomal(all_gene_ids, pseudoautosomal)
-                row["HGMD_gene"] = primary_gene if primary_gene in hgmd_genes else "NA"
+                row["HGMD_gene"] = first_hgmd_gene(overlapping_genes, hgmd_genes)
                 for field, value in primary_constraint_values(primary_tx, constraint).items():
                     row[field] = value
             else:
                 row["Info"] = "NA"
                 row["Refseq_change"] = "NA"
-                set_row_value(row, "Orphanet", "0")
+                set_row_value(row, "Orphanet", "")
                 row["HGMD_gene"] = "NA"
 
             for field in row:
