@@ -1,181 +1,27 @@
 #!/usr/bin/env python3
 
 import argparse
-import csv
-from collections import defaultdict
 
 import pysam
 
 from shared import (
     MISSING,
-    as_float,
-    choose_primary_csq,
-    consequence_rank,
-    consequence_display,
-    consequence_terms,
-    cre_report_gene,
-    info,
-    load_impact_order,
-    parse_csq_header,
-    parse_csq_records,
-    present,
-    sample_alt_depth_value,
+    get_consequence_terms,
+    get_csq_fields,
+    get_gene_symbol,
+    get_info_value,
+    has_value,
+    load_consequence_order,
+    parse_csq_annotations,
+    rank_consequence,
+    value_as_float,
 )
 
 
-def stringify(value):
-    if value is None:
-        return ""
-    if isinstance(value, tuple):
-        return ",".join(str(v) for v in value if present(v))
-    return str(value)
-
-
-def values_as_list(value):
-    if not present(value):
-        return []
-    if isinstance(value, tuple):
-        return [str(v) for v in value if present(v)]
-    return [str(value)]
-
-
-def contains_pathogenic(value):
-    if not present(value):
-        return False
-    if isinstance(value, tuple):
-        return any(contains_pathogenic(v) for v in value)
-    return "pathogenic" in str(value).lower()
-
-
-def clinvar_values(record):
-    values = []
-    for field in ("clinvar_pathogenic", "clinvar_sig", "clinvar_sig_conf"):
-        values.extend(values_as_list(info(record, field)))
-    return values
-
-
-def clinvar_text(record):
-    return ";".join(clinvar_values(record))
-
-
-def has_clinvar(record):
-    return len(clinvar_values(record)) > 0
-
-
-def is_pass(record):
-    filters = list(record.filter.keys())
-    return len(filters) == 0 or filters == ["PASS"] or "PASS" in filters
-
-
-def is_star_alt(record):
-    return record.alts is not None and len(record.alts) > 0 and record.alts[0] == "*"
-
-
-def variant_key(record):
-    return f"{record.chrom}:{record.pos}:{record.ref}:{record.alts[0]}"
-
-
-def sample_alt_depths(record):
-    depths = []
-    for sample_name in record.samples:
-        sample = record.samples[sample_name]
-        alt_depth = sample_alt_depth_value(sample)
-        depths.append(-1 if alt_depth is None else alt_depth)
-    return depths
-
-
-def base_exclusion_reason(record):
-    if record.alts is None or len(record.alts) == 0:
-        return False, "missing_alt"
-    if not is_pass(record):
-        return False, "not_pass"
-    if is_star_alt(record):
-        return False, "star_alt"
-    return True, ""
-
-
-def is_impactful_non_low(record):
-    severity = info(record, "impact_severity")
-    if present(severity):
-        if isinstance(severity, tuple):
-            return any(str(s).upper() != "LOW" for s in severity if present(s))
-        return str(severity).upper() != "LOW"
-
-    impactful = info(record, "impactful")
-    if impactful is None:
-        return False
-    if isinstance(impactful, bool):
-        return impactful
-    if isinstance(impactful, tuple):
-        return any(str(v) not in {"0", "False", "false", "", "."} for v in impactful)
-    return str(impactful) not in {"0", "False", "false", "", "."}
-
-
-def pass_rare_impactful(record, max_af):
-    ok, reason = base_exclusion_reason(record)
-    if not ok:
-        return False, reason
-
-    faf = as_float(info(record, "gnomad_fafmax_faf95_max"))
-    if faf is not None and faf > max_af:
-        return False, "faf_gt_max"
-    if not is_impactful_non_low(record):
-        return False, "not_impactful_non_low"
-
-    return (True, "rare_impactful_missing_faf") if faf is None else (True, "rare_impactful")
-
-
-def pass_rare_main(record, max_af):
-    ok, reason = base_exclusion_reason(record)
-    if not ok:
-        return False, reason
-
-    faf = as_float(info(record, "gnomad_fafmax_faf95_max"))
-    if faf is not None and faf > max_af:
-        return False, "faf_gt_main_max"
-
-    return (True, "rare_main_missing_faf") if faf is None else (True, "rare_main")
-
-
-def pass_rare_clinvar(record, max_af):
-    ok, reason = base_exclusion_reason(record)
-    if not ok:
-        return False, reason
-
-    faf = as_float(info(record, "gnomad_fafmax_faf95_max"))
-    if faf is not None and faf > max_af:
-        return False, "faf_gt_clinvar_max"
-
-    if not has_clinvar(record):
-        return False, "no_clinvar"
-
-    return (True, "rare_clinvar_missing_faf") if faf is None else (True, "rare_clinvar")
-
-
-def pass_common_pathogenic_clinvar(record, common_min_af):
-    ok, reason = base_exclusion_reason(record)
-    if not ok:
-        return False, reason
-
-    faf = as_float(info(record, "gnomad_fafmax_faf95_max"))
-    if faf is None:
-        return False, "missing_faf"
-    if faf <= common_min_af:
-        return False, "faf_lte_common_min"
-
-    clinvar_status = info(record, "clinvar_status")
-    if not present(clinvar_status):
-        return False, "missing_clinvar_status"
-    if str(clinvar_status) == "no_assertion_criteria_provided":
-        return False, "no_assertion_criteria_provided"
-    if not contains_pathogenic(clinvar_text(record)):
-        return False, "clinvar_not_pathogenic"
-    return True, "common_pathogenic_clinvar"
-
-
+# Extra high-impact filtering that is not part of the slivar expr branches.
 def parse_spliceai_score(record):
-    value = info(record, "spliceai_score")
-    if not present(value):
+    value = get_info_value(record, "spliceai_score")
+    if not has_value(value):
         return 0.0
 
     annotations = []
@@ -200,8 +46,8 @@ def parse_spliceai_score(record):
 
 
 def parse_promoterai_score(record):
-    value = info(record, "promoterAI")
-    if not present(value):
+    value = get_info_value(record, "promoterAI")
+    if not has_value(value):
         return 0.0
 
     raw_values = value if isinstance(value, tuple) else str(value).split(",")
@@ -222,7 +68,7 @@ def all_csq_intergenic(csq_records):
         return False
     saw_any_term = False
     for csq in csq_records:
-        terms = consequence_terms(csq)
+        terms = get_consequence_terms(csq)
         if not terms:
             continue
         saw_any_term = True
@@ -231,60 +77,48 @@ def all_csq_intergenic(csq_records):
     return saw_any_term
 
 
-# High-impact filtering intentionally uses the legacy slivar-style CSQ choice.
-# Final report display still uses the shared selector in shared.py/build_report.py.
-def high_impact_filter_mane_rank(csq):
-    if present(csq.get("MANE_SELECT", "")):
-        return 0
-    if present(csq.get("MANE_PLUS_CLINICAL", "")):
-        return 1
-    return 2
-
-
-def high_impact_filter_pseudogene_rank(csq):
+def high_impact_csq_sort_key(csq, consequence_order):
+    """Legacy CSQ ordering used only by the high-impact inclusion gate."""
     biotype = str(csq.get("BIOTYPE", "")).lower()
-    return 1 if "pseudogene" in biotype else 0
 
+    if has_value(csq.get("MANE_SELECT", "")):
+        mane_rank = 0
+    elif has_value(csq.get("MANE_PLUS_CLINICAL", "")):
+        mane_rank = 1
+    else:
+        mane_rank = 2
 
-def high_impact_filter_biotype_rank(csq):
-    biotype = str(csq.get("BIOTYPE", "")).lower()
+    pseudogene_rank = 1 if "pseudogene" in biotype else 0
+
     if biotype == "protein_coding":
-        return 0
-    if "pseudogene" in biotype:
-        return 2
-    return 1
+        biotype_rank = 0
+    elif "pseudogene" in biotype:
+        biotype_rank = 2
+    else:
+        biotype_rank = 1
 
+    gene_rank = 0 if has_value(get_gene_symbol(csq)) else 1
+    canonical_rank = 0 if csq.get("CANONICAL", "") == "YES" else 1
 
-def high_impact_filter_gene_rank(csq):
-    return 0 if present(cre_report_gene(csq)) else 1
-
-
-def high_impact_filter_csq_sort_key(csq, order_map):
     return (
-        high_impact_filter_mane_rank(csq),
-        high_impact_filter_pseudogene_rank(csq),
-        high_impact_filter_biotype_rank(csq),
-        consequence_rank(csq, order_map),
-        high_impact_filter_gene_rank(csq),
-        0 if csq.get("CANONICAL", "") == "YES" else 1,
+        mane_rank,
+        pseudogene_rank,
+        biotype_rank,
+        rank_consequence(csq, consequence_order),
+        gene_rank,
+        canonical_rank,
         csq.get("Feature", ""),
         csq.get("_csq_index", 0),
     )
 
 
-def choose_high_impact_filter_csq(csq_records, order_map):
-    if not csq_records:
-        return None
-    return sorted(csq_records, key=lambda csq: high_impact_filter_csq_sort_key(csq, order_map))[0]
-
-
-def pass_high_impact_r_style(record, csq_fields, order_map):
+def passes_high_impact_gate(record, csq_fields, consequence_order):
     spliceai_score = parse_spliceai_score(record)
-    cadd_score = info(record, "CADD_phred")
+    cadd_score = get_info_value(record, "CADD_phred")
     promoterai_score = parse_promoterai_score(record)
 
-    cadd_is_missing = not present(cadd_score)
-    cadd_numeric = as_float(cadd_score)
+    cadd_is_missing = not has_value(cadd_score)
+    cadd_numeric = value_as_float(cadd_score)
     passes_score_gate = (
         spliceai_score >= 0.2
         or cadd_is_missing
@@ -292,154 +126,27 @@ def pass_high_impact_r_style(record, csq_fields, order_map):
         or promoterai_score >= 0.1
     )
     if not passes_score_gate:
-        return False, "fails_high_impact_score_gate"
+        return False
 
-    csq_records = parse_csq_records(record, csq_fields)
+    csq_records = parse_csq_annotations(record, csq_fields)
     if all_csq_intergenic(csq_records):
-        return False, "all_csq_intergenic"
+        return False
 
-    primary = choose_high_impact_filter_csq(csq_records, order_map)
-    if primary is None or not present(cre_report_gene(primary)):
-        return False, "missing_gene_symbol"
-    return True, "passes_numeric_score_gate"
-
-
-def evaluate_record(mode, record, branch, csq_fields, order_map):
-    if mode == "coding":
-        if branch == "rare_impactful":
-            return pass_rare_impactful(record, 0.01)
-        if branch == "rare_clinvar":
-            return pass_rare_clinvar(record, 0.01)
-        if branch == "common_pathogenic_clinvar":
-            return pass_common_pathogenic_clinvar(record, 0.01)
-        raise ValueError(f"Unknown coding branch: {branch}")
-
-    rare_main_af = 0.001 if mode == "wgs-high-impact" else 0.01
-
-    if branch == "rare_main":
-        keep, reason = pass_rare_main(record, rare_main_af)
-    elif branch == "rare_clinvar":
-        keep, reason = pass_rare_clinvar(record, 0.01)
-    elif branch == "common_pathogenic_clinvar":
-        keep, reason = pass_common_pathogenic_clinvar(record, 0.01)
-    else:
-        raise ValueError(f"Unknown high-impact branch: {branch}")
-
-    if not keep:
-        return False, reason
-    if mode == "wgs-high-impact":
-        return pass_high_impact_r_style(record, csq_fields, order_map)
-    return True, reason
-
-
-def audit_row(mode, record, branch, keep, reason, csq_fields, order_map):
-    depths = sample_alt_depths(record)
-    filters = list(record.filter.keys())
-    base = {
-        "key": variant_key(record),
-        "branch": branch,
-        "keep": keep,
-        "reason": reason,
-        "chrom": record.chrom,
-        "pos": record.pos,
-        "ref": record.ref,
-        "alt": record.alts[0] if record.alts else "",
-        "filter": ";".join(filters) if filters else "PASS",
-        "gnomad_fafmax_faf95_max": "" if as_float(info(record, "gnomad_fafmax_faf95_max")) is None else as_float(info(record, "gnomad_fafmax_faf95_max")),
-        "clinvar_status": stringify(info(record, "clinvar_status")),
-        "clinvar_text": clinvar_text(record),
-        "alt_depths": ",".join(str(depth) for depth in depths),
-        "max_alt_depth": max(depths) if depths else "",
-        "all_alt_depths_missing": all(depth == -1 for depth in depths),
-    }
-
-    if mode == "coding":
-        base["impact_severity"] = stringify(info(record, "impact_severity"))
-        base["impactful"] = stringify(info(record, "impactful"))
-        return base
-
-    csq_records = parse_csq_records(record, csq_fields)
-    if mode == "wgs-high-impact":
-        primary = choose_high_impact_filter_csq(csq_records, order_map)
-    else:
-        primary = choose_primary_csq(csq_records, order_map, mode)
-    base["cadd_phred"] = stringify(info(record, "CADD_phred"))
-    base["spliceai_max_score"] = parse_spliceai_score(record)
-    base["promoterAI_abs_max"] = parse_promoterai_score(record)
-    base["primary_gene_symbol"] = cre_report_gene(primary) if primary is not None else ""
-    base["primary_consequence"] = consequence_display(primary, order_map) if primary is not None else ""
-    return base
-
-
-def write_outputs(mode, out_prefix, kept_keys, audit_rows, kept_reasons_by_key, branch_reason_counts, duplicate_kept_branch_records, input_counts, kept_input_counts, dropped_input_counts):
-    if mode == "coding":
-        suffix = "post_gemini_filter"
-    elif mode == "wgs-high-impact":
-        suffix = "post_high_impact_filter"
-    else:
-        suffix = "post_wgs_filter"
-
-    with open(f"{out_prefix}.{suffix}.keys.txt", "w") as handle:
-        for record_key in sorted(kept_keys):
-            handle.write(f"{record_key}\n")
-
-    fields = [
-        "key",
-        "branch",
-        "keep",
-        "reason",
-        "chrom",
-        "pos",
-        "ref",
-        "alt",
-        "filter",
-        "gnomad_fafmax_faf95_max",
-        "clinvar_status",
-        "clinvar_text",
-        "alt_depths",
-        "max_alt_depth",
-        "all_alt_depths_missing",
-    ]
-    if mode == "coding":
-        fields.extend(["impact_severity", "impactful"])
-    else:
-        fields.extend(["cadd_phred", "spliceai_max_score", "promoterAI_abs_max", "primary_gene_symbol", "primary_consequence"])
-
-    with open(f"{out_prefix}.{suffix}.audit.tsv", "w", newline="") as handle:
-        writer = csv.DictWriter(handle, delimiter="\t", fieldnames=fields)
-        writer.writeheader()
-        writer.writerows(audit_rows)
-
-    with open(f"{out_prefix}.{suffix}.reasons.tsv", "w", newline="") as handle:
-        writer = csv.writer(handle, delimiter="\t")
-        writer.writerow(["key", "reasons"])
-        for record_key in sorted(kept_reasons_by_key):
-            writer.writerow([record_key, ",".join(sorted(set(kept_reasons_by_key[record_key])) )])
-
-    with open(f"{out_prefix}.{suffix}.summary.txt", "w") as handle:
-        handle.write(f"selected_unique_keys\t{len(kept_keys)}\n")
-        handle.write(f"duplicate_kept_branch_records\t{duplicate_kept_branch_records}\n")
-        handle.write("\ninput_records_by_branch\n")
-        for branch in sorted(input_counts):
-            handle.write(f"{branch}\t{input_counts[branch]}\n")
-        handle.write("\nkept_records_by_branch\n")
-        for branch in sorted(kept_input_counts):
-            handle.write(f"{branch}\t{kept_input_counts[branch]}\n")
-        handle.write("\ndropped_records_by_branch\n")
-        for branch in sorted(dropped_input_counts):
-            handle.write(f"{branch}\t{dropped_input_counts[branch]}\n")
-        handle.write("\nkept_reason_counts\n")
-        for reason in sorted(branch_reason_counts):
-            handle.write(f"{reason}\t{branch_reason_counts[reason]}\n")
+    primary = min(
+        csq_records,
+        key=lambda csq: high_impact_csq_sort_key(csq, consequence_order),
+    ) if csq_records else None
+    if primary is None or not has_value(get_gene_symbol(primary)):
+        return False
+    return True
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Unified slivar post-filtering for coding, wgs, and wgs-high-impact.")
+    parser = argparse.ArgumentParser(description="Post-filter and merge slivar report branches.")
     parser.add_argument("--mode", required=True, choices=["coding", "wgs", "wgs-high-impact"])
-    parser.add_argument("--out-prefix", required=True)
+    parser.add_argument("--out-vcf", required=True)
     parser.add_argument("--impact-order-file", required=True)
-    parser.add_argument("--rare-impactful-vcf")
-    parser.add_argument("--rare-main-vcf")
+    parser.add_argument("--rare-main-vcf", required=True)
     parser.add_argument("--rare-clinvar-vcf", required=True)
     parser.add_argument("--common-pathogenic-clinvar-vcf", required=True)
     return parser.parse_args()
@@ -447,87 +154,44 @@ def parse_args():
 
 def main():
     args = parse_args()
-    order_map = load_impact_order(args.impact_order_file)
+    is_high_impact = args.mode == "wgs-high-impact"
+    consequence_order = load_consequence_order(args.impact_order_file) if is_high_impact else None
 
-    if args.mode == "coding":
-        branch_inputs = [
-            ("rare_impactful", args.rare_impactful_vcf),
-            ("rare_clinvar", args.rare_clinvar_vcf),
-            ("common_pathogenic_clinvar", args.common_pathogenic_clinvar_vcf),
-        ]
-        out_vcf_path = f"{args.out_prefix}.post_gemini_filter.vcf"
-    elif args.mode == "wgs-high-impact":
-        branch_inputs = [
-            ("rare_main", args.rare_main_vcf),
-            ("rare_clinvar", args.rare_clinvar_vcf),
-            ("common_pathogenic_clinvar", args.common_pathogenic_clinvar_vcf),
-        ]
-        out_vcf_path = f"{args.out_prefix}.post_high_impact_filter.vcf"
-    else:
-        branch_inputs = [
-            ("rare_main", args.rare_main_vcf),
-            ("rare_clinvar", args.rare_clinvar_vcf),
-            ("common_pathogenic_clinvar", args.common_pathogenic_clinvar_vcf),
-        ]
-        out_vcf_path = f"{args.out_prefix}.post_wgs_filter.vcf"
+    branch_inputs = [
+        args.rare_main_vcf,
+        args.rare_clinvar_vcf,
+        args.common_pathogenic_clinvar_vcf,
+    ]
 
-    with pysam.VariantFile(branch_inputs[0][1]) as first_vcf:
-        csq_fields = parse_csq_header(first_vcf)
-        if args.mode in {"wgs", "wgs-high-impact"} and not csq_fields:
+    # slivar expr has already applied each branch's selection criteria. This step only
+    # merges and deduplicates those branches, plus the additional high-impact gate.
+    with pysam.VariantFile(branch_inputs[0]) as first_vcf:
+        csq_fields = get_csq_fields(first_vcf) if is_high_impact else []
+        if is_high_impact and not csq_fields:
             raise SystemExit("VCF header does not contain a usable INFO/CSQ definition")
-        out_vcf = pysam.VariantFile(out_vcf_path, "w", header=first_vcf.header)
+        out_vcf = pysam.VariantFile(args.out_vcf, "w", header=first_vcf.header)
 
         seen_kept_keys = set()
-        kept_keys = []
-        audit_rows = []
-        kept_reasons_by_key = defaultdict(list)
-        branch_reason_counts = defaultdict(int)
-        duplicate_kept_branch_records = 0
-        input_counts = defaultdict(int)
-        kept_input_counts = defaultdict(int)
-        dropped_input_counts = defaultdict(int)
 
-        for branch, path in branch_inputs:
+        for path in branch_inputs:
             with pysam.VariantFile(path) as branch_vcf:
                 for record in branch_vcf:
-                    if record.alts is None or len(record.alts) == 0:
+                    record_key = (
+                        record.chrom,
+                        record.pos,
+                        record.ref,
+                        record.alts[0] if record.alts else "",
+                    )
+                    if is_high_impact and not passes_high_impact_gate(record, csq_fields, consequence_order):
                         continue
-
-                    record_key = variant_key(record)
-                    input_counts[branch] += 1
-                    keep, reason = evaluate_record(args.mode, record, branch, csq_fields, order_map)
-                    audit_rows.append(audit_row(args.mode, record, branch, keep, reason, csq_fields, order_map))
-
-                    if not keep:
-                        dropped_input_counts[branch] += 1
-                        continue
-
-                    kept_input_counts[branch] += 1
-                    branch_reason_counts[reason] += 1
-                    kept_reasons_by_key[record_key].append(reason)
 
                     if record_key in seen_kept_keys:
-                        duplicate_kept_branch_records += 1
                         continue
 
                     seen_kept_keys.add(record_key)
-                    kept_keys.append(record_key)
                     out_vcf.write(record)
 
         out_vcf.close()
-
-    write_outputs(
-        args.mode,
-        args.out_prefix,
-        kept_keys,
-        audit_rows,
-        kept_reasons_by_key,
-        branch_reason_counts,
-        duplicate_kept_branch_records,
-        input_counts,
-        kept_input_counts,
-        dropped_input_counts,
-    )
 
 
 if __name__ == "__main__":

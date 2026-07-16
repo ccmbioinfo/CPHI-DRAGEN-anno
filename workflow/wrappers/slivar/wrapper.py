@@ -9,10 +9,8 @@ custom_order = snakemake.params.order
 log = snakemake.log_fmt_shell(stdout=False, stderr=True)
 
 
-def run(output_vcf, expr, min_alt_depth=None, extra_env=None):
+def run(output_vcf, expr, min_alt_depth=None):
     env = f"SLIVAR_IMPACTFUL_ORDER={custom_order} "
-    if extra_env:
-        env = f"{env}{extra_env}"
     sample_expr = ""
     if min_alt_depth is not None:
         sample_expr = (
@@ -32,104 +30,17 @@ def run(output_vcf, expr, min_alt_depth=None, extra_env=None):
     )
 
 
-if mode == "coding":
-    run(
-        snakemake.output.rare_impactful[:-3],
-        """INFO.impactful &&
-variant.FILTER == "PASS" &&
-variant.ALT[0] != "*" &&
-(
-  !("gnomad_fafmax_faf95_max" in INFO) ||
-  !present(INFO.gnomad_fafmax_faf95_max) ||
-  INFO.gnomad_fafmax_faf95_max <= 0.01
-)""",
-        min_alt_depth=3,
-    )
-    run(
-        snakemake.output.rare_clinvar[:-3],
-        """variant.FILTER == "PASS" &&
-variant.ALT[0] != "*" &&
-(
-  !("gnomad_fafmax_faf95_max" in INFO) ||
-  !present(INFO.gnomad_fafmax_faf95_max) ||
-  INFO.gnomad_fafmax_faf95_max <= 0.01
-) &&
-(
-  (("clinvar_pathogenic" in INFO) && present(INFO.clinvar_pathogenic)) ||
-  (("clinvar_sig" in INFO) && present(INFO.clinvar_sig)) ||
-  (("clinvar_sig_conf" in INFO) && present(INFO.clinvar_sig_conf))
-)""",
-        min_alt_depth=1,
-    )
-    run(
-        snakemake.output.common_pathogenic_clinvar[:-3],
-        """variant.FILTER == "PASS" &&
-variant.ALT[0] != "*" &&
-("gnomad_fafmax_faf95_max" in INFO) &&
-present(INFO.gnomad_fafmax_faf95_max) &&
-INFO.gnomad_fafmax_faf95_max > 0.01 &&
-("clinvar_status" in INFO) &&
-present(INFO.clinvar_status) &&
-INFO.clinvar_status != "no_assertion_criteria_provided" &&
-(
-  (("clinvar_pathogenic" in INFO) && contains_pathogenic(INFO.clinvar_pathogenic)) ||
-  (("clinvar_sig" in INFO) && contains_pathogenic(INFO.clinvar_sig)) ||
-  (("clinvar_sig_conf" in INFO) && contains_pathogenic(INFO.clinvar_sig_conf))
-)""",
-    )
-elif mode == "wgs-high-impact":
+if mode in {"coding", "wgs-high-impact", "wgs"}:
+    rare_main_prefix = "INFO.impactful &&\n" if mode == "coding" else ""
+    rare_main_max_af = "0.001" if mode == "wgs-high-impact" else "0.01"
     run(
         snakemake.output.rare_main[:-3],
-        """variant.FILTER == "PASS" &&
+        f"""{rare_main_prefix}variant.FILTER == "PASS" &&
 variant.ALT[0] != "*" &&
 (
   !("gnomad_fafmax_faf95_max" in INFO) ||
   !present(INFO.gnomad_fafmax_faf95_max) ||
-  INFO.gnomad_fafmax_faf95_max <= 0.001
-)""",
-        min_alt_depth=3,
-    )
-    run(
-        snakemake.output.rare_clinvar[:-3],
-        """variant.FILTER == "PASS" &&
-variant.ALT[0] != "*" &&
-(
-  !("gnomad_fafmax_faf95_max" in INFO) ||
-  !present(INFO.gnomad_fafmax_faf95_max) ||
-  INFO.gnomad_fafmax_faf95_max <= 0.01
-) &&
-(
-  (("clinvar_pathogenic" in INFO) && present(INFO.clinvar_pathogenic)) ||
-  (("clinvar_sig" in INFO) && present(INFO.clinvar_sig)) ||
-  (("clinvar_sig_conf" in INFO) && present(INFO.clinvar_sig_conf))
-)""",
-        min_alt_depth=1,
-    )
-    run(
-        snakemake.output.common_pathogenic_clinvar[:-3],
-        """variant.FILTER == "PASS" &&
-variant.ALT[0] != "*" &&
-("gnomad_fafmax_faf95_max" in INFO) &&
-present(INFO.gnomad_fafmax_faf95_max) &&
-INFO.gnomad_fafmax_faf95_max > 0.01 &&
-("clinvar_status" in INFO) &&
-present(INFO.clinvar_status) &&
-INFO.clinvar_status != "no_assertion_criteria_provided" &&
-(
-  (("clinvar_pathogenic" in INFO) && contains_pathogenic(INFO.clinvar_pathogenic)) ||
-  (("clinvar_sig" in INFO) && contains_pathogenic(INFO.clinvar_sig)) ||
-  (("clinvar_sig_conf" in INFO) && contains_pathogenic(INFO.clinvar_sig_conf))
-)""",
-    )
-elif mode == "wgs":
-    run(
-        snakemake.output.rare_main[:-3],
-        """variant.FILTER == "PASS" &&
-variant.ALT[0] != "*" &&
-(
-  !("gnomad_fafmax_faf95_max" in INFO) ||
-  !present(INFO.gnomad_fafmax_faf95_max) ||
-  INFO.gnomad_fafmax_faf95_max <= 0.01
+  INFO.gnomad_fafmax_faf95_max <= {rare_main_max_af}
 )""",
         min_alt_depth=3,
     )

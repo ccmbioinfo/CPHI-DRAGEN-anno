@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 def load_keys(path):
-    keys = {}
+    keys = set()
 
     with open(path, newline="", encoding="utf-8-sig") as handle:
         reader = csv.DictReader(handle)
@@ -20,7 +20,7 @@ def load_keys(path):
                 continue
 
             key = f"{position}:{ref}:{alt}"
-            keys[key] = row
+            keys.add(key)
 
     return keys
 
@@ -45,12 +45,9 @@ def main():
     gemini_keys = load_keys(args.gemini_report)
     slivar_keys = load_keys(args.slivar_report)
 
-    gemini_set = set(gemini_keys)
-    slivar_set = set(slivar_keys)
-
-    shared = sorted(gemini_set & slivar_set)
-    gemini_only = sorted(gemini_set - slivar_set)
-    slivar_only = sorted(slivar_set - gemini_set)
+    shared = sorted(gemini_keys & slivar_keys)
+    gemini_only = sorted(gemini_keys - slivar_keys)
+    slivar_only = sorted(slivar_keys - gemini_keys)
 
     out_prefix = Path(args.out_prefix)
     out_prefix.parent.mkdir(parents=True, exist_ok=True)
@@ -59,8 +56,8 @@ def main():
     with open(summary_path, "w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle, delimiter="\t")
         writer.writerow(["metric", "count"])
-        writer.writerow(["gemini_total", len(gemini_set)])
-        writer.writerow(["slivar_total", len(slivar_set)])
+        writer.writerow(["gemini_total", len(gemini_keys)])
+        writer.writerow(["slivar_total", len(slivar_keys)])
         writer.writerow(["shared", len(shared)])
         writer.writerow(["gemini_only", len(gemini_only)])
         writer.writerow(["slivar_only", len(slivar_only)])

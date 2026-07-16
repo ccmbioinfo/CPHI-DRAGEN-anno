@@ -1,39 +1,36 @@
 #!/usr/bin/env python3
 
-import csv
-from collections import defaultdict
-
 
 MISSING = {"", ".", "None", "NA"}
 
 
-def present(value):
+def has_value(value):
     if value is None:
         return False
     if isinstance(value, bool):
         return value
     if isinstance(value, tuple):
-        return any(present(v) for v in value)
+        return any(has_value(item) for item in value)
     return str(value) not in MISSING
 
 
-def info(record, field):
+def get_info_value(record, field):
     try:
         return record.info.get(field)
     except (KeyError, ValueError):
         return None
 
 
-def as_text(value):
+def value_as_text(value):
     if value is None:
         return ""
     if isinstance(value, tuple):
-        return ",".join(str(v) for v in value if present(v))
+        return ",".join(str(item) for item in value if has_value(item))
     text = str(value)
     return "" if text in MISSING else text
 
 
-def as_float(value):
+def value_as_float(value):
     if value is None:
         return None
     if isinstance(value, tuple):
@@ -48,37 +45,7 @@ def as_float(value):
         return None
 
 
-def uniq_join(values, sep=","):
-    seen = set()
-    out = []
-    for value in values:
-        if value is None:
-            continue
-        items = value if isinstance(value, (tuple, list)) else [value]
-        for item in items:
-            text = str(item)
-            if text in MISSING or text in seen:
-                continue
-            seen.add(text)
-            out.append(text)
-    return sep.join(out)
-
-
-def clean_slash(value):
-    if value is None:
-        return ""
-    return str(value).replace("/", "_")
-
-
-def load_table(path, delimiter=None):
-    if not path:
-        return []
-    if delimiter is None:
-        delimiter = "," if path.endswith(".csv") else "\t"
-    with open(path, newline="", encoding="utf-8-sig") as handle:
-        return list(csv.DictReader(handle, delimiter=delimiter))
-
-
+# Consequence ordering and CSQ selection shared by report and CH generation.
 def normalize_consequence_term(term):
     text = str(term).strip()
     if not text:
@@ -88,7 +55,7 @@ def normalize_consequence_term(term):
     return text
 
 
-def load_impact_order(path):
+def load_consequence_order(path):
     order = {}
     rank = 0
     with open(path) as handle:
@@ -103,38 +70,7 @@ def load_impact_order(path):
     return order
 
 
-def index_first(rows, key_column):
-    index = {}
-    for row in rows:
-        key = row.get(key_column, "")
-        if key and key not in index:
-            index[key] = row
-    return index
-
-
-def index_many(rows, key_column):
-    index = defaultdict(list)
-    for row in rows:
-        key = row.get(key_column, "")
-        if key:
-            index[key].append(row)
-    return index
-
-
-def index_constraint(rows):
-    index = {}
-    for row in rows:
-        transcript = row.get("Ensembl_transcript_id", "")
-        if not transcript:
-            continue
-        index[transcript] = row
-        transcript_no_version = transcript.split(".", 1)[0]
-        if transcript_no_version not in index:
-            index[transcript_no_version] = row
-    return index
-
-
-def parse_csq_header(vcf):
+def get_csq_fields(vcf):
     if "CSQ" not in vcf.header.info:
         return []
     description = vcf.header.info["CSQ"].description
@@ -144,159 +80,110 @@ def parse_csq_header(vcf):
     return description.split(marker, 1)[1].strip().strip('"').split("|")
 
 
-def parse_csq_records(record, csq_fields, start_index=0):
+def parse_csq_annotations(record, csq_fields, start_index=0):
     if not csq_fields:
         return []
-    raw = info(record, "CSQ")
+    raw = get_info_value(record, "CSQ")
     if raw is None:
         return []
     entries = raw if isinstance(raw, tuple) else [raw]
-    parsed = []
-    for idx, entry in enumerate(entries, start=start_index):
+    annotations = []
+    for index, entry in enumerate(entries, start=start_index):
         values = str(entry).split("|")
         if len(values) < len(csq_fields):
             values.extend([""] * (len(csq_fields) - len(values)))
-        csq = dict(zip(csq_fields, values))
-        csq["_csq_index"] = idx
-        parsed.append(csq)
-    return parsed
+        annotation = dict(zip(csq_fields, values))
+        annotation["_csq_index"] = index
+        annotations.append(annotation)
+    return annotations
 
 
-def consequence_terms(csq):
+def get_consequence_terms(csq):
     consequence = csq.get("Consequence", "")
-    if not present(consequence):
+    if not has_value(consequence):
         return []
     return [term.strip() for term in consequence.split("&") if term.strip()]
 
 
-def normalized_consequence_terms(csq):
-    return [normalize_consequence_term(term) for term in consequence_terms(csq) if normalize_consequence_term(term)]
+def _normalized_consequence_terms(csq):
+    return [
+        normalize_consequence_term(term)
+        for term in get_consequence_terms(csq)
+        if normalize_consequence_term(term)
+    ]
 
 
-def gene_symbol(csq):
+def rank_consequence(csq, consequence_order):
+    ranks = [
+        consequence_order[term]
+        for term in _normalized_consequence_terms(csq)
+        if term in consequence_order
+    ]
+    return min(ranks) if ranks else 10**9
+
+
+def select_consequence(csq, consequence_order):
+    terms = get_consequence_terms(csq)
+    if not terms:
+        return ""
+    return sorted(
+        terms,
+        key=lambda term: (
+            consequence_order.get(normalize_consequence_term(term), 10**9),
+            term,
+        ),
+    )[0]
+
+
+def get_gene_symbol(csq):
     if csq is None:
         return ""
     for field in ("SYMBOL", "HGNC"):
         value = csq.get(field, "")
-        if present(value):
+        if has_value(value):
             return value
     gene = csq.get("Gene", "")
-    if present(gene) and not str(gene).startswith("ENSG"):
+    if has_value(gene) and not str(gene).startswith("ENSG"):
         return gene
     return ""
 
 
-def cre_report_gene(csq):
-    # High-impact filtering should use the same value shown in the report Gene column.
-    return gene_symbol(csq)
-
-
-def consequence_rank(csq, order_map):
-    ranks = [order_map[term] for term in normalized_consequence_terms(csq) if term in order_map]
-    return min(ranks) if ranks else 10**9
-
-
-def consequence_display(csq, order_map):
-    terms = consequence_terms(csq)
-    if not terms:
-        return ""
-    return sorted(terms, key=lambda term: (order_map.get(normalize_consequence_term(term), 10**9), term))[0]
-
-
-def ensembl_gene_id(csq):
+def get_csq_ensembl_gene_id(csq):
     gene = csq.get("Gene", "")
     return gene if gene.startswith("ENSG") else ""
 
 
-def best_ensembl_gene_id_for_symbol(csq_records, symbol):
+def find_ensembl_gene_id(csq_annotations, symbol):
     candidates = []
-    for csq in csq_records:
-        if gene_symbol(csq) != symbol:
+    for csq in csq_annotations:
+        if get_gene_symbol(csq) != symbol:
             continue
-        gene = ensembl_gene_id(csq)
+        gene = get_csq_ensembl_gene_id(csq)
         if gene:
             candidates.append(gene)
     return candidates[0] if candidates else ""
 
 
-def gene_id_with_fallback_for_csq(csq_records, primary):
-    if primary is None:
+def select_ensembl_gene_id(csq_annotations, primary_csq):
+    if primary_csq is None:
         return ""
-    symbol = gene_symbol(primary)
-    ensg = best_ensembl_gene_id_for_symbol(csq_records, symbol)
-    if present(ensg):
-        return ensg
-    gene = primary.get("Gene", "")
-    return gene if present(gene) else ""
+    symbol = get_gene_symbol(primary_csq)
+    ensembl_gene_id = find_ensembl_gene_id(csq_annotations, symbol)
+    if has_value(ensembl_gene_id):
+        return ensembl_gene_id
+    gene = primary_csq.get("Gene", "")
+    return gene if has_value(gene) else ""
 
 
-def canonical_rank(csq):
-    return 0 if csq.get("CANONICAL", "") == "YES" else 1
-
-
-def mane_value(csq, field):
-    value = csq.get(field, "")
-    return value if present(value) else ""
-
-
-def mane_select_value(csq):
-    return mane_value(csq, "MANE_SELECT")
-
-
-def mane_plus_clinical_value(csq):
-    return mane_value(csq, "MANE_PLUS_CLINICAL")
-
-
-def mane_rank(csq):
-    if mane_select_value(csq):
-        return 0
-    if mane_plus_clinical_value(csq):
-        return 1
-    return 2
-
-
-def pseudogene_rank(csq):
-    biotype = str(csq.get("BIOTYPE", "")).lower()
-    return 1 if "pseudogene" in biotype else 0
-
-
-def protein_coding_biotype_rank(csq):
-    biotype = str(csq.get("BIOTYPE", "")).lower()
-    if biotype == "protein_coding":
-        return 0
-    if biotype.startswith("protein_coding_") or biotype in {"nonsense_mediated_decay", "non_stop_decay"}:
-        return 1
-    return 2
-
-
-def transcript_biotype_rank(csq):
-    biotype = str(csq.get("BIOTYPE", "")).lower()
-    if biotype == "processed_transcript":
-        return 0
-    if biotype in {"nonsense_mediated_decay", "non_stop_decay", "retained_intron"}:
-        return 1
-    if biotype.endswith("_transcript"):
-        return 1
-    return 2
-
-
-def consequence_above_cutoff_rank(csq, order_map, cutoff):
-    cutoff_rank = order_map.get(cutoff)
+def _above_cutoff_rank(csq, consequence_order, cutoff):
+    cutoff_rank = consequence_order.get(cutoff)
     if cutoff_rank is None:
         return 1
-    return 0 if consequence_rank(csq, order_map) < cutoff_rank else 1
+    return 0 if rank_consequence(csq, consequence_order) < cutoff_rank else 1
 
 
-def impactful_consequence_rank(csq, order_map):
-    return consequence_above_cutoff_rank(csq, order_map, "IMPACTFUL_CUTOFF")
-
-
-def genic_consequence_rank(csq, order_map):
-    return consequence_above_cutoff_rank(csq, order_map, "GENIC_CUTOFF")
-
-
-def weak_gene_symbol(symbol):
-    if not present(symbol):
+def _is_weak_gene_symbol(symbol):
+    if not has_value(symbol):
         return False
     text = str(symbol).upper()
     if text.startswith(("ENSG", "LOC", "LINC", "MIR", "RN7", "RNU", "SNORD", "SNORA", "SCARNA", "Y_RNA")):
@@ -307,40 +194,67 @@ def weak_gene_symbol(symbol):
     return text.startswith("RP") and len(text) > 2 and (text[2].isdigit() or text[2] == "-")
 
 
-def strong_gene_rank(csq):
-    symbol = gene_symbol(csq)
-    if not present(symbol):
-        return 2
-    return 1 if weak_gene_symbol(symbol) else 0
+def primary_csq_sort_key(csq, consequence_order):
+    biotype = str(csq.get("BIOTYPE", "")).lower()
+    symbol = get_gene_symbol(csq)
 
+    pseudogene_rank = 1 if "pseudogene" in biotype else 0
+    impactful_rank = _above_cutoff_rank(csq, consequence_order, "IMPACTFUL_CUTOFF")
 
-def csq_sort_key(csq, order_map, mode):
+    if biotype == "protein_coding":
+        protein_coding_rank = 0
+    elif biotype.startswith("protein_coding_") or biotype in {"nonsense_mediated_decay", "non_stop_decay"}:
+        protein_coding_rank = 1
+    else:
+        protein_coding_rank = 2
+
+    consequence_rank = rank_consequence(csq, consequence_order)
+    gene_rank = 2 if not has_value(symbol) else (1 if _is_weak_gene_symbol(symbol) else 0)
+
+    if has_value(csq.get("MANE_SELECT", "")):
+        mane_rank = 0
+    elif has_value(csq.get("MANE_PLUS_CLINICAL", "")):
+        mane_rank = 1
+    else:
+        mane_rank = 2
+
+    canonical_rank = 0 if csq.get("CANONICAL", "") == "YES" else 1
+
+    if biotype == "processed_transcript":
+        transcript_rank = 0
+    elif biotype in {"nonsense_mediated_decay", "non_stop_decay", "retained_intron"} or biotype.endswith("_transcript"):
+        transcript_rank = 1
+    else:
+        transcript_rank = 2
+
+    genic_rank = _above_cutoff_rank(csq, consequence_order, "GENIC_CUTOFF")
+
     return (
-        pseudogene_rank(csq),
-        impactful_consequence_rank(csq, order_map),
-        protein_coding_biotype_rank(csq),
-        consequence_rank(csq, order_map),
-        strong_gene_rank(csq),
-        mane_rank(csq),
-        canonical_rank(csq),
-        transcript_biotype_rank(csq),
-        genic_consequence_rank(csq, order_map),
+        pseudogene_rank,
+        impactful_rank,
+        protein_coding_rank,
+        consequence_rank,
+        gene_rank,
+        mane_rank,
+        canonical_rank,
+        transcript_rank,
+        genic_rank,
         csq.get("Feature", ""),
         csq.get("_csq_index", 0),
     )
 
 
-def choose_primary_csq(csq_records, order_map, mode):
-    if not csq_records:
+def select_primary_csq(csq_annotations, consequence_order):
+    if not csq_annotations:
         return None
-    return sorted(csq_records, key=lambda csq: csq_sort_key(csq, order_map, mode))[0]
+    return min(
+        csq_annotations,
+        key=lambda csq: primary_csq_sort_key(csq, consequence_order),
+    )
 
 
-def variant_key(record):
-    return (record.chrom, record.pos, record.ref, record.alts[0] if record.alts else "")
-
-
-def gt_string(sample_data, ref, alts):
+# Genotype values that must agree between report and CH output.
+def format_genotype(sample_data, ref, alts):
     gt = sample_data.get("GT")
     if gt is None:
         return "./."
@@ -357,14 +271,11 @@ def gt_string(sample_data, ref, alts):
                 alleles.append(alts[allele_index - 1])
             except Exception:
                 alleles.append(".")
-    # sample_data.phased matches the separator in the VCF for every diploid genotype,
-    # including a genuinely phased half-call such as 0|. -- so use it as-is. (A haploid
-    # call reports phased=True but joins to a single allele, so no separator is emitted.)
-    # Gemini drops the bar from .|0 but keeps it on 0|.; we do not reproduce that.
+    # Keep the VCF separator for diploid calls, including phased half-calls.
     return ("|" if sample_data.phased else "/").join(alleles)
 
 
-def sample_alt_depth_value(sample_data):
+def get_alt_depth(sample_data):
     ad = sample_data.get("AD")
     if ad is None:
         return None
@@ -388,45 +299,11 @@ def sample_alt_depth_value(sample_data):
     return max(parsed) if parsed else None
 
 
-def sample_alt_depth(sample_data):
-    value = sample_alt_depth_value(sample_data)
-    return "" if value is None else str(value)
+def get_sample_depth(sample_data):
+    depth = sample_data.get("DP")
+    return "" if depth is None else str(depth)
 
 
-def sample_depth(sample_data):
-    dp = sample_data.get("DP")
-    return "" if dp is None else str(dp)
-
-
-def sample_gq(sample_data):
+def get_sample_gq(sample_data):
     gq = sample_data.get("GQ")
     return "" if gq is None else str(gq)
-
-
-def sample_format_value(sample_data, field):
-    value = sample_data.get(field)
-    if value is None:
-        return ""
-    if isinstance(value, tuple):
-        return ",".join(str(item) for item in value if present(item))
-    text = str(value)
-    return "" if text in MISSING else text
-
-
-def zygosity(sample_data, ref, alts, chrom=""):
-    genotype = gt_string(sample_data, ref, alts).replace("|", "/").replace("./.", "Missing")
-    if "Missing" in genotype:
-        return "Missing"
-    if sample_alt_depth_value(sample_data) == 0:
-        return "-"
-    alleles = genotype.split("/")
-    if len(alleles) == 2:
-        if alleles[0] == alleles[1]:
-            return "-" if alleles[0] == ref else "Hom"
-        return "Het"
-    chrom_text = str(chrom)
-    if "X" in chrom_text or "Y" in chrom_text:
-        if genotype == ".":
-            return "Missing"
-        return "-" if genotype == ref else "Hom"
-    return genotype

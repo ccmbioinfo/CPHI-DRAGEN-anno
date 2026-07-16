@@ -9,34 +9,23 @@ import pysam
 
 from shared import (
     MISSING,
-    as_float,
-    as_text,
-    clean_slash,
-    choose_primary_csq,
-    consequence_display,
-    consequence_terms,
-    csq_sort_key,
-    best_ensembl_gene_id_for_symbol,
-    ensembl_gene_id,
-    gene_id_with_fallback_for_csq,
-    gene_symbol,
-    gt_string,
-    index_constraint,
-    index_first,
-    index_many,
-    info,
-    load_impact_order,
-    load_table,
-    parse_csq_header,
-    parse_csq_records,
-    present,
-    sample_alt_depth,
-    sample_depth,
-    sample_format_value,
-    sample_gq,
-    uniq_join,
-    variant_key,
-    zygosity,
+    find_ensembl_gene_id,
+    format_genotype,
+    get_alt_depth,
+    get_csq_ensembl_gene_id,
+    get_csq_fields,
+    get_gene_symbol,
+    get_info_value,
+    get_sample_depth,
+    get_sample_gq,
+    has_value,
+    load_consequence_order,
+    parse_csq_annotations,
+    primary_csq_sort_key,
+    select_consequence,
+    select_ensembl_gene_id,
+    select_primary_csq,
+    value_as_text,
 )
 
 
@@ -155,8 +144,101 @@ FLAG_BINARY_FIELDS = {
 ZERO_MISSING_PREFIXES = ("Alt_depths.",)
 
 
+# Report-local value and reference-table helpers.
+def join_unique_values(values, sep=","):
+    seen = set()
+    output = []
+    for value in values:
+        if value is None:
+            continue
+        items = value if isinstance(value, (tuple, list)) else [value]
+        for item in items:
+            text = str(item)
+            if text in MISSING or text in seen:
+                continue
+            seen.add(text)
+            output.append(text)
+    return sep.join(output)
+
+
+def replace_slashes(value):
+    if value is None:
+        return ""
+    return str(value).replace("/", "_")
+
+
+def load_reference_table(path, delimiter=None):
+    if not path:
+        return []
+    if delimiter is None:
+        delimiter = "," if path.endswith(".csv") else "\t"
+    with open(path, newline="", encoding="utf-8-sig") as handle:
+        return list(csv.DictReader(handle, delimiter=delimiter))
+
+
+def index_first_by(rows, key_column):
+    index = {}
+    for row in rows:
+        key = row.get(key_column, "")
+        if key and key not in index:
+            index[key] = row
+    return index
+
+
+def index_many_by(rows, key_column):
+    index = defaultdict(list)
+    for row in rows:
+        key = row.get(key_column, "")
+        if key:
+            index[key].append(row)
+    return index
+
+
+def index_constraints(rows):
+    index = {}
+    for row in rows:
+        transcript = row.get("Ensembl_transcript_id", "")
+        if not transcript:
+            continue
+        index[transcript] = row
+        transcript_no_version = transcript.split(".", 1)[0]
+        if transcript_no_version not in index:
+            index[transcript_no_version] = row
+    return index
+
+
+def format_sample_value(sample_data, field):
+    value = sample_data.get(field)
+    if value is None:
+        return ""
+    if isinstance(value, tuple):
+        return ",".join(str(item) for item in value if has_value(item))
+    text = str(value)
+    return "" if text in MISSING else text
+
+
+def classify_zygosity(sample_data, ref, alts, chrom=""):
+    genotype = format_genotype(sample_data, ref, alts).replace("|", "/").replace("./.", "Missing")
+    if "Missing" in genotype:
+        return "Missing"
+    if get_alt_depth(sample_data) == 0:
+        return "-"
+    alleles = genotype.split("/")
+    if len(alleles) == 2:
+        if alleles[0] == alleles[1]:
+            return "-" if alleles[0] == ref else "Hom"
+        return "Het"
+    chrom_text = str(chrom)
+    if "X" in chrom_text or "Y" in chrom_text:
+        if genotype == ".":
+            return "Missing"
+        return "-" if genotype == ref else "Hom"
+    return genotype
+
+
+# Annotation-specific formatting used while constructing each report row.
 def parse_vep_score(value):
-    if not present(value):
+    if not has_value(value):
         return ""
     text = str(value)
     if "(" in text and ")" in text:
@@ -174,7 +256,7 @@ ALIGNED_LIST_FIELDS = {
 def as_aligned_text(value):
     # The GreenDB columns hold one entry per overlapping region and are read across
     # by position, so an entry with no value has to keep its slot rather than vanish.
-    if not present(value):
+    if not has_value(value):
         return ""
     items = value if isinstance(value, tuple) else (value,)
     return ",".join("" if item is None or str(item) in MISSING else str(item) for item in items)
@@ -192,36 +274,27 @@ def normalize_report_value(field, value):
 
 
 def build_info_item(csq):
-    gene = gene_symbol(csq)
+    gene = get_gene_symbol(csq)
     exon = csq.get("EXON", "") or "NA"
-    if not present(exon):
+    if not has_value(exon):
         exon = "NA"
     return f"{gene}:exon{exon}:{csq.get('HGVSc', '')}:{csq.get('HGVSp', '')}".replace("%3D", "=")
 
 
 def build_info_all(csq_records):
-    return uniq_join(build_info_item(csq) for csq in csq_records)
+    return join_unique_values(build_info_item(csq) for csq in csq_records)
 
 
 def refseq_change_all(csq_records):
-    return uniq_join(refseq_change_for_csq(csq) for csq in csq_records if present(refseq_change_for_csq(csq))) or "NA"
-
-
-def mane_value(csq, field):
-    value = csq.get(field, "")
-    return value if present(value) else ""
-
-
-def mane_select_value(csq):
-    return mane_value(csq, "MANE_SELECT")
-
-
-def mane_plus_clinical_value(csq):
-    return mane_value(csq, "MANE_PLUS_CLINICAL")
+    return join_unique_values(
+        refseq_change_for_csq(csq)
+        for csq in csq_records
+        if has_value(refseq_change_for_csq(csq))
+    ) or "NA"
 
 
 def parse_spliceai(value):
-    if not present(value):
+    if not has_value(value):
         # No SpliceAI record for this variant. A real max score of 0 is reported as 0 below.
         return "NA|NA|NA", "."
     annotations = []
@@ -267,7 +340,7 @@ def parse_spliceai(value):
 
 
 def max_numeric_csv(value):
-    if not present(value):
+    if not has_value(value):
         return ""
     best_score = None
     best_text = ""
@@ -288,7 +361,7 @@ def max_numeric_csv(value):
 
 
 def parse_promoterai(value):
-    if not present(value):
+    if not has_value(value):
         return "."
     raw_values = value if isinstance(value, tuple) else str(value).split(",")
     kept = []
@@ -302,7 +375,7 @@ def parse_promoterai(value):
 
 def noncoding_pred_fraction(cadd, ncer, remm, linsight):
     def float_or_none(value):
-        if not present(value):
+        if not has_value(value):
             return None
         try:
             return float(str(value))
@@ -335,14 +408,15 @@ def group_records_by_variant(vcf):
     grouped = defaultdict(list)
     for record in vcf:
         if record.alts:
-            grouped[variant_key(record)].append(record)
+            key = (record.chrom, record.pos, record.ref, record.alts[0])
+            grouped[key].append(record)
     return grouped
 
 
 def first_info(records, field, default=""):
     for record in records:
-        value = info(record, field)
-        if present(value):
+        value = get_info_value(record, field)
+        if has_value(value):
             return value
     return default
 
@@ -350,11 +424,11 @@ def first_info(records, field, default=""):
 def first_csq_value(csq_records, field, primary=None, default=""):
     if primary is not None:
         value = primary.get(field, "")
-        if present(value):
+        if has_value(value):
             return value
     for csq in csq_records:
         value = csq.get(field, "")
-        if present(value):
+        if has_value(value):
             return value
     return default
 
@@ -363,21 +437,21 @@ def merged_clinvar_text(records):
     values = []
     for record in records:
         for field in ("clinvar_pathogenic", "clinvar_sig", "clinvar_sig_conf"):
-            value = info(record, field)
-            if not present(value):
+            value = get_info_value(record, field)
+            if not has_value(value):
                 continue
             if isinstance(value, tuple):
-                values.extend(str(v) for v in value if present(v))
+                values.extend(str(v) for v in value if has_value(v))
             else:
                 values.append(str(value))
-    return uniq_join(values, sep=";")
+    return join_unique_values(values, sep=";")
 
 
 def merged_csq_records(records, csq_fields):
     all_csq = []
     next_index = 1
     for record in records:
-        parsed = parse_csq_records(record, csq_fields, start_index=next_index)
+        parsed = parse_csq_annotations(record, csq_fields, start_index=next_index)
         all_csq.extend(parsed)
         next_index += len(parsed)
     return all_csq
@@ -390,8 +464,8 @@ def join_gene_description(ensembl_gene_id_value, gene_descriptions_by_ensg):
 def join_omim(gene, omim_by_gene):
     matches = omim_by_gene.get(gene, [])
     return (
-        uniq_join(match.get("omim_phenotype", "") for match in matches),
-        uniq_join(match.get("omim_inheritance", "") for match in matches),
+        join_unique_values(match.get("omim_phenotype", "") for match in matches),
+        join_unique_values(match.get("omim_inheritance", "") for match in matches),
     )
 
 
@@ -402,9 +476,9 @@ def join_orphanet(ensembl_gene_id_value, orphanet_by_ensg):
 
 
 def genes_primary_first(primary_gene, gene_all_text):
-    genes = [primary_gene] if present(primary_gene) else []
+    genes = [primary_gene] if has_value(primary_gene) else []
     for gene in gene_all_text.split(","):
-        if present(gene) and gene not in genes:
+        if has_value(gene) and gene not in genes:
             genes.append(gene)
     return genes
 
@@ -429,7 +503,7 @@ def first_hgmd_gene(genes, hgmd_genes):
 def join_pseudoautosomal(ensembl_gene_ids, pseudo_by_ensg):
     for gene_id in ensembl_gene_ids:
         value = pseudo_by_ensg.get(gene_id, {}).get("Pseudoautosomal", "")
-        if present(value):
+        if has_value(value):
             return value
     return ""
 
@@ -451,9 +525,9 @@ def load_hgmd(path):
             row.extend([""] * (13 - len(row)))
             chrom, pos, hgmd_id, ref, alt, hgmd_gene, hgmd_tag, author, allname, vol, page, year, pmid = row[:13]
 
-            if present(hgmd_gene):
+            if has_value(hgmd_gene):
                 genes.add(hgmd_gene)
-            if not all(present(value) for value in (chrom, pos, ref, alt)):
+            if not all(has_value(value) for value in (chrom, pos, ref, alt)):
                 continue
 
             variant_key_text = f"{chrom}:{pos}-{ref}-{alt}"
@@ -465,13 +539,13 @@ def load_hgmd(path):
             match["HGMD_tag"].append(hgmd_tag)
 
             reference_parts = [author, allname, vol, page, year, "PMID:", pmid]
-            if any(present(value) for value in [author, allname, vol, page, year, pmid]):
+            if any(has_value(value) for value in [author, allname, vol, page, year, pmid]):
                 match["HGMD_ref"].append(" ".join(reference_parts).strip())
 
     return (
         {
             key: {
-                field: uniq_join(values, sep=";") or "NA"
+                field: join_unique_values(values, sep=";") or "NA"
                 for field, values in fields.items()
             }
             for key, fields in by_variant.items()
@@ -491,7 +565,7 @@ def primary_constraint_values(transcript, constraint_by_transcript):
         "Gnomad_pnull_score",
         "Gnomad_prec_score",
     ]
-    if not present(transcript):
+    if not has_value(transcript):
         return {k: "" for k in keys}
     transcript_no_version = transcript.split(".", 1)[0]
     match = constraint_by_transcript.get(transcript) or constraint_by_transcript.get(transcript_no_version) or {}
@@ -501,13 +575,13 @@ def primary_constraint_values(transcript, constraint_by_transcript):
 def constraint_all_summary(transcripts, constraint_by_transcript):
     parts = []
     for transcript in transcripts:
-        if not present(transcript):
+        if not has_value(transcript):
             continue
         values = primary_constraint_values(transcript, constraint_by_transcript)
         parts.append(
             f"{transcript}|lof={values['Gnomad_oe_lof_score']}|mis={values['Gnomad_oe_mis_score']}|pli={values['Gnomad_pLI_score']}"
         )
-    return uniq_join(parts, sep=";")
+    return join_unique_values(parts, sep=";")
 
 
 def make_columns(mode, samples, include_denovo=False, include_denovo_quality=False):
@@ -671,7 +745,7 @@ def drop_empty_optional_columns(columns, rows, prefixes):
     drop_columns = {
         column
         for column in columns
-        if column.startswith(prefixes) and not any(present(row.get(column, "")) for row in rows)
+        if column.startswith(prefixes) and not any(has_value(row.get(column, "")) for row in rows)
     }
     if not drop_columns:
         return columns
@@ -686,7 +760,7 @@ def cre_sample_name(sample):
 
 
 def split_hgvs_suffix(value):
-    if not present(value):
+    if not has_value(value):
         return "", ""
     text = str(value)
     if ":" in text:
@@ -697,7 +771,8 @@ def split_hgvs_suffix(value):
 
 def preferred_refseq_accession(csq):
     for field in ("MANE_SELECT", "MANE_PLUS_CLINICAL"):
-        value = mane_value(csq, field)
+        value = csq.get(field, "")
+        value = value if has_value(value) else ""
         if value.startswith(("NM_", "NR_", "XM_", "XR_")):
             return value
     feature = csq.get("Feature", "")
@@ -708,9 +783,9 @@ def preferred_refseq_accession(csq):
 
 def preferred_refseq_rank(csq):
     accession = preferred_refseq_accession(csq)
-    if mane_select_value(csq):
+    if has_value(csq.get("MANE_SELECT", "")):
         return (0, 0 if accession.startswith(("NM_", "NR_")) else 1)
-    if mane_plus_clinical_value(csq):
+    if has_value(csq.get("MANE_PLUS_CLINICAL", "")):
         return (1, 0 if accession.startswith(("NM_", "NR_")) else 1)
     if accession.startswith(("NM_", "NR_")):
         return (2, 0)
@@ -730,15 +805,15 @@ def refseq_change_for_csq(csq):
     return f"{accession}:{hgvsc_suffix}".replace("%3D", "=")
 
 
-def best_refseq_change_for_gene(csq_records, symbol, order_map, mode):
+def best_refseq_change_for_gene(csq_records, symbol, order_map):
     candidates = []
     for csq in csq_records:
-        if gene_symbol(csq) != symbol:
+        if get_gene_symbol(csq) != symbol:
             continue
         refseq_change = refseq_change_for_csq(csq)
-        if not present(refseq_change):
+        if not has_value(refseq_change):
             continue
-        candidates.append((preferred_refseq_rank(csq), csq_sort_key(csq, order_map, mode), refseq_change))
+        candidates.append((preferred_refseq_rank(csq), primary_csq_sort_key(csq, order_map), refseq_change))
     if candidates:
         return sorted(candidates, key=lambda item: (item[0], item[1], item[2]))[0][2]
     return "NA"
@@ -762,13 +837,13 @@ def parse_args():
 
 def main():
     args = parse_args()
-    order_map = load_impact_order(args.impact_order_file)
-    gene_descriptions = index_first(load_table(args.gene_descriptions), "ensembl_gene_id")
-    omim = index_many(load_table(args.omim), "gene_name")
-    orphanet = index_first(load_table(args.orphanet), "Ensembl_gene_id")
-    constraint = index_constraint(load_table(args.constraint))
-    imprinting = index_first(load_table(args.imprinting), "Gene")
-    pseudoautosomal = index_first(load_table(args.pseudoautosomal), "Ensembl_gene_id")
+    order_map = load_consequence_order(args.impact_order_file)
+    gene_descriptions = index_first_by(load_reference_table(args.gene_descriptions), "ensembl_gene_id")
+    omim = index_many_by(load_reference_table(args.omim), "gene_name")
+    orphanet = index_first_by(load_reference_table(args.orphanet), "Ensembl_gene_id")
+    constraint = index_constraints(load_reference_table(args.constraint))
+    imprinting = index_first_by(load_reference_table(args.imprinting), "Gene")
+    pseudoautosomal = index_first_by(load_reference_table(args.pseudoautosomal), "Ensembl_gene_id")
     hgmd_by_variant, hgmd_genes = load_hgmd(args.hgmd)
 
     rows = []
@@ -778,7 +853,7 @@ def main():
         include_denovo = "DN" in vcf.header.formats
         include_denovo_quality = "DQ" in vcf.header.formats
         columns = make_columns(args.mode, samples, include_denovo, include_denovo_quality)
-        csq_fields = parse_csq_header(vcf)
+        csq_fields = get_csq_fields(vcf)
         if not csq_fields:
             raise SystemExit("VCF header does not contain a usable INFO/CSQ definition")
         grouped_records = group_records_by_variant(vcf)
@@ -787,7 +862,7 @@ def main():
             records = grouped_records[key]
             record = records[0]
             csq_records = merged_csq_records(records, csq_fields)
-            primary = choose_primary_csq(csq_records, order_map, args.mode)
+            primary = select_primary_csq(csq_records, order_map)
 
             ref = record.ref
             alt = record.alts[0] if record.alts else ""
@@ -807,22 +882,23 @@ def main():
             for sample in samples:
                 sample_data = record.samples[sample]
                 sample_header = sample_headers[sample]
-                sample_gt_strings.append(gt_string(sample_data, ref, record.alts or []))
-                sample_depths.append(sample_depth(sample_data))
-                sample_alt_depths.append(sample_alt_depth(sample_data))
-                sample_gqs.append(sample_gq(sample_data))
-                row[f"Zygosity.{sample_header}"] = zygosity(sample_data, ref, record.alts or [], record.chrom)
+                sample_gt_strings.append(format_genotype(sample_data, ref, record.alts or []))
+                sample_depths.append(get_sample_depth(sample_data))
+                alt_depth = get_alt_depth(sample_data)
+                sample_alt_depths.append("" if alt_depth is None else str(alt_depth))
+                sample_gqs.append(get_sample_gq(sample_data))
+                row[f"Zygosity.{sample_header}"] = classify_zygosity(sample_data, ref, record.alts or [], record.chrom)
                 row[f"Alt_depths.{sample_header}"] = sample_alt_depths[-1]
-                row[f"gt_quals.{sample_header}"] = sample_gqs[-1] if present(sample_gqs[-1]) else "-1"
+                row[f"gt_quals.{sample_header}"] = sample_gqs[-1] if has_value(sample_gqs[-1]) else "-1"
                 if include_denovo:
-                    row[f"denovo.{sample_header}"] = sample_format_value(sample_data, "DN")
+                    row[f"denovo.{sample_header}"] = format_sample_value(sample_data, "DN")
                 if include_denovo_quality:
-                    row[f"denovo_quality.{sample_header}"] = sample_format_value(sample_data, "DQ")
+                    row[f"denovo_quality.{sample_header}"] = format_sample_value(sample_data, "DQ")
 
             row["gts"] = ",".join(sample_gt_strings)
-            row["Depth"] = as_text(first_info(records, "DP"))
+            row["Depth"] = value_as_text(first_info(records, "DP"))
             row["Quality"] = "" if record.qual is None else str(record.qual)
-            row["Trio_coverage"] = "_".join(depth if present(depth) else "0" for depth in sample_depths)
+            row["Trio_coverage"] = "_".join(depth if has_value(depth) else "0" for depth in sample_depths)
             row["Clinvar"] = merged_clinvar_text(records) or "."
             hgmd_match = hgmd_by_variant.get(f"{position}-{ref}-{alt}", {})
             row["HGMD_id"] = hgmd_match.get("HGMD_id", "NA")
@@ -871,13 +947,13 @@ def main():
                 if field == "Vest4_score":
                     set_row_value(row, field, max_numeric_csv(value))
                 elif field in FLAG_BINARY_FIELDS:
-                    set_row_value(row, field, "1" if present(value) else "0")
+                    set_row_value(row, field, "1" if has_value(value) else "0")
                 elif field in ALIGNED_LIST_FIELDS:
                     set_row_value(row, field, as_aligned_text(value))
                 else:
-                    set_row_value(row, field, as_text(value))
+                    set_row_value(row, field, value_as_text(value))
 
-            set_row_value(row, "phylop100way", as_text(first_csq_value(csq_records, "phyloP100way", primary)))
+            set_row_value(row, "phylop100way", value_as_text(first_csq_value(csq_records, "phyloP100way", primary)))
 
             if "Gnomad_filter" in row:
                 row["Gnomad_filter"] = row["Gnomad_filter"] or "None"
@@ -896,63 +972,63 @@ def main():
                     row.get("Cadd_score", ""), row.get("ncER_score", ""), row.get("ReMM_score", ""), row.get("LINSIGHT_score", "")
                 )
 
-            all_gene_symbols = [gene_symbol(csq) for csq in csq_records if present(gene_symbol(csq))]
-            all_gene_ids = [gene_id_with_fallback_for_csq(csq_records, csq) for csq in csq_records if present(gene_symbol(csq))]
-            all_gene_ids = [g for g in all_gene_ids if present(g)]
+            all_gene_symbols = [get_gene_symbol(csq) for csq in csq_records if has_value(get_gene_symbol(csq))]
+            all_gene_ids = [select_ensembl_gene_id(csq_records, csq) for csq in csq_records if has_value(get_gene_symbol(csq))]
+            all_gene_ids = [gene_id for gene_id in all_gene_ids if has_value(gene_id)]
             # Unnamed genes (novel lncRNAs / pseudogenes) carry a valid ENSG but no VEP SYMBOL,
             # so the symbol-gated lists above skip them. Surface their ENSG in the id column only:
             # there is no symbol to add to Gene_all, and OMIM/HPO/Orphanet/panels all key off
             # Gene_all, so they stay untouched. Pseudoautosomal keeps using all_gene_ids as-is.
-            unnamed_gene_ids = [ensembl_gene_id(csq) for csq in csq_records
-                                if not present(gene_symbol(csq)) and present(ensembl_gene_id(csq))]
+            unnamed_gene_ids = [get_csq_ensembl_gene_id(csq) for csq in csq_records
+                                if not has_value(get_gene_symbol(csq)) and has_value(get_csq_ensembl_gene_id(csq))]
             all_ensembl_transcripts = [csq.get("Feature", "") for csq in csq_records if csq.get("Feature", "").startswith("ENST")]
 
-            row["Gene_all"] = uniq_join(all_gene_symbols)
-            row["Ensembl_gene_id_all"] = uniq_join(all_gene_ids + unnamed_gene_ids)
-            row["Ensembl_transcript_id_all"] = uniq_join(all_ensembl_transcripts)
-            row["Variation_all"] = uniq_join(csq.get("Consequence", "") for csq in csq_records)
+            row["Gene_all"] = join_unique_values(all_gene_symbols)
+            row["Ensembl_gene_id_all"] = join_unique_values(all_gene_ids + unnamed_gene_ids)
+            row["Ensembl_transcript_id_all"] = join_unique_values(all_ensembl_transcripts)
+            row["Variation_all"] = join_unique_values(csq.get("Consequence", "") for csq in csq_records)
             row["Info_all"] = build_info_all(csq_records)
             row["Refseq_change_all"] = refseq_change_all(csq_records)
-            set_row_value(row, "AA_position_all", uniq_join(clean_slash(csq.get("Protein_position", "")) for csq in csq_records))
-            set_row_value(row, "Exon_all", uniq_join(clean_slash(csq.get("EXON", "")) for csq in csq_records))
-            set_row_value(row, "Sift_score_all", uniq_join(parse_vep_score(csq.get("SIFT", "")) for csq in csq_records) or "None")
-            set_row_value(row, "Polyphen_score_all", uniq_join(parse_vep_score(csq.get("PolyPhen", "")) for csq in csq_records) or "None")
-            row["CSQ_biotype_all"] = uniq_join(csq.get("BIOTYPE", "") for csq in csq_records)
-            row["CSQ_impact_all"] = uniq_join(csq.get("IMPACT", "") for csq in csq_records)
+            set_row_value(row, "AA_position_all", join_unique_values(replace_slashes(csq.get("Protein_position", "")) for csq in csq_records))
+            set_row_value(row, "Exon_all", join_unique_values(replace_slashes(csq.get("EXON", "")) for csq in csq_records))
+            set_row_value(row, "Sift_score_all", join_unique_values(parse_vep_score(csq.get("SIFT", "")) for csq in csq_records) or "None")
+            set_row_value(row, "Polyphen_score_all", join_unique_values(parse_vep_score(csq.get("PolyPhen", "")) for csq in csq_records) or "None")
+            row["CSQ_biotype_all"] = join_unique_values(csq.get("BIOTYPE", "") for csq in csq_records)
+            row["CSQ_impact_all"] = join_unique_values(csq.get("IMPACT", "") for csq in csq_records)
 
             gene_desc_all = []
             omim_pheno_all = []
             omim_inh_all = []
             orphanet_all = []
             for symbol in row["Gene_all"].split(","):
-                if not present(symbol):
+                if not has_value(symbol):
                     continue
-                ensg = best_ensembl_gene_id_for_symbol(csq_records, symbol)
-                if present(ensg):
+                ensg = find_ensembl_gene_id(csq_records, symbol)
+                if has_value(ensg):
                     gene_desc_all.append(join_gene_description(ensg, gene_descriptions))
                     orphanet_all.append(join_orphanet(ensg, orphanet))
                 phen, inh = join_omim(symbol, omim)
                 omim_pheno_all.append(phen)
                 omim_inh_all.append(inh)
-            row["Gene_description_all"] = uniq_join(gene_desc_all)
-            row["omim_phenotype_all"] = uniq_join(omim_pheno_all)
-            row["omim_inheritance_all"] = uniq_join(omim_inh_all)
-            row["Orphanet_all"] = uniq_join(orphanet_all)
+            row["Gene_description_all"] = join_unique_values(gene_desc_all)
+            row["omim_phenotype_all"] = join_unique_values(omim_pheno_all)
+            row["omim_inheritance_all"] = join_unique_values(omim_inh_all)
+            row["Orphanet_all"] = join_unique_values(orphanet_all)
             row["Constraint_all"] = constraint_all_summary(row["Ensembl_transcript_id_all"].split(","), constraint)
 
             if primary is not None:
-                primary_gene = gene_symbol(primary)
-                primary_ensg = gene_id_with_fallback_for_csq(csq_records, primary)
+                primary_gene = get_gene_symbol(primary)
+                primary_ensg = select_ensembl_gene_id(csq_records, primary)
                 primary_feature = primary.get("Feature", "")
                 primary_tx = primary_feature if primary_feature.startswith("ENST") else ""
                 row["Gene"] = primary_gene
                 set_row_value(row, "Ensembl_gene_id", primary_ensg)
-                row["Variation"] = consequence_display(primary, order_map)
+                row["Variation"] = select_consequence(primary, order_map)
                 row["Info"] = build_info_item(primary) or "NA"
-                row["Refseq_change"] = best_refseq_change_for_gene(csq_records, primary_gene, order_map, args.mode)
+                row["Refseq_change"] = best_refseq_change_for_gene(csq_records, primary_gene, order_map)
                 row["Ensembl_transcript_id"] = primary_tx
-                set_row_value(row, "AA_position", clean_slash(primary.get("Protein_position", "")))
-                set_row_value(row, "Exon", clean_slash(primary.get("EXON", "")))
+                set_row_value(row, "AA_position", replace_slashes(primary.get("Protein_position", "")))
+                set_row_value(row, "Exon", replace_slashes(primary.get("EXON", "")))
                 set_row_value(row, "Protein_domains", primary.get("DOMAINS", ""))
                 set_row_value(row, "Sift_score", parse_vep_score(primary.get("SIFT", "")) or "None")
                 set_row_value(row, "Polyphen_score", parse_vep_score(primary.get("PolyPhen", "")) or "None")
@@ -984,7 +1060,7 @@ def main():
     burden_by_sample = {sample: Counter() for sample in samples}
     for row in rows:
         gene = row["Gene"]
-        if not present(gene):
+        if not has_value(gene):
             continue
         variant_gene_key = (row["Position"], row["Ref"], row["Alt"], gene)
         for sample in samples:

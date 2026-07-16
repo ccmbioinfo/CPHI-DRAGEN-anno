@@ -8,22 +8,22 @@ import pysam
 
 
 from shared import (
-    as_float,
-    as_text,
-    choose_primary_csq,
-    consequence_display,
-    gene_id_with_fallback_for_csq,
-    gene_symbol,
-    gt_string,
-    info,
-    load_impact_order,
+    format_genotype,
+    get_alt_depth,
+    get_csq_fields,
+    get_gene_symbol,
+    get_info_value,
+    get_sample_depth,
+    get_sample_gq,
+    has_value,
+    load_consequence_order,
     normalize_consequence_term,
-    parse_csq_header,
-    parse_csq_records,
-    present,
-    sample_alt_depth_value,
-    sample_depth,
-    sample_gq,
+    parse_csq_annotations,
+    select_consequence,
+    select_ensembl_gene_id,
+    select_primary_csq,
+    value_as_float,
+    value_as_text,
 )
 
 
@@ -38,52 +38,34 @@ COMMON_CLINVAR_RESCUE_VALUES = {
 SAMPLE_NAME_PATTERN = re.compile(r"[-\s\\]")
 
 
+# Gemini-compatible values consumed by annotate_compound_hets.py.
 def gemini_sample_name(sample_name):
     if sample_name in ("0", "-9"):
         return sample_name
     return SAMPLE_NAME_PATTERN.sub("_", str(sample_name))
 
 
-def values_as_list(value):
-    if not present(value):
-        return []
-    if isinstance(value, tuple):
-        return [str(v) for v in value if present(v)]
-    return [str(value)]
-
-
-def clinvar_values(record):
+def get_clinvar_values(record):
     values = []
     for field in ("clinvar_pathogenic", "clinvar_sig", "clinvar_sig_conf"):
-        values.extend(values_as_list(info(record, field)))
+        value = get_info_value(record, field)
+        if not has_value(value):
+            continue
+        if isinstance(value, tuple):
+            values.extend(str(item) for item in value if has_value(item))
+        else:
+            values.append(str(value))
     return values
 
 
-def clinvar_text(record):
-    return ";".join(clinvar_values(record))
-
-
-def has_clinvar(record):
-    return len(clinvar_values(record)) > 0
-
-
 def has_common_clinvar_rescue_value(record):
-    return any(value in COMMON_CLINVAR_RESCUE_VALUES for value in clinvar_values(record))
-
-
-def is_pass(record):
-    filters = list(record.filter.keys())
-    return len(filters) == 0 or filters == ["PASS"] or "PASS" in filters
-
-
-def is_star_alt(record):
-    return record.alts is not None and len(record.alts) > 0 and record.alts[0] == "*"
+    return any(value in COMMON_CLINVAR_RESCUE_VALUES for value in get_clinvar_values(record))
 
 
 def sample_alt_depths(record):
     depths = []
     for sample_name in record.samples:
-        alt_depth = sample_alt_depth_value(record.samples[sample_name])
+        alt_depth = get_alt_depth(record.samples[sample_name])
         depths.append(-1 if alt_depth is None else alt_depth)
     return depths
 
@@ -110,8 +92,8 @@ def sample_total_depth_value(sample_data):
         if parsed:
             return sum(parsed)
 
-    depth = sample_depth(sample_data)
-    if not present(depth):
+    depth = get_sample_depth(sample_data)
+    if not has_value(depth):
         return None
     try:
         return int(depth)
@@ -120,8 +102,8 @@ def sample_total_depth_value(sample_data):
 
 
 def sample_gq_value(sample_data):
-    gq = sample_gq(sample_data)
-    if not present(gq):
+    gq = get_sample_gq(sample_data)
+    if not has_value(gq):
         return None
     try:
         return float(gq)
@@ -178,7 +160,7 @@ def gt_phase(sample_data):
 
 
 def record_ps(record, samples):
-    value = info(record, "PS")
+    value = get_info_value(record, "PS")
     if isinstance(value, tuple):
         parts = list(value)
     elif value is None:
@@ -189,7 +171,7 @@ def record_ps(record, samples):
     normalized = []
     for idx in range(len(samples)):
         item = parts[idx] if idx < len(parts) else "."
-        normalized.append(str(item) if present(item) else ".")
+        normalized.append(str(item) if has_value(item) else ".")
     return ",".join(normalized)
 
 
@@ -199,7 +181,7 @@ def selected_is_high_med(primary, order_map):
     cutoff = order_map.get("IMPACTFUL_CUTOFF")
     if cutoff is None:
         raise SystemExit("IMPACTFUL_CUTOFF not found in impact order file")
-    consequence = consequence_display(primary, order_map)
+    consequence = select_consequence(primary, order_map)
     rank = order_map.get(normalize_consequence_term(consequence), 10**9)
     return rank < cutoff
 
@@ -207,8 +189,8 @@ def selected_is_high_med(primary, order_map):
 def common_pathogenic_clinvar(record, faf):
     if faf is None or faf <= MAX_AF:
         return False
-    clinvar_status = info(record, "clinvar_status")
-    if not present(clinvar_status):
+    clinvar_status = get_info_value(record, "clinvar_status")
+    if not has_value(clinvar_status):
         return False
     if str(clinvar_status) == "no_assertion_criteria_provided":
         return False
@@ -216,7 +198,7 @@ def common_pathogenic_clinvar(record, faf):
 
 
 def output_groups(record, primary, order_map):
-    faf = as_float(info(record, "gnomad_af_grpmax"))
+    faf = value_as_float(get_info_value(record, "gnomad_af_grpmax"))
     depths = sample_alt_depths(record)
     groups = set()
 
@@ -225,7 +207,7 @@ def output_groups(record, primary, order_map):
     if is_rare_or_missing and ad_rule(depths, 3):
         groups.add(HIGH_MED if selected_is_high_med(primary, order_map) else LOW)
 
-    if is_rare_or_missing and has_clinvar(record) and ad_rule(depths, 1):
+    if is_rare_or_missing and get_clinvar_values(record) and ad_rule(depths, 1):
         groups.update([HIGH_MED, LOW])
 
     if common_pathogenic_clinvar(record, faf):
@@ -234,11 +216,11 @@ def output_groups(record, primary, order_map):
     return groups
 
 
-def row_for_record(record, csq_records, primary, samples, variant_index, order_map):
+def row_for_record(record, csq_records, primary, samples, order_map):
     ref = record.ref
     alt = record.alts[0] if record.alts else ""
-    variation = consequence_display(primary, order_map) if primary is not None else ""
-    gnomad_af_grpmax = as_float(info(record, "gnomad_af_grpmax"))
+    variation = select_consequence(primary, order_map) if primary is not None else ""
+    gnomad_af_grpmax = value_as_float(get_info_value(record, "gnomad_af_grpmax"))
 
     row = {
         "Chrom": record.chrom,
@@ -247,15 +229,15 @@ def row_for_record(record, csq_records, primary, samples, variant_index, order_m
         "Ref": ref,
         "Alt": alt,
         "Variation": variation,
-        "Depth": as_text(info(record, "DP")),
+        "Depth": value_as_text(get_info_value(record, "DP")),
         "Quality": "" if record.qual is None else record.qual,
-        "Gene": gene_symbol(primary) if primary is not None else "",
-        "Clinvar": clinvar_text(record),
-        "Ensembl_gene_id": gene_id_with_fallback_for_csq(csq_records, primary),
+        "Gene": get_gene_symbol(primary) if primary is not None else "",
+        "Clinvar": ";".join(get_clinvar_values(record)),
+        "Ensembl_gene_id": select_ensembl_gene_id(csq_records, primary),
         "Gnomad_af_grpmax": -1 if gnomad_af_grpmax is None else gnomad_af_grpmax,
-        "Cadd_score": as_text(info(record, "CADD_phred")),
-        "SpliceAI_score": as_text(info(record, "spliceai_score")),
-        "promoterAI_score": as_text(info(record, "promoterAI")),
+        "Cadd_score": value_as_text(get_info_value(record, "CADD_phred")),
+        "SpliceAI_score": value_as_text(get_info_value(record, "spliceai_score")),
+        "promoterAI_score": value_as_text(get_info_value(record, "promoterAI")),
         "PS": record_ps(record, samples),
         "Nucleotide_change_ensembl": primary.get("HGVSc", "") if primary is not None else "",
         "Protein_change_ensembl": primary.get("HGVSp", "") if primary is not None else "",
@@ -264,10 +246,10 @@ def row_for_record(record, csq_records, primary, samples, variant_index, order_m
     for sample in samples:
         sample_data = record.samples[sample]
         sample_column = gemini_sample_name(sample)
-        alt_depth = sample_alt_depth_value(sample_data)
+        alt_depth = get_alt_depth(sample_data)
         total_depth = sample_total_depth_value(sample_data)
         genotype_quality = sample_gq_value(sample_data)
-        row[f"gts.{sample_column}"] = gt_string(sample_data, ref, record.alts or [])
+        row[f"gts.{sample_column}"] = format_genotype(sample_data, ref, record.alts or [])
         row[f"gt_types.{sample_column}"] = gt_type(sample_data)
         row[f"gt_phases.{sample_column}"] = gt_phase(sample_data)
         row[f"gt_alt_depths.{sample_column}"] = -1 if alt_depth is None else alt_depth
@@ -324,11 +306,11 @@ def parse_args():
 
 def main():
     args = parse_args()
-    order_map = load_impact_order(args.impact_order_file)
+    order_map = load_consequence_order(args.impact_order_file)
 
     with pysam.VariantFile(args.vcf) as vcf:
         samples = list(vcf.header.samples)
-        csq_fields = parse_csq_header(vcf)
+        csq_fields = get_csq_fields(vcf)
         if not csq_fields:
             raise SystemExit("VCF header does not contain a usable INFO/CSQ definition")
 
@@ -342,14 +324,17 @@ def main():
                 writer.writeheader()
 
             seen = {HIGH_MED: set(), LOW: set()}
-            for variant_index, record in enumerate(vcf, start=1):
+            for record in vcf:
                 if record.alts is None or len(record.alts) == 0:
                     continue
-                if not is_pass(record) or is_star_alt(record):
+                filters = list(record.filter.keys())
+                if filters and "PASS" not in filters:
+                    continue
+                if record.alts[0] == "*":
                     continue
 
-                csq_records = parse_csq_records(record, csq_fields)
-                primary = choose_primary_csq(csq_records, order_map, "coding")
+                csq_records = parse_csq_annotations(record, csq_fields)
+                primary = select_primary_csq(csq_records, order_map)
                 if primary is None:
                     continue
 
@@ -357,7 +342,7 @@ def main():
                 if not groups:
                     continue
 
-                row = row_for_record(record, csq_records, primary, samples, variant_index, order_map)
+                row = row_for_record(record, csq_records, primary, samples, order_map)
                 key = row["Variant_id"]
                 for group in sorted(groups):
                     if key in seen[group]:

@@ -1,7 +1,3 @@
-import os
-
-slivar_script_dir = os.path.join(workflow.basedir, "scripts", "slivar")
-
 def output_status(output_path):
     if str(config["run"].get("acmg_sf", "")).lower() == "true":
         return temp(output_path)
@@ -20,49 +16,12 @@ hpo_panel_outputs = {
     "panel_flank_variant_report_CH": "reports/{family}.panel-flank.CH.hg38.csv",
 } if hpo_available else {}
 
-slivar_hpo_panel_inputs = {
-    "panel_variant_report": "reports_slivar/{family}.panel.slivar.hg38.csv",
-    "panel_flank_variant_report": "reports_slivar/{family}.panel-flank.slivar.hg38.csv",
-    "HPO": config["run"]["hpo"],
-} if hpo_available else {}
-
-slivar_hpo_panel_outputs = {
-    "panel_variant_report_CH": "reports_slivar/{family}.panel.CH.hg38.csv",
-    "panel_flank_variant_report_CH": "reports_slivar/{family}.panel-flank.CH.hg38.csv",
-} if hpo_available else {}
-
 def get_hpo_panel_args(wildcards, input):
     if hpo_available:
         return (
             f"--hpo {input.HPO} "
             f"--panel_variant_report_dir {input.panel_variant_report_dir} "
             f"--panel_flank_variant_report_dir {input.panel_flank_variant_report_dir}"
-        )
-    return ""
-
-def get_slivar_hpo_panel_args(wildcards, input):
-    if hpo_available:
-        return (
-            f"--hpo {input.HPO} "
-            "--panel_variant_report_dir input/panel "
-            "--panel_flank_variant_report_dir input/panel-flank"
-        )
-    return ""
-
-def stage_slivar_hpo_panel_reports(wildcards, input):
-    if hpo_available:
-        return (
-            'mkdir -p "$stage/input/panel" "$stage/input/panel-flank"\n'
-            f'ln -sf "$(realpath {input.panel_variant_report})" "$stage/input/panel/{wildcards.family}.panel.wgs.slivar.hg38.csv"\n'
-            f'ln -sf "$(realpath {input.panel_flank_variant_report})" "$stage/input/panel-flank/{wildcards.family}.panel-flank.wgs.slivar.hg38.csv"'
-        )
-    return ""
-
-def copy_slivar_hpo_panel_reports(wildcards):
-    if hpo_available:
-        return (
-            f'cp -L reports/{wildcards.family}.panel.CH.hg38.csv "$root/reports_slivar/{wildcards.family}.panel.CH.hg38.csv"\n'
-            f'cp -L reports/{wildcards.family}.panel-flank.CH.hg38.csv "$root/reports_slivar/{wildcards.family}.panel-flank.CH.hg38.csv"'
         )
     return ""
 
@@ -95,46 +54,6 @@ rule get_VCF_sample_order:
         "../envs/common.yaml"
     shell:
         "bcftools query -l {input.vcf} > {output.sample_order}"
-
-rule slivar_select_compound_het_candidates:
-    input:
-        vcf="annotated/coding/vcfanno/{family}.coding.vep.vcfanno.vcf.gz"
-    output:
-        candidates="small_variants_slivar/compound-hets/{family}/{family}.compound-het.candidates.vcf.gz",
-    log:
-        "logs/compound_hets/{family}.slivar.select.compound.het.candidates.log",
-    conda:
-        "../wrappers/slivar/environment.yaml"
-    params:
-        js=os.path.join(slivar_script_dir, "slivar_functions.js"),
-        order=os.path.join(slivar_script_dir, "default-order.txt"),
-        mode="compound-hets",
-    wrapper:
-        get_wrapper_path("slivar")
-
-rule get_slivar_small_variants_for_CH:
-    input:
-        vcf="small_variants_slivar/compound-hets/{family}/{family}.compound-het.candidates.vcf.gz",
-    output:
-        high_med="small_variants_slivar/{family}.HIGH-MED.impact.variants.tsv",
-        low="small_variants_slivar/{family}.LOW.impact.variants.tsv",
-    params:
-        script=workflow.basedir + "/scripts/slivar/build_ch_tsv.py",
-        order=workflow.basedir + "/scripts/slivar/default-order.txt"
-    log:
-        "logs/compound_hets/{family}.slivar.get.sequence.variants.for.CH.log",
-    conda:
-        "../envs/slivar.yaml"
-    shell:
-        """
-        (set -e
-        mkdir -p $(dirname {output.high_med})
-        python3 {params.script} \
-        --vcf {input.vcf} \
-        --impact-order-file {params.order} \
-        --high-med-out {output.high_med} \
-        --low-out {output.low}) > {log} 2>&1
-        """
 
 if len(children) > 0:
     rule identify_compound_hets_with_denovo:
@@ -241,6 +160,85 @@ else:
                 --reports-dir reports \
                 --mavedb-tsv {params.mavedb_tsv}) > {log} 2>&1
                 """
+
+slivar_script_dir = f"{workflow.basedir}/scripts/slivar"
+
+slivar_hpo_panel_inputs = {
+    "panel_variant_report": "reports_slivar/{family}.panel.slivar.hg38.csv",
+    "panel_flank_variant_report": "reports_slivar/{family}.panel-flank.slivar.hg38.csv",
+    "HPO": config["run"]["hpo"],
+} if hpo_available else {}
+
+slivar_hpo_panel_outputs = {
+    "panel_variant_report_CH": "reports_slivar/{family}.panel.CH.hg38.csv",
+    "panel_flank_variant_report_CH": "reports_slivar/{family}.panel-flank.CH.hg38.csv",
+} if hpo_available else {}
+
+def get_slivar_hpo_panel_args(wildcards, input):
+    if hpo_available:
+        return (
+            f"--hpo {input.HPO} "
+            "--panel_variant_report_dir input/panel "
+            "--panel_flank_variant_report_dir input/panel-flank"
+        )
+    return ""
+
+def stage_slivar_hpo_panel_reports(wildcards, input):
+    if hpo_available:
+        return (
+            'mkdir -p "$stage/input/panel" "$stage/input/panel-flank"\n'
+            f'ln -sf "$(realpath {input.panel_variant_report})" "$stage/input/panel/{wildcards.family}.panel.wgs.slivar.hg38.csv"\n'
+            f'ln -sf "$(realpath {input.panel_flank_variant_report})" "$stage/input/panel-flank/{wildcards.family}.panel-flank.wgs.slivar.hg38.csv"'
+        )
+    return ""
+
+def copy_slivar_hpo_panel_reports(wildcards):
+    if hpo_available:
+        return (
+            f'cp -L reports/{wildcards.family}.panel.CH.hg38.csv "$root/reports_slivar/{wildcards.family}.panel.CH.hg38.csv"\n'
+            f'cp -L reports/{wildcards.family}.panel-flank.CH.hg38.csv "$root/reports_slivar/{wildcards.family}.panel-flank.CH.hg38.csv"'
+        )
+    return ""
+
+rule slivar_select_compound_het_candidates:
+    input:
+        vcf="annotated/coding/vcfanno/{family}.coding.vep.vcfanno.vcf.gz"
+    output:
+        candidates="small_variants_slivar/compound-hets/{family}/{family}.compound-het.candidates.vcf.gz",
+    log:
+        "logs/compound_hets/{family}.slivar.select.compound.het.candidates.log",
+    conda:
+        "../wrappers/slivar/environment.yaml"
+    params:
+        js=f"{slivar_script_dir}/slivar_functions.js",
+        order=f"{slivar_script_dir}/default-order.txt",
+        mode="compound-hets",
+    wrapper:
+        get_wrapper_path("slivar")
+
+rule get_slivar_small_variants_for_CH:
+    input:
+        vcf="small_variants_slivar/compound-hets/{family}/{family}.compound-het.candidates.vcf.gz",
+    output:
+        high_med="small_variants_slivar/{family}.HIGH-MED.impact.variants.tsv",
+        low="small_variants_slivar/{family}.LOW.impact.variants.tsv",
+    params:
+        script=f"{slivar_script_dir}/build_ch_tsv.py",
+        order=f"{slivar_script_dir}/default-order.txt"
+    log:
+        "logs/compound_hets/{family}.slivar.get.sequence.variants.for.CH.log",
+    conda:
+        "../envs/slivar.yaml"
+    shell:
+        """
+        (set -e
+        mkdir -p $(dirname {output.high_med})
+        python3 {params.script} \
+        --vcf {input.vcf} \
+        --impact-order-file {params.order} \
+        --high-med-out {output.high_med} \
+        --low-out {output.low}) > {log} 2>&1
+        """
 
 if len(children) > 0:
     rule identify_compound_hets_slivar_with_denovo:
