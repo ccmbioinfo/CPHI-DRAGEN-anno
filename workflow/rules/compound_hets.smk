@@ -161,8 +161,6 @@ else:
                 --mavedb-tsv {params.mavedb_tsv}) > {log} 2>&1
                 """
 
-slivar_script_dir = f"{workflow.basedir}/scripts/slivar"
-
 slivar_hpo_panel_inputs = {
     "panel_variant_report": "reports_slivar/{family}.panel.slivar.hg38.csv",
     "panel_flank_variant_report": "reports_slivar/{family}.panel-flank.slivar.hg38.csv",
@@ -210,8 +208,8 @@ rule slivar_select_compound_het_candidates:
     conda:
         "../wrappers/slivar/environment.yaml"
     params:
-        js=f"{slivar_script_dir}/slivar_functions.js",
-        order=f"{slivar_script_dir}/default-order.txt",
+        js=f"{workflow.basedir}/scripts/slivar/slivar_functions.js",
+        consequence_order_file=f"{workflow.basedir}/scripts/slivar/default-order.txt",
         mode="compound-hets",
     wrapper:
         get_wrapper_path("slivar")
@@ -222,9 +220,6 @@ rule get_slivar_small_variants_for_CH:
     output:
         high_med="small_variants_slivar/{family}.HIGH-MED.impact.variants.tsv",
         low="small_variants_slivar/{family}.LOW.impact.variants.tsv",
-    params:
-        script=f"{slivar_script_dir}/build_ch_tsv.py",
-        order=f"{slivar_script_dir}/default-order.txt"
     log:
         "logs/compound_hets/{family}.slivar.get.sequence.variants.for.CH.log",
     conda:
@@ -233,9 +228,9 @@ rule get_slivar_small_variants_for_CH:
         """
         (set -e
         mkdir -p $(dirname {output.high_med})
-        python3 {params.script} \
+        python3 {workflow.basedir}/scripts/slivar/build_ch_tsv.py \
         --vcf {input.vcf} \
-        --impact-order-file {params.order} \
+        --impact-order-file {workflow.basedir}/scripts/slivar/default-order.txt \
         --high-med-out {output.high_med} \
         --low-out {output.low}) > {log} 2>&1
         """
@@ -245,9 +240,9 @@ if len(children) > 0:
         input:
             high_med_variants="small_variants_slivar/{family}.HIGH-MED.impact.variants.tsv",
             low_variants="small_variants_slivar/{family}.LOW.impact.variants.tsv",
-            small_variant_report="reports_slivar/{family}.wgs.coding.slivar.hg38.csv",
-            wgs_high_impact_variant_report="reports_slivar/{family}.wgs.high.impact.slivar.hg38.csv",
-            wgs_denovo_variant_report="reports_slivar/{family}.wgs.denovo.slivar.hg38.csv",
+            small_variant_report="reports_slivar/{family}.coding.slivar.hg38.csv",
+            wgs_high_impact_variant_report="reports_slivar/{family}.wgs-high-impact.slivar.hg38.csv",
+            wgs_denovo_variant_report="reports_slivar/{family}.denovo.slivar.hg38.csv",
             SV_report="sv/{family}.sv.csv",
             CNV_report="cnv/{family}.cnv.csv",
             ensembl=config["annotation"]["general"]["ensembl"],
@@ -327,8 +322,8 @@ else:
         input:
             high_med_variants="small_variants_slivar/{family}.HIGH-MED.impact.variants.tsv",
             low_variants="small_variants_slivar/{family}.LOW.impact.variants.tsv",
-            small_variant_report="reports_slivar/{family}.wgs.coding.slivar.hg38.csv",
-            wgs_high_impact_variant_report="reports_slivar/{family}.wgs.high.impact.slivar.hg38.csv",
+            small_variant_report="reports_slivar/{family}.coding.slivar.hg38.csv",
+            wgs_high_impact_variant_report="reports_slivar/{family}.wgs-high-impact.slivar.hg38.csv",
             SV_report="reports/{family}.sv.csv",
             CNV_report="reports/{family}.cnv.csv",
             ensembl=config["annotation"]["general"]["ensembl"],

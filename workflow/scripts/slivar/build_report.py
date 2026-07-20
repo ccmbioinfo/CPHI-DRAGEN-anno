@@ -820,17 +820,16 @@ def best_refseq_change_for_gene(csq_records, symbol, order_map):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Unified slivar report builder for coding, wgs, and wgs-high-impact.")
-    parser.add_argument("--mode", required=True, choices=["coding", "wgs", "wgs-high-impact"])
+    parser = argparse.ArgumentParser(description="Unified slivar report builder.")
+    parser.add_argument(
+        "--mode",
+        required=True,
+        choices=["coding", "wgs-high-impact", "denovo", "panel", "panel-flank"],
+    )
     parser.add_argument("--vcf", required=True)
     parser.add_argument("--out-csv", required=True)
     parser.add_argument("--impact-order-file", required=True)
-    parser.add_argument("--gene-descriptions", default="")
-    parser.add_argument("--omim", default="")
-    parser.add_argument("--orphanet", default="")
-    parser.add_argument("--constraint", default="")
-    parser.add_argument("--imprinting", default="")
-    parser.add_argument("--pseudoautosomal", default="")
+    parser.add_argument("--cre-data-dir", required=True)
     parser.add_argument("--hgmd", default="")
     return parser.parse_args()
 
@@ -838,12 +837,29 @@ def parse_args():
 def main():
     args = parse_args()
     order_map = load_consequence_order(args.impact_order_file)
-    gene_descriptions = index_first_by(load_reference_table(args.gene_descriptions), "ensembl_gene_id")
-    omim = index_many_by(load_reference_table(args.omim), "gene_name")
-    orphanet = index_first_by(load_reference_table(args.orphanet), "Ensembl_gene_id")
-    constraint = index_constraints(load_reference_table(args.constraint))
-    imprinting = index_first_by(load_reference_table(args.imprinting), "Gene")
-    pseudoautosomal = index_first_by(load_reference_table(args.pseudoautosomal), "Ensembl_gene_id")
+    gene_descriptions = index_first_by(
+        load_reference_table(os.path.join(args.cre_data_dir, "ensembl_w_description.txt")),
+        "ensembl_gene_id",
+    )
+    omim = index_many_by(
+        load_reference_table(os.path.join(args.cre_data_dir, "OMIM_hgnc_join_omim_phenos_2026-06-02.tsv")),
+        "gene_name",
+    )
+    orphanet = index_first_by(
+        load_reference_table(os.path.join(args.cre_data_dir, "orphanet.txt")),
+        "Ensembl_gene_id",
+    )
+    constraint = index_constraints(
+        load_reference_table(os.path.join(args.cre_data_dir, "gnomad_scores_transcript_level_v4.1.1.csv"))
+    )
+    imprinting = index_first_by(
+        load_reference_table(os.path.join(args.cre_data_dir, "imprinting.txt")),
+        "Gene",
+    )
+    pseudoautosomal = index_first_by(
+        load_reference_table(os.path.join(args.cre_data_dir, "pseudoautosomal.txt")),
+        "Ensembl_gene_id",
+    )
     hgmd_by_variant, hgmd_genes = load_hgmd(args.hgmd)
 
     rows = []

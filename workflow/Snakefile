@@ -38,8 +38,8 @@ slivar_preview_outputs = [
     "reports_slivar/{family}.sv.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
     "reports_slivar/{family}.cnv.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
     "reports_slivar/{family}.compound.het.status.CH.hg38.csv".format(family=family),
-    "reports_slivar_compare/{family}.wgs.coding.summary.tsv".format(family=family),
-    "reports_slivar_compare/{family}.wgs.high.impact.summary.tsv".format(family=family),
+    "reports_slivar_compare/{family}.coding.summary.tsv".format(family=family),
+    "reports_slivar_compare/{family}.wgs-high-impact.summary.tsv".format(family=family),
 ] if slivar_preview_enabled else []
 
 ##### load rules #####
@@ -76,7 +76,7 @@ rule all:
         "reports/{family}.wgs.high.impact.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
         "reports/{family}.wgs.denovo.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix) if len(children) > 0 else [],
         "reports_slivar/{family}.wgs.denovo.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix) if slivar_preview_enabled and len(children) > 0 else [],
-        "reports_slivar_compare/{family}.wgs.denovo.summary.tsv".format(family=family) if slivar_preview_enabled and len(children) > 0 else [],
+        "reports_slivar_compare/{family}.denovo.summary.tsv".format(family=family) if slivar_preview_enabled and len(children) > 0 else [],
         "reports/{family}.known.path.str.loci.hg38.csv".format(family=family),
         "reports/{family}.sv.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
         "reports/{family}.cnv.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),

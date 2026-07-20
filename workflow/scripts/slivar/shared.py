@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-
+#add docstring for functions
 
 MISSING = {"", ".", "None", "NA"}
 
 
+# Check whether a scalar, boolean, or tuple INFO value contains real content.
 def has_value(value):
     if value is None:
         return False
@@ -27,9 +28,12 @@ def value_as_text(value):
     if isinstance(value, tuple):
         return ",".join(str(item) for item in value if has_value(item))
     text = str(value)
-    return "" if text in MISSING else text
+    if text in MISSING:
+        return ""
+    return text
 
 
+# Convert scalar INFO values, or the first value of a tuple INFO field, to float.
 def value_as_float(value):
     if value is None:
         return None
@@ -44,8 +48,7 @@ def value_as_float(value):
     except Exception:
         return None
 
-
-# Consequence ordering and CSQ selection shared by report and CH generation.
+# Remove "_variant" so order-file terms match the VCF consequence names.
 def normalize_consequence_term(term):
     text = str(term).strip()
     if not text:
@@ -54,13 +57,14 @@ def normalize_consequence_term(term):
         return text[: -len("_variant")]
     return text
 
-
+# Load consequence terms as a normalized rank map.
 def load_consequence_order(path):
     order = {}
     rank = 0
     with open(path) as handle:
         for line in handle:
             term = normalize_consequence_term(line.strip())
+            # Ignore blank lines and comment/sentinel notes in the order file.
             if not term or term.startswith("#"):
                 continue
             order[term] = rank
@@ -70,6 +74,7 @@ def load_consequence_order(path):
     return order
 
 
+# Extract pipe-delimited VEP CSQ field names from the INFO/CSQ header.
 def get_csq_fields(vcf):
     if "CSQ" not in vcf.header.info:
         return []
@@ -80,46 +85,71 @@ def get_csq_fields(vcf):
     return description.split(marker, 1)[1].strip().strip('"').split("|")
 
 
+# Parse a record's INFO/CSQ values into one dict per VEP annotation.
+# csq_fields comes from the CSQ header; each raw annotation is pipe-delimited
+# in the same order. Missing trailing fields are padded, and _csq_index
+# preserves input order for downstream tie-breaking.
 def parse_csq_annotations(record, csq_fields, start_index=0):
     if not csq_fields:
         return []
     raw = get_info_value(record, "CSQ")
     if raw is None:
         return []
-    entries = raw if isinstance(raw, tuple) else [raw]
+    # pysam usually exposes multiple comma-separated CSQ annotations as a tuple.
+    if isinstance(raw, tuple):
+        entries = raw
+    else:
+        entries = [raw]
     annotations = []
     for index, entry in enumerate(entries, start=start_index):
+        # Match each pipe-delimited value to the corresponding CSQ header field.
         values = str(entry).split("|")
         if len(values) < len(csq_fields):
+            # Pad truncated annotations so later fields still map to empty strings.
             values.extend([""] * (len(csq_fields) - len(values)))
+        # VEP CSQ values follow the header order, so zip pairs names with values.
         annotation = dict(zip(csq_fields, values))
         annotation["_csq_index"] = index
         annotations.append(annotation)
     return annotations
 
 
+# VEP can join multiple consequences with "&"; return the trimmed terms.
 def get_consequence_terms(csq):
     consequence = csq.get("Consequence", "")
     if not has_value(consequence):
         return []
-    return [term.strip() for term in consequence.split("&") if term.strip()]
+    terms = []
+    for term in consequence.split("&"):
+        term = term.strip()
+        if term:
+            terms.append(term)
+    return terms
 
 
+# Normalize each consequence term before comparing against the order file.
 def _normalized_consequence_terms(csq):
-    return [
-        normalize_consequence_term(term)
-        for term in get_consequence_terms(csq)
-        if normalize_consequence_term(term)
-    ]
+    normalized_terms = []
+    for term in get_consequence_terms(csq):
+        normalized_term = normalize_consequence_term(term)
+        if normalized_term:
+            normalized_terms.append(normalized_term)
+    return normalized_terms
 
 
+# Return the best-ranked consequence index for a CSQ; unknown terms sort last.
 def rank_consequence(csq, consequence_order):
-    ranks = [
-        consequence_order[term]
-        for term in _normalized_consequence_terms(csq)
-        if term in consequence_order
-    ]
-    return min(ranks) if ranks else 10**9
+    # One CSQ can have multiple "&"-joined consequences. Convert each known
+    # consequence to its order-file rank, then keep the lowest rank.
+    ranks = []
+    # Get "Consequence" from the CSQ annotation, normalize the terms, and rank them.
+    for term in _normalized_consequence_terms(csq):
+        if term in consequence_order:
+            ranks.append(consequence_order[term])
+    if ranks:
+        return min(ranks)
+    # Unknown-only consequences should sort after every ranked consequence.
+    return 10**9
 
 
 def select_consequence(csq, consequence_order):
@@ -135,6 +165,8 @@ def select_consequence(csq, consequence_order):
     )[0]
 
 
+# Return a display gene symbol for a CSQ. SYMBOL/HGNC are preferred; Gene is
+# used only when it is already a symbol rather than an Ensembl gene ID.
 def get_gene_symbol(csq):
     if csq is None:
         return ""
@@ -150,7 +182,9 @@ def get_gene_symbol(csq):
 
 def get_csq_ensembl_gene_id(csq):
     gene = csq.get("Gene", "")
-    return gene if gene.startswith("ENSG") else ""
+    if gene.startswith("ENSG"):
+        return gene
+    return ""
 
 
 def find_ensembl_gene_id(csq_annotations, symbol):
@@ -161,7 +195,9 @@ def find_ensembl_gene_id(csq_annotations, symbol):
         gene = get_csq_ensembl_gene_id(csq)
         if gene:
             candidates.append(gene)
-    return candidates[0] if candidates else ""
+    if candidates:
+        return candidates[0]
+    return ""
 
 
 def select_ensembl_gene_id(csq_annotations, primary_csq):
@@ -172,14 +208,18 @@ def select_ensembl_gene_id(csq_annotations, primary_csq):
     if has_value(ensembl_gene_id):
         return ensembl_gene_id
     gene = primary_csq.get("Gene", "")
-    return gene if has_value(gene) else ""
+    if has_value(gene):
+        return gene
+    return ""
 
 
 def _above_cutoff_rank(csq, consequence_order, cutoff):
     cutoff_rank = consequence_order.get(cutoff)
     if cutoff_rank is None:
         return 1
-    return 0 if rank_consequence(csq, consequence_order) < cutoff_rank else 1
+    if rank_consequence(csq, consequence_order) < cutoff_rank:
+        return 0
+    return 1
 
 
 def _is_weak_gene_symbol(symbol):
@@ -198,7 +238,10 @@ def primary_csq_sort_key(csq, consequence_order):
     biotype = str(csq.get("BIOTYPE", "")).lower()
     symbol = get_gene_symbol(csq)
 
-    pseudogene_rank = 1 if "pseudogene" in biotype else 0
+    if "pseudogene" in biotype:
+        pseudogene_rank = 1
+    else:
+        pseudogene_rank = 0
     impactful_rank = _above_cutoff_rank(csq, consequence_order, "IMPACTFUL_CUTOFF")
 
     if biotype == "protein_coding":
@@ -209,7 +252,12 @@ def primary_csq_sort_key(csq, consequence_order):
         protein_coding_rank = 2
 
     consequence_rank = rank_consequence(csq, consequence_order)
-    gene_rank = 2 if not has_value(symbol) else (1 if _is_weak_gene_symbol(symbol) else 0)
+    if not has_value(symbol):
+        gene_rank = 2
+    elif _is_weak_gene_symbol(symbol):
+        gene_rank = 1
+    else:
+        gene_rank = 0
 
     if has_value(csq.get("MANE_SELECT", "")):
         mane_rank = 0
@@ -218,7 +266,10 @@ def primary_csq_sort_key(csq, consequence_order):
     else:
         mane_rank = 2
 
-    canonical_rank = 0 if csq.get("CANONICAL", "") == "YES" else 1
+    if csq.get("CANONICAL", "") == "YES":
+        canonical_rank = 0
+    else:
+        canonical_rank = 1
 
     if biotype == "processed_transcript":
         transcript_rank = 0
@@ -272,7 +323,11 @@ def format_genotype(sample_data, ref, alts):
             except Exception:
                 alleles.append(".")
     # Keep the VCF separator for diploid calls, including phased half-calls.
-    return ("|" if sample_data.phased else "/").join(alleles)
+    if sample_data.phased:
+        separator = "|"
+    else:
+        separator = "/"
+    return separator.join(alleles)
 
 
 def get_alt_depth(sample_data):
@@ -296,14 +351,20 @@ def get_alt_depth(sample_data):
             parsed.append(int(depth))
         except Exception:
             continue
-    return max(parsed) if parsed else None
+    if parsed:
+        return max(parsed)
+    return None
 
 
 def get_sample_depth(sample_data):
     depth = sample_data.get("DP")
-    return "" if depth is None else str(depth)
+    if depth is None:
+        return ""
+    return str(depth)
 
 
 def get_sample_gq(sample_data):
     gq = sample_data.get("GQ")
-    return "" if gq is None else str(gq)
+    if gq is None:
+        return ""
+    return str(gq)

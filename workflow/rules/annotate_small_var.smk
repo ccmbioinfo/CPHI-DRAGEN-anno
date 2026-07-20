@@ -249,102 +249,63 @@ rule filter_denovo:
         '''
 
 
-slivar_script_dir = f"{workflow.basedir}/scripts/slivar"
-cre_data_dir = f"{workflow.basedir}/scripts/cre/data"
-
-
-def get_slivar_report_table_inputs():
-    return {
-        "gene_descriptions": f"{cre_data_dir}/ensembl_w_description.txt",
-        "omim": f"{cre_data_dir}/OMIM_hgnc_join_omim_phenos_2026-06-02.tsv",
-        "orphanet": f"{cre_data_dir}/orphanet.txt",
-        "constraint": f"{cre_data_dir}/gnomad_scores_transcript_level_v4.1.1.csv",
-        "imprinting": f"{cre_data_dir}/imprinting.txt",
-        "pseudoautosomal": f"{cre_data_dir}/pseudoautosomal.txt",
-    }
-
-
-def get_slivar_hgmd_path():
-    return f"{config['annotation']['cre']['database_path']}/hgmd_hg38.csv"
-
-
-slivar_report_type_pattern = r"wgs\.coding|wgs\.high\.impact|panel|panel-flank|wgs\.denovo"
-
-
-def get_slivar_pipeline(wildcards):
-    if wildcards.report_type == "wgs.coding":
-        return "coding"
-    if wildcards.report_type == "wgs.high.impact":
-        return "wgs-high-impact"
-    if wildcards.report_type == "wgs.denovo":
-        return "denovo"
-    return wildcards.report_type
-
-
-def get_slivar_mode(wildcards):
-    pipeline = get_slivar_pipeline(wildcards)
-    return pipeline if pipeline in {"coding", "wgs-high-impact"} else "wgs"
-
-
-def get_slivar_annotated_vcf(wildcards):
-    pipeline = get_slivar_pipeline(wildcards)
-    return f"annotated/{pipeline}/vcfanno/{wildcards.family}.{pipeline}.vep.vcfanno.vcf.gz"
-
-
 def get_cre_report_for_slivar_comparison(wildcards):
-    sf = "" if wildcards.report_type in {"panel", "panel-flank"} else sf_suffix
-    return f"reports/{wildcards.family}.{wildcards.report_type}.CH{sf}.hg38.csv"
+    if wildcards.p == "coding":
+        cre_report = "wgs.coding"
+    elif wildcards.p == "wgs-high-impact":
+        cre_report = "wgs.high.impact"
+    elif wildcards.p == "denovo":
+        cre_report = "wgs.denovo"
+    else:
+        cre_report = wildcards.p
+    sf = "" if wildcards.p in {"panel", "panel-flank"} else sf_suffix
+    return f"reports/{wildcards.family}.{cre_report}.CH{sf}.hg38.csv"
 
 
+# Use slivar expr to filter variants into three candidate branches per mode.
 rule slivar_select:
     input:
-        vcf=get_slivar_annotated_vcf
+        vcf="annotated/{p}/vcfanno/{family}.{p}.vep.vcfanno.vcf.gz"
     output:
-        rare_main="small_variants_slivar/{report_type}/{family}/branches/{family}.{report_type}.rare_main.vcf.gz",
-        rare_main_tbi="small_variants_slivar/{report_type}/{family}/branches/{family}.{report_type}.rare_main.vcf.gz.tbi",
-        rare_clinvar="small_variants_slivar/{report_type}/{family}/branches/{family}.{report_type}.rare_clinvar.vcf.gz",
-        rare_clinvar_tbi="small_variants_slivar/{report_type}/{family}/branches/{family}.{report_type}.rare_clinvar.vcf.gz.tbi",
-        common_pathogenic_clinvar="small_variants_slivar/{report_type}/{family}/branches/{family}.{report_type}.common_pathogenic_clinvar.vcf.gz",
-        common_pathogenic_clinvar_tbi="small_variants_slivar/{report_type}/{family}/branches/{family}.{report_type}.common_pathogenic_clinvar.vcf.gz.tbi",
-    wildcard_constraints:
-        report_type=slivar_report_type_pattern
+        rare_main="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_main.vcf.gz",
+        rare_main_tbi="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_main.vcf.gz.tbi",
+        rare_clinvar="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar.vcf.gz",
+        rare_clinvar_tbi="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar.vcf.gz.tbi",
+        common_pathogenic_clinvar="small_variants_slivar/{p}/{family}/branches/{family}.{p}.common_pathogenic_clinvar.vcf.gz",
+        common_pathogenic_clinvar_tbi="small_variants_slivar/{p}/{family}/branches/{family}.{p}.common_pathogenic_clinvar.vcf.gz.tbi",
     log:
-        "logs/slivar/{family}.{report_type}.select.log"
+        "logs/slivar/{family}.{p}.select.log"
     conda:
         "../wrappers/slivar/environment.yaml"
     params:
-        js=f"{slivar_script_dir}/slivar_functions.js",
-        order=f"{slivar_script_dir}/default-order.txt",
-        mode=get_slivar_mode
+        js=f"{workflow.basedir}/scripts/slivar/slivar_functions.js",
+        consequence_order_file=f"{workflow.basedir}/scripts/slivar/default-order.txt",
+        mode="{p}"
     wrapper:
         get_wrapper_path("slivar")
 
 
+# Merge the three Slivar branch VCFs, remove duplicate variants, and apply extra
+# high-impact filtering.
 rule slivar_postfilter:
     input:
-        rare_main="small_variants_slivar/{report_type}/{family}/branches/{family}.{report_type}.rare_main.vcf.gz",
-        rare_clinvar="small_variants_slivar/{report_type}/{family}/branches/{family}.{report_type}.rare_clinvar.vcf.gz",
-        common_pathogenic_clinvar="small_variants_slivar/{report_type}/{family}/branches/{family}.{report_type}.common_pathogenic_clinvar.vcf.gz",
+        rare_main="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_main.vcf.gz",
+        rare_clinvar="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar.vcf.gz",
+        common_pathogenic_clinvar="small_variants_slivar/{p}/{family}/branches/{family}.{p}.common_pathogenic_clinvar.vcf.gz",
     output:
-        vcf="small_variants_slivar/{report_type}/{family}/{family}.{report_type}.postfilter.vcf",
-    wildcard_constraints:
-        report_type=slivar_report_type_pattern
+        vcf="small_variants_slivar/{p}/{family}/{family}.{p}.postfilter.vcf",
     log:
-        "logs/slivar/{family}.{report_type}.postfilter.log"
+        "logs/slivar/{family}.{p}.postfilter.log"
     conda:
         "../envs/slivar.yaml"
-    params:
-        script=f"{slivar_script_dir}/postfilter.py",
-        order=f"{slivar_script_dir}/default-order.txt",
-        mode=get_slivar_mode
     shell:
         """
-        (python3 {params.script} \
-        --mode {params.mode} \
+        (python3 {workflow.basedir}/scripts/slivar/postfilter.py \
+        --mode {wildcards.p} \
         --rare-main-vcf {input.rare_main} \
         --rare-clinvar-vcf {input.rare_clinvar} \
         --common-pathogenic-clinvar-vcf {input.common_pathogenic_clinvar} \
-        --impact-order-file {params.order} \
+        --impact-order-file {workflow.basedir}/scripts/slivar/default-order.txt \
         --out-vcf {output.vcf} &&
         bcftools sort -O v -o {output.vcf}.sorted {output.vcf} &&
         mv {output.vcf}.sorted {output.vcf}) > {log} 2>&1
@@ -353,35 +314,26 @@ rule slivar_postfilter:
 
 rule slivar_report:
     input:
-        vcf="small_variants_slivar/{report_type}/{family}/{family}.{report_type}.postfilter.vcf",
-        **get_slivar_report_table_inputs()
+        vcf="small_variants_slivar/{p}/{family}/{family}.{p}.postfilter.vcf"
     output:
-        "reports_slivar/{family}.{report_type}.slivar.hg38.csv"
+        "reports_slivar/{family}.{p}.slivar.hg38.csv"
     wildcard_constraints:
-        report_type=slivar_report_type_pattern
+        family=family
     log:
-        "logs/slivar/{family}.{report_type}.report.log"
+        "logs/slivar/{family}.{p}.report.log"
     conda:
         "../envs/slivar.yaml"
     params:
-        script=f"{slivar_script_dir}/build_report.py",
-        order=f"{slivar_script_dir}/default-order.txt",
-        hgmd=get_slivar_hgmd_path(),
-        mode=get_slivar_mode
+        hgmd=f"{config['annotation']['cre']['database_path']}/hgmd_hg38.csv"
     shell:
         """
         (mkdir -p $(dirname {output})
-        python3 {params.script} \
-        --mode {params.mode} \
+        python3 {workflow.basedir}/scripts/slivar/build_report.py \
+        --mode {wildcards.p} \
         --vcf {input.vcf} \
         --out-csv {output} \
-        --impact-order-file {params.order} \
-        --gene-descriptions {input.gene_descriptions} \
-        --omim {input.omim} \
-        --orphanet {input.orphanet} \
-        --constraint {input.constraint} \
-        --imprinting {input.imprinting} \
-        --pseudoautosomal {input.pseudoautosomal} \
+        --impact-order-file {workflow.basedir}/scripts/slivar/default-order.txt \
+        --cre-data-dir {workflow.basedir}/scripts/cre/data \
         --hgmd {params.hgmd}) > {log} 2>&1
         """
 
@@ -389,24 +341,23 @@ rule slivar_report:
 rule compare_slivar_report_keys:
     input:
         gemini=get_cre_report_for_slivar_comparison,
-        slivar="reports_slivar/{family}.{report_type}.slivar.hg38.csv",
+        slivar="reports_slivar/{family}.{p}.slivar.hg38.csv",
     output:
-        summary="reports_slivar_compare/{family}.{report_type}.summary.tsv",
-        shared="reports_slivar_compare/{family}.{report_type}.shared.csv",
-        gemini_only="reports_slivar_compare/{family}.{report_type}.gemini_only.csv",
-        slivar_only="reports_slivar_compare/{family}.{report_type}.slivar_only.csv",
+        summary="reports_slivar_compare/{family}.{p}.summary.tsv",
+        shared="reports_slivar_compare/{family}.{p}.shared.csv",
+        gemini_only="reports_slivar_compare/{family}.{p}.gemini_only.csv",
+        slivar_only="reports_slivar_compare/{family}.{p}.slivar_only.csv",
     wildcard_constraints:
-        report_type=slivar_report_type_pattern
+        family=family
     log:
-        "logs/slivar/{family}.{report_type}.compare.log"
+        "logs/slivar/{family}.{p}.compare.log"
     conda:
         "../envs/slivar.yaml"
     params:
-        script=f"{slivar_script_dir}/compare_report_variant_keys.py",
-        out_prefix="reports_slivar_compare/{family}.{report_type}"
+        out_prefix="reports_slivar_compare/{family}.{p}"
     shell:
         """
-        (python3 {params.script} \
+        (python3 {workflow.basedir}/scripts/slivar/compare_report_variant_keys.py \
         --gemini-report {input.gemini} \
         --slivar-report {input.slivar} \
         --out-prefix {params.out_prefix}) > {log} 2>&1
