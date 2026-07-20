@@ -32,8 +32,8 @@ params:
 
 annotation:
   mity:
-    report_config: "~/CPHI-DRAGEN-anno/workflow/wrappers/vcfanno/mity/report-config.yaml"
-    vcfanno_config: "~/CPHI-DRAGEN-anno/workflow/wrappers/vcfanno/mity/vcfanno-config-mt.toml"
+    report_config: "~/crg2-pacbio/wrappers/vcfanno/mity/report-config.yaml"
+    vcfanno_config: "~/crg2-pacbio/wrappers/vcfanno/mity/vcfanno-config-mt.toml"
     base_path: "/hpf/largeprojects/ccmbio/nhanafi/c4r/downloads/databases/mity/"
   snpeff:
     data_dir: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/snpEff/data"
