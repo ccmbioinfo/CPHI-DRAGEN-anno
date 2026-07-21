@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#add docstring for functions
+# add docstring for functions
 
 MISSING = {"", ".", "None", "NA"}
 
@@ -48,7 +48,7 @@ def value_as_float(value):
     except Exception:
         return None
 
-# Remove "_variant" so order-file terms match the VCF consequence names.
+# Remove "_variant" from VCF consequence names to match the order-file terms.
 def normalize_consequence_term(term):
     text = str(term).strip()
     if not text:
@@ -64,7 +64,7 @@ def load_consequence_order(path):
     with open(path) as handle:
         for line in handle:
             term = normalize_consequence_term(line.strip())
-            # Ignore blank lines and comment/sentinel notes in the order file.
+            # Ignore blank lines and lines beginning with "#".
             if not term or term.startswith("#"):
                 continue
             order[term] = rank
@@ -187,6 +187,7 @@ def get_csq_ensembl_gene_id(csq):
     return ""
 
 
+# Translate a report gene symbol back to the first matching Ensembl gene ID in the CSQs.
 def find_ensembl_gene_id(csq_annotations, symbol):
     candidates = []
     for csq in csq_annotations:
@@ -194,6 +195,7 @@ def find_ensembl_gene_id(csq_annotations, symbol):
             continue
         gene = get_csq_ensembl_gene_id(csq)
         if gene:
+            # Keep candidates in CSQ/input order so duplicate symbols resolve consistently.
             candidates.append(gene)
     if candidates:
         return candidates[0]
@@ -212,7 +214,7 @@ def select_ensembl_gene_id(csq_annotations, primary_csq):
         return gene
     return ""
 
-
+# Return which variations are above a defined cutoff in the order.
 def _above_cutoff_rank(csq, consequence_order, cutoff):
     cutoff_rank = consequence_order.get(cutoff)
     if cutoff_rank is None:
@@ -222,6 +224,7 @@ def _above_cutoff_rank(csq, consequence_order, cutoff):
     return 1
 
 
+# Treat placeholder-style symbols as weaker than named genes for report display.
 def _is_weak_gene_symbol(symbol):
     if not has_value(symbol):
         return False
@@ -234,16 +237,20 @@ def _is_weak_gene_symbol(symbol):
     return text.startswith("RP") and len(text) > 2 and (text[2].isdigit() or text[2] == "-")
 
 
+# Return the tuple used to choose the final report CSQ for display fields.
 def primary_csq_sort_key(csq, consequence_order):
     biotype = str(csq.get("BIOTYPE", "")).lower()
     symbol = get_gene_symbol(csq)
 
+    # Prefer non-pseudogene annotations before other transcript tie-breakers.
     if "pseudogene" in biotype:
         pseudogene_rank = 1
     else:
         pseudogene_rank = 0
+    # IMPACTFUL_CUTOFF is a sentinel in the consequence order file.
     impactful_rank = _above_cutoff_rank(csq, consequence_order, "IMPACTFUL_CUTOFF")
 
+    # Keep protein-coding annotations ahead of related decay classes, then other biotypes.
     if biotype == "protein_coding":
         protein_coding_rank = 0
     elif biotype.startswith("protein_coding_") or biotype in {"nonsense_mediated_decay", "non_stop_decay"}:
@@ -251,7 +258,9 @@ def primary_csq_sort_key(csq, consequence_order):
     else:
         protein_coding_rank = 2
 
+    # Within the same broad class, use the order-file consequence severity.
     consequence_rank = rank_consequence(csq, consequence_order)
+    # Prefer named gene symbols, then placeholder-style symbols, then missing symbols.
     if not has_value(symbol):
         gene_rank = 2
     elif _is_weak_gene_symbol(symbol):
@@ -259,6 +268,7 @@ def primary_csq_sort_key(csq, consequence_order):
     else:
         gene_rank = 0
 
+    # MANE and canonical flags are transcript-quality tie-breakers.
     if has_value(csq.get("MANE_SELECT", "")):
         mane_rank = 0
     elif has_value(csq.get("MANE_PLUS_CLINICAL", "")):
@@ -278,8 +288,12 @@ def primary_csq_sort_key(csq, consequence_order):
     else:
         transcript_rank = 2
 
+    # GENIC_CUTOFF is another order-file sentinel; it breaks late ties toward genic CSQs.
     genic_rank = _above_cutoff_rank(csq, consequence_order, "GENIC_CUTOFF")
 
+    # min() compares tuple entries from left to right, so lower ranks win in
+    # this order: non-pseudogene, impactful, protein-coding, consequence,
+    # gene symbol quality, MANE, canonical, transcript class, genic, transcript ID, input order.
     return (
         pseudogene_rank,
         impactful_rank,
@@ -295,6 +309,7 @@ def primary_csq_sort_key(csq, consequence_order):
     )
 
 
+# Select the CSQ used for final report fields.
 def select_primary_csq(csq_annotations, consequence_order):
     if not csq_annotations:
         return None
@@ -304,13 +319,16 @@ def select_primary_csq(csq_annotations, consequence_order):
     )
 
 
-# Genotype values that must agree between report and CH output.
+# Convert pysam FORMAT/GT allele indexes into the allele strings used in reports.
 def format_genotype(sample_data, ref, alts):
+    # pysam stores GT as allele indexes: 0 is REF, 1+ are entries in ALTS, and None is missing.
     gt = sample_data.get("GT")
     if gt is None:
         return "./."
+    # If every allele is missing, report the same missing genotype string CRE used.
     if all(allele_index is None for allele_index in gt):
         return "./."
+
     alleles = []
     for allele_index in gt:
         if allele_index is None:
@@ -319,6 +337,7 @@ def format_genotype(sample_data, ref, alts):
             alleles.append(ref)
         else:
             try:
+                # ALT indexes are one-based in GT, so subtract one for the Python list.
                 alleles.append(alts[allele_index - 1])
             except Exception:
                 alleles.append(".")
@@ -330,11 +349,13 @@ def format_genotype(sample_data, ref, alts):
     return separator.join(alleles)
 
 
+# Return the strongest ALT support from FORMAT/AD.
 def get_alt_depth(sample_data):
     ad = sample_data.get("AD")
     if ad is None:
         return None
 
+    # AD is REF depth followed by one depth per ALT allele; skip the REF depth.
     if isinstance(ad, str):
         alt_depths = ad.split(",")[1:]
     else:
@@ -345,6 +366,7 @@ def get_alt_depth(sample_data):
 
     parsed = []
     for depth in alt_depths:
+        # Missing or malformed ALT depths are ignored instead of counted as zero.
         if depth is None or str(depth) in MISSING:
             continue
         try:
@@ -352,6 +374,7 @@ def get_alt_depth(sample_data):
         except Exception:
             continue
     if parsed:
+        # Multiallelic records can have several ALT depths; keep the largest one.
         return max(parsed)
     return None
 

@@ -60,8 +60,8 @@ def parse_promoterai_score(record):
 
     # Roughly follows the promoterAI parsing in workflow/scripts/cre/cre.vcf2db.R.
     # Values are numeric score strings, for example "0.22" or "-0.14,0.03".
-    # Repeated INFO values might be a tuple. Each value can also hold
-    # comma-separated scores, so normalize to an iterable first.
+    # pysam may expose repeated INFO values as a tuple; otherwise, split a
+    # scalar containing comma-separated scores.
     if isinstance(value, tuple):
         raw_values = value
     else:
