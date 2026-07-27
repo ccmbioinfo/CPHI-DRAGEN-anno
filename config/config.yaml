@@ -70,6 +70,6 @@ qc:
   pass_fail_thresholds:
     min_mean_coverage: 20
     max_freemix: 0.02
-    unrelated_max_rel: 0.2
+    unrelated_max_rel: 0.02
     firstdeg_min_rel: 0.4
     firstdeg_max_rel: 0.6
