@@ -19,7 +19,19 @@ sp:
     fn: "dragen_mapping_mqc.tsv"
   dragen_qc_summary:
     fn: "dragen_qc_summary_mqc.tsv"
+  qc_pass_fail:
+    fn: "qc_pass_fail_mqc.tsv"
 custom_data:
+  qc_pass_fail:
+    file_format: tsv
+    section_name: "QC Pass/Fail Summary"
+    description: "Per-sample pass/fail status for key QC checks (True = condition met, NA = not evaluable)."
+    plot_type: table
+    pconfig:
+      id: qc_pass_fail
+      namespace: qc_pass_fail
+      sort_rows: false
+      col1_header: Sample
   peddy_relatedness:
     file_format: tsv
     section_name: "Peddy Relatedness"
@@ -151,6 +163,8 @@ custom_data:
         format: "{:.2f}"
 plots_force_interactive: true
 report_section_order:
+  qc_pass_fail:
+    order: 2000
   peddy_relatedness:
     order: 1000
 table_cond_formatting_colours:
@@ -163,6 +177,11 @@ table_cond_formatting_colours:
   - male: "#5bc0de"
   - female: "#d9534f"
 table_cond_formatting_rules:
+  qc_pass_fail:
+    pass:
+      - s_eq: "True"
+    fail:
+      - s_eq: "False"
   peddy_relatedness-Peddy_Relatedness:
     ped_low:
       - lt: 0.25
