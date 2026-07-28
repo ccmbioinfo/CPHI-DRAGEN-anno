@@ -216,7 +216,7 @@ def output_groups(record, primary, order_map):
     return groups
 
 
-def row_for_record(record, csq_records, primary, samples, order_map):
+def row_for_record(record, csq_records, primary, samples, order_map, profile="dragen"):
     ref = record.ref
     alt = record.alts[0] if record.alts else ""
     variation = select_consequence(primary, order_map) if primary is not None else ""
@@ -243,6 +243,10 @@ def row_for_record(record, csq_records, primary, samples, order_map):
         "Protein_change_ensembl": primary.get("HGVSp", "") if primary is not None else "",
     }
 
+    if profile == "pacbio":
+        row["TG_LRWGS_ac"] = value_as_text(get_info_value(record, "tg_lrwgs_ac"))
+        row["TG_LRWGS_hom"] = value_as_text(get_info_value(record, "tg_lrwgs_hom"))
+
     for sample in samples:
         sample_data = record.samples[sample]
         sample_column = gemini_sample_name(sample)
@@ -259,7 +263,7 @@ def row_for_record(record, csq_records, primary, samples, order_map):
     return row
 
 
-def fieldnames(samples):
+def fieldnames(samples, profile="dragen"):
     fields = [
         "Chrom",
         "Pos",
@@ -280,6 +284,8 @@ def fieldnames(samples):
         "Nucleotide_change_ensembl",
         "Protein_change_ensembl",
     ]
+    if profile == "pacbio":
+        fields.extend(["TG_LRWGS_ac", "TG_LRWGS_hom"])
     for sample in samples:
         sample_column = gemini_sample_name(sample)
         fields.extend(
@@ -301,6 +307,7 @@ def parse_args():
     parser.add_argument("--impact-order-file", required=True)
     parser.add_argument("--high-med-out", required=True)
     parser.add_argument("--low-out", required=True)
+    parser.add_argument("--profile", choices=["dragen", "pacbio"], default="dragen")
     return parser.parse_args()
 
 
@@ -314,7 +321,7 @@ def main():
         if not csq_fields:
             raise SystemExit("VCF header does not contain a usable INFO/CSQ definition")
 
-        fields = fieldnames(samples)
+        fields = fieldnames(samples, args.profile)
         with open(args.high_med_out, "w", newline="") as high_handle, open(args.low_out, "w", newline="") as low_handle:
             writers = {
                 HIGH_MED: csv.DictWriter(high_handle, delimiter="\t", fieldnames=fields),
@@ -342,7 +349,7 @@ def main():
                 if not groups:
                     continue
 
-                row = row_for_record(record, csq_records, primary, samples, order_map)
+                row = row_for_record(record, csq_records, primary, samples, order_map, args.profile)
                 key = row["Variant_id"]
                 for group in sorted(groups):
                     if key in seen[group]:
