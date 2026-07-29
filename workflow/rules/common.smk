@@ -41,3 +41,17 @@ def get_cnv_vcf(wildcards):
 
 def get_wrapper_path(*dirs):
     return "file:%s" % os.path.join(workflow.basedir, "wrappers", *dirs)
+
+
+rule link_slivar_report:
+    input:
+        report="reports/{family}.{report_type}"
+    output:
+        report="reports_slivar/{family}.{report_type}"
+    wildcard_constraints:
+        report_type="known\\.path\\.str\\.loci\\.hg38\\.csv|mito\\.hg38\\.csv|multiqc_report\\.html",
+    shell:
+        """
+        mkdir -p $(dirname {output.report})
+        ln -sfn ../{input.report} {output.report}
+        """

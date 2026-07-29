@@ -40,6 +40,9 @@ slivar_preview_outputs = [
     "reports_slivar/{family}.compound.het.status.CH.hg38.csv".format(family=family),
     "reports_slivar_compare/{family}.coding.summary.tsv".format(family=family),
     "reports_slivar_compare/{family}.wgs-high-impact.summary.tsv".format(family=family),
+    "reports_slivar/{family}.known.path.str.loci.hg38.csv".format(family=family),
+    "reports_slivar/{family}.mito.hg38.csv".format(family=family),
+    "reports_slivar/{family}.multiqc_report.html".format(family=family),
 ] if slivar_preview_enabled else []
 
 ##### load rules #####

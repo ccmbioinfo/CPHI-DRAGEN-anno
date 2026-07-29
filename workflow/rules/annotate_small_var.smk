@@ -248,31 +248,17 @@ rule filter_denovo:
         (bcftools filter -i "FORMAT/DN == 'DeNovo'" -O z -o {output} {input}) > {log} 2>&1
         '''
 
-
-def get_cre_report_for_slivar_comparison(wildcards):
-    if wildcards.p == "coding":
-        cre_report = "wgs.coding"
-    elif wildcards.p == "wgs-high-impact":
-        cre_report = "wgs.high.impact"
-    elif wildcards.p == "denovo":
-        cre_report = "wgs.denovo"
-    else:
-        cre_report = wildcards.p
-    sf = "" if wildcards.p in {"panel", "panel-flank"} else sf_suffix
-    return f"reports/{wildcards.family}.{cre_report}.CH{sf}.hg38.csv"
-
-
 # Use slivar expr to filter variants into three candidate branches per mode.
 rule slivar_select:
     input:
         vcf="annotated/{p}/vcfanno/{family}.{p}.vep.vcfanno.vcf.gz"
     output:
-        rare_main="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_main.vcf.gz",
-        rare_main_tbi="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_main.vcf.gz.tbi",
-        rare_clinvar="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar.vcf.gz",
-        rare_clinvar_tbi="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar.vcf.gz.tbi",
-        common_pathogenic_clinvar="small_variants_slivar/{p}/{family}/branches/{family}.{p}.common_pathogenic_clinvar.vcf.gz",
-        common_pathogenic_clinvar_tbi="small_variants_slivar/{p}/{family}/branches/{family}.{p}.common_pathogenic_clinvar.vcf.gz.tbi",
+        rare_main=temp("small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_main.vcf.gz"),
+        rare_main_tbi=temp("small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_main.vcf.gz.tbi"),
+        rare_clinvar=temp("small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar.vcf.gz"),
+        rare_clinvar_tbi=temp("small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar.vcf.gz.tbi"),
+        common_pathogenic_clinvar=temp("small_variants_slivar/{p}/{family}/branches/{family}.{p}.common_pathogenic_clinvar.vcf.gz"),
+        common_pathogenic_clinvar_tbi=temp("small_variants_slivar/{p}/{family}/branches/{family}.{p}.common_pathogenic_clinvar.vcf.gz.tbi"),
     log:
         "logs/slivar/{family}.{p}.select.log"
     conda:
@@ -293,7 +279,7 @@ rule slivar_postfilter:
         rare_clinvar="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar.vcf.gz",
         common_pathogenic_clinvar="small_variants_slivar/{p}/{family}/branches/{family}.{p}.common_pathogenic_clinvar.vcf.gz",
     output:
-        vcf="small_variants_slivar/{p}/{family}/{family}.{p}.postfilter.vcf",
+        vcf=temp("small_variants_slivar/{p}/{family}/{family}.{p}.postfilter.vcf"),
     log:
         "logs/slivar/{family}.{p}.postfilter.log"
     conda:
@@ -316,9 +302,7 @@ rule slivar_report:
     input:
         vcf="small_variants_slivar/{p}/{family}/{family}.{p}.postfilter.vcf"
     output:
-        "reports_slivar/{family}.{p}.slivar.hg38.csv"
-    wildcard_constraints:
-        family=family
+        temp("small_variants_slivar/{p}/{family}/{family}.{p}.slivar.hg38.csv")
     log:
         "logs/slivar/{family}.{p}.report.log"
     conda:
@@ -338,17 +322,45 @@ rule slivar_report:
         """
 
 
+def get_cre_report_for_slivar_comparison(wildcards):
+    report_type = {
+        "coding": "wgs.coding",
+        "wgs-high-impact": "wgs.high.impact",
+        "denovo": "wgs.denovo",
+        "panel": "panel",
+        "panel-flank": "panel-flank",
+    }[wildcards.p]
+    suffix = "" if wildcards.p in {"panel", "panel-flank"} else sf_suffix
+    return (
+        f"reports/{wildcards.family}.{report_type}.CH{suffix}.hg38.csv"
+    )
+
+
+def get_slivar_report_for_comparison(wildcards):
+    report_type = {
+        "coding": "wgs.coding",
+        "wgs-high-impact": "wgs.high.impact",
+        "denovo": "wgs.denovo",
+        "panel": "panel",
+        "panel-flank": "panel-flank",
+    }[wildcards.p]
+    suffix = "" if wildcards.p in {"panel", "panel-flank"} else sf_suffix
+    return (
+        f"reports_slivar/{wildcards.family}.{report_type}.CH{suffix}.hg38.csv"
+    )
+
+
 rule compare_slivar_report_keys:
     input:
         gemini=get_cre_report_for_slivar_comparison,
-        slivar="reports_slivar/{family}.{p}.slivar.hg38.csv",
+        slivar=get_slivar_report_for_comparison,
     output:
         summary="reports_slivar_compare/{family}.{p}.summary.tsv",
         shared="reports_slivar_compare/{family}.{p}.shared.csv",
         gemini_only="reports_slivar_compare/{family}.{p}.gemini_only.csv",
         slivar_only="reports_slivar_compare/{family}.{p}.slivar_only.csv",
     wildcard_constraints:
-        family=family
+        p="coding|wgs-high-impact|denovo|panel|panel-flank",
     log:
         "logs/slivar/{family}.{p}.compare.log"
     conda:
