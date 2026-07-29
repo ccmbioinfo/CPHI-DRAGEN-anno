@@ -33,6 +33,9 @@ duplication
 inversion
 exon_region
 regulatory_region_ablation
+splice_donor_5th_base_variant
+splice_donor_region_variant
+splice_polypyrimidine_tract_variant
 # `IMPACT_CUTOFF` is a special value that slivar uses to set INFO.impactful for any variant with
 # any CSQ that has an impact that falls above this sentinel
 IMPACTFUL_CUTOFF
