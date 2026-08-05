@@ -1,8 +1,11 @@
 from snakemake.utils import min_version
 import pandas as pd
+from os.path import expanduser
 
 ##### set minimum snakemake version #####
 min_version("9.16.2")
+
+crg2_pacbio = expanduser(config["tools"]["crg2_pacbio"])
 
 def get_children_ids(ped_file):
     pedigree = pd.read_csv(ped_file, sep=None, header=None, 
