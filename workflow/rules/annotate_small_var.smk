@@ -41,7 +41,7 @@ rule pass:
     input:
         "{prefix}.{ext}"
     output:
-        temp("{prefix}.pass.{ext,(vcf|vcf\.gz)}")
+        temp(r"{prefix}.pass.{ext,(vcf|vcf\.gz)}")
     threads: 6
     resources:
         mem=lambda wildcards, threads: threads * 2
