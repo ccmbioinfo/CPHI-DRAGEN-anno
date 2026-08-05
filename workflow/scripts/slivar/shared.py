@@ -1,7 +1,27 @@
 #!/usr/bin/env python3
 # add docstring for functions
 
+import os
+
 MISSING = {"", ".", "None", "NA"}
+
+# Load the curated RNA disease-gene list (one symbol per line; "#" comments).
+def _load_disease_rna_genes(path):
+    genes = set()
+    with open(path) as handle:
+        for line in handle:
+            symbol = line.strip()
+            if not symbol or symbol.startswith("#"):
+                continue
+            genes.add(symbol)
+    return genes
+
+
+# Small non-coding disease genes VEP annotates under an overlapping protein-coding
+# gene. Membership promotes a CSQ to the primary report gene.
+DISEASE_RNA_GENES = _load_disease_rna_genes(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "disease-rna-genes.txt")
+)
 
 
 # Check whether a scalar, boolean, or tuple INFO value contains real content.
@@ -242,6 +262,14 @@ def primary_csq_sort_key(csq, consequence_order):
     biotype = str(csq.get("BIOTYPE", "")).lower()
     symbol = get_gene_symbol(csq)
 
+    # Promote curated RNA disease genes ahead of every other tie-breaker. VEP would
+    # otherwise pick the overlapping protein-coding gene as primary and bury the RNA
+    # gene. Display-only: this does not affect which variants are kept.
+    if has_value(symbol) and symbol in DISEASE_RNA_GENES:
+        curated_rna_rank = 0
+    else:
+        curated_rna_rank = 1
+
     # Prefer non-pseudogene annotations before other transcript tie-breakers.
     if "pseudogene" in biotype:
         pseudogene_rank = 1
@@ -292,9 +320,11 @@ def primary_csq_sort_key(csq, consequence_order):
     genic_rank = _above_cutoff_rank(csq, consequence_order, "GENIC_CUTOFF")
 
     # min() compares tuple entries from left to right, so lower ranks win in
-    # this order: non-pseudogene, impactful, protein-coding, consequence,
-    # gene symbol quality, MANE, canonical, transcript class, genic, transcript ID, input order.
+    # this order: curated RNA gene, non-pseudogene, impactful, protein-coding,
+    # consequence, gene symbol quality, MANE, canonical, transcript class, genic,
+    # transcript ID, input order.
     return (
+        curated_rna_rank,
         pseudogene_rank,
         impactful_rank,
         protein_coding_rank,
