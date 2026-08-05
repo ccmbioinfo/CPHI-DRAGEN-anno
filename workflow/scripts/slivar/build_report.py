@@ -65,7 +65,7 @@ DOT_MISSING_FIELDS = {
     "TF_binding_sites", "Vest4_score", "ncER_score", "omim_inheritance_all",
     "omim_phenotype_all", "promoterAI_score", "phylop100way", "rsIDs",
     "CoLoRSdb_AF", "CoLoRSdb_AC", "CoLoRSdb_AC_Hemi", "CoLoRSdb_nhomalt",
-    "TG_LRWGS_AC", "TG_LRWGS_samples", "TG_LRWGS_hom", "Dark_genes", "PS",
+    "TG_LRWGS_samples", "Dark_genes", "PS",
 }
 
 
@@ -76,6 +76,7 @@ ZERO_MISSING_FIELDS = {
     "Gnomad_ac", "Gnomad_af", "Gnomad_af_grpmax", "Gnomad_fafmax_faf95_max",
     "Gnomad_hom", "Regeneron_exome_AF", "Regeneron_exome_AC",
     "thousandG_AF", "thousandG_AC", "thousandG_nhomalt",
+    "TG_LRWGS_AC", "TG_LRWGS_hom",
 }
 
 
