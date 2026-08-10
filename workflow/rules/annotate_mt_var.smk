@@ -1,6 +1,4 @@
 
-crg2_pacbio = config["tools"]["crg2_pacbio"]
-
 rule extract_mt_variants:
     input:
         vcf=get_small_variant_vcf
