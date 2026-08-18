@@ -46,6 +46,10 @@ Combined ACMG SF report columns
 | `SVTYPE` | Structural variant type for SV/CNV records. SNV records receive `.` | `DEL` |
 | `GENE`| Gene name or gene symbols associated with the variant | `BRCA1` |
 | `ACMG_SF_GENE` | ACMG SF gene symbol or symbols matched for this variant. Multiple matches are separated by `;`. | `BRCA1` |
+| `OMIM_PHENOTYPE` | OMIM phenotype annotation from small variant, SV, or CNV report. | `Breast-ovarian cancer, familial, 1` |
+| `ACMG_SF_GENE_PHENOTYPE` | Phenotype(s) for the matched gene(s) from the configured ACMG SF list. Multiple unique values are separated by `;`. | `Hereditary breast and ovarian cancer` |
+| `ACMG_SF_GENE_INHERITANCE` | Inheritance mode(s) for the matched gene(s) from the configured ACMG SF list. Multiple unique values are separated by `;`. | `AD` |
+| `REFSEQ_CHANGE` | Value copied from `Refseq_change` for coding variants. SV and CNV records receive `.`. | `NM_007294.4:c.5266dup:p.Gln1756ProfsTer74` |
 | `CONSEQUENCE` | Variant consequence | `missense_variant` |
 | `FAMILY` | Family or project identifier | `FAM-001267` |
 | `SAMPLE_ZYGOSITIES` | Collapsed zygosity values across available sample zygosity columns. Values are formatted as `sample=value` and separated by `;`. | `CA1C_000001_EXP_0001=Het;CA1C_000002_EXP_0001=Hom` |
