@@ -20,6 +20,9 @@ seconds-between-status-checks: 20
 # Do not retry failed jobs.
 retries: 0
 
+# Let SLURM requeue NODE_FAIL jobs.
+slurm-requeue: True
+
 # Wait up to 120 s for output files to appear on the shared filesystem after
 # a job finishes.
 latency-wait: 120
@@ -61,3 +64,5 @@ default-resources:
 set-resources:
     vcf2db:
         runtime: "60h"
+    snpeff:
+        mem_mb: 40000
