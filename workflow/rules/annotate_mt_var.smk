@@ -53,5 +53,9 @@ rule generate_mt_report:
         "logs/report/mitochondrial/{family}.mitochondrial.report.log"
     conda:
         "../envs/mt_report.yaml"
+    params:
+        crg2_pacbio=crg2_pacbio,
+        vaf_field="AF",
+        report_suffix=".hg38"
     script:
-        "../scripts/mt_report.py"
+        crg2_pacbio + "/scripts/mt_report.py"

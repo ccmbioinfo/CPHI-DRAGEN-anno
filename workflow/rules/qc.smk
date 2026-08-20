@@ -168,6 +168,29 @@ rule dragenmetrics:
     script:
         "../scripts/dragen_metrics_to_mqc.py"
 
+rule qc_pass_fail:
+    input:
+        samples_tsv=config["run"]["samples"],
+        dragen_qc_summary="qc/multiqc_custom/{family}/dragen_qc_summary_mqc.tsv",
+        selfsm=expand("qc/verifybam/{family}/{sample}.selfSM", family=family, sample=samples.index),
+        sex_check="qc/peddy/{family}.sex_check.csv",
+        ped_check="qc/peddy/{family}.ped_check.csv"
+    output:
+        tsv="qc/multiqc_custom/{family}/qc_pass_fail_mqc.tsv"
+    log:
+        "logs/qc/qc_pass_fail/{family}.log"
+    conda:
+        "../envs/annotate.yaml"
+    params:
+        samples=list(samples.index),
+        min_mean_coverage=config["qc"]["pass_fail_thresholds"]["min_mean_coverage"],
+        max_freemix=config["qc"]["pass_fail_thresholds"]["max_freemix"],
+        unrelated_max_rel=config["qc"]["pass_fail_thresholds"]["unrelated_max_rel"],
+        firstdeg_min_rel=config["qc"]["pass_fail_thresholds"]["firstdeg_min_rel"],
+        firstdeg_max_rel=config["qc"]["pass_fail_thresholds"]["firstdeg_max_rel"]
+    script:
+        "../scripts/qc_pass_fail_to_mqc.py"
+
 rule multiqc:
     input:
         peddy_html=f"qc/peddy/{family}.html",
@@ -178,6 +201,7 @@ rule multiqc:
         dragen_duplication="qc/multiqc_custom/{family}/dragen_duplication_mqc.tsv",
         dragen_mapping="qc/multiqc_custom/{family}/dragen_mapping_mqc.tsv",
         dragen_qc_summary="qc/multiqc_custom/{family}/dragen_qc_summary_mqc.tsv",
+        qc_pass_fail="qc/multiqc_custom/{family}/qc_pass_fail_mqc.tsv",
     output:
         report=temp("qc/multiqc/{family}.multiqc_report.html")
     log:

@@ -33,8 +33,8 @@ params:
 
 annotation:
   mity:
-    report_config: "~/CPHI-DRAGEN-anno/workflow/wrappers/vcfanno/mity/report-config.yaml"
-    vcfanno_config: "~/CPHI-DRAGEN-anno/workflow/wrappers/vcfanno/mity/vcfanno-config-mt.toml"
+    report_config: "~/crg2-pacbio/wrappers/vcfanno/mity/report-config.yaml"
+    vcfanno_config: "~/crg2-pacbio/wrappers/vcfanno/mity/vcfanno-config-mt.toml"
     base_path: "/hpf/largeprojects/ccmbio/nhanafi/c4r/downloads/databases/mity/"
   snpeff:
     data_dir: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/snpEff/data"
@@ -68,3 +68,9 @@ annotation:
 qc:
   svdp: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/QC/1000g.phase3.100k.b38.vcf.gz.dat"
   refcache: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/refcache/hg38"
+  pass_fail_thresholds:
+    min_mean_coverage: 20
+    max_freemix: 0.02
+    unrelated_max_rel: 0.02
+    firstdeg_min_rel: 0.4
+    firstdeg_max_rel: 0.6
