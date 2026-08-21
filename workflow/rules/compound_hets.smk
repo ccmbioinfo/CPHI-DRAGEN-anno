@@ -32,7 +32,7 @@ rule get_small_variants_for_CH:
         variants=temp("small_variants/{family}.{severity}.impact.variants.tsv"),
     params:
         severity="{severity}",
-        crg2_pacbio = config["tools"]["crg2_pacbio"],
+        crg2_pacbio = crg2_pacbio,
         seq_type="short"
     log:
         "logs/compound_hets/{family}.get.sequence.variants.for.CH.{severity}.log",
@@ -79,7 +79,7 @@ if len(children) > 0:
             compound_het_status="reports/{family}.compound.het.status.CH.hg38.csv",
             **hpo_panel_outputs,
         params:
-            crg2_pacbio = config["tools"]["crg2_pacbio"],
+            crg2_pacbio = crg2_pacbio,
             seq_type="short",
             hpo_panel_args=get_hpo_panel_args,
             acmg_sf_flag = str(config["run"].get("acmg_sf", "false")).lower(),
@@ -131,7 +131,7 @@ else:
                 compound_het_status="reports/{family}.compound.het.status.CH.hg38.csv",
                 **hpo_panel_outputs,
             params:
-                crg2_pacbio = config["tools"]["crg2_pacbio"],
+                crg2_pacbio = crg2_pacbio,
                 seq_type="short",
                 hpo_panel_args=get_hpo_panel_args,
                 acmg_sf_flag = str(config["run"].get("acmg_sf", "false")).lower(),
