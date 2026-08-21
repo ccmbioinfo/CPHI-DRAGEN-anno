@@ -32,6 +32,7 @@ rule create_acmg_sf_report:
             family=wildcards.family,
             input_report_type=acmg_sf_input_report_type,
         ),
+        acmg_sf_list=config["annotation"]["general"]["acmg_sf_list"],
     output:
         report="reports/{family}.ACMG.SF.hg38.csv",
     params:
