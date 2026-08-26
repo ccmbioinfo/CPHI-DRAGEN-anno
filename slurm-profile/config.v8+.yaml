@@ -54,10 +54,3 @@ slurm-keep-successful-logs: True # otherwise logs are deleted after successful c
 default-resources:
   mem_mb: 20000
   runtime: "20h"
-
-# ---------------------------------------------------------------------------
-# Rule specific resources
-# ---------------------------------------------------------------------------
-set-resources:
-    vcf2db:
-        runtime: "60h"

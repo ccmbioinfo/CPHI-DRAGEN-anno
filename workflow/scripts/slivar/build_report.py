@@ -311,7 +311,7 @@ def parse_spliceai(value):
     if not has_value(value):
         # No SpliceAI record for this variant. A real max score of 0 is reported as 0 below.
         return "NA|NA|NA", "."
-    # Roughly follows the SpliceAI parsing used by postfilter.py and cre.vcf2db.R.
+    # Roughly follows the SpliceAI parsing used by postfilter.py and the former CRE/R implementation.
     # Values look like Allele|Gene|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|...
     # Repeated INFO values might be a tuple. Each value can also still hold
     # comma-separated annotations, so flatten both forms first.
@@ -390,7 +390,7 @@ def max_numeric_csv(value):
 def parse_promoterai(value):
     if not has_value(value):
         return "."
-    # Roughly follows the promoterAI parsing used by postfilter.py and cre.vcf2db.R.
+    # Roughly follows the promoterAI parsing used by postfilter.py and the former CRE/R implementation.
     # Values are numeric score strings, for example "0.22" or "-0.14,0.03".
     # Repeated INFO values might be a tuple; otherwise split comma-separated scores.
     raw_values = value if isinstance(value, tuple) else str(value).split(",")
@@ -404,7 +404,7 @@ def parse_promoterai(value):
     return ",".join(kept) if kept else "."
 
 
-# Match the cre.vcf2db.R noncoding_pred function: report passing scores as "pass//available".
+# Match the former CRE/R noncoding_pred function: report passing scores as "pass//available".
 def noncoding_pred_fraction(cadd, ncer, remm, linsight):
     # Missing/non-numeric scores are ignored and do not count in the denominator.
     def float_or_none(value):
@@ -416,7 +416,7 @@ def noncoding_pred_fraction(cadd, ncer, remm, linsight):
             return None
 
     preds = []
-    # Thresholds are the cre.vcf2db.R cutoffs for CADD, ncER, ReMM, and LINSIGHT.
+    # Thresholds are the former CRE/R cutoffs for CADD, ncER, ReMM, and LINSIGHT.
     values = [
         (float_or_none(cadd), 10),
         (float_or_none(ncer), 95.95),
@@ -674,7 +674,7 @@ def parse_args():
     parser.add_argument("--vcf", required=True)
     parser.add_argument("--out-csv", required=True)
     parser.add_argument("--impact-order-file", required=True)
-    parser.add_argument("--cre-data-dir", required=True)
+    parser.add_argument("--slivar-data-dir", required=True)
     parser.add_argument("--hgmd", default="")
     parser.add_argument("--profile", choices=["dragen", "pacbio"], default="dragen")
     return parser.parse_args()
@@ -684,12 +684,12 @@ def main():
     args = parse_args()
     order_map = load_consequence_order(args.impact_order_file)
     # Load the local reference tables used to fill report columns.
-    gene_descriptions = index_first_by(load_reference_table(os.path.join(args.cre_data_dir, "ensembl_w_description.txt")), "ensembl_gene_id")
-    omim = index_many_by(load_reference_table(os.path.join(args.cre_data_dir, "OMIM_hgnc_join_omim_phenos_2026-06-02.tsv")), "gene_name")
-    orphanet = index_first_by(load_reference_table(os.path.join(args.cre_data_dir, "orphanet.txt")), "Ensembl_gene_id")
-    constraint = index_first_by(load_reference_table(os.path.join(args.cre_data_dir, "gnomad_scores_transcript_level_v4.1.1.csv")), "Ensembl_transcript_id")
-    imprinting = index_first_by(load_reference_table(os.path.join(args.cre_data_dir, "imprinting.txt")), "Gene")
-    pseudoautosomal = index_first_by(load_reference_table(os.path.join(args.cre_data_dir, "pseudoautosomal.txt")), "Ensembl_gene_id")
+    gene_descriptions = index_first_by(load_reference_table(os.path.join(args.slivar_data_dir, "ensembl_w_description.txt")), "ensembl_gene_id")
+    omim = index_many_by(load_reference_table(os.path.join(args.slivar_data_dir, "OMIM_hgnc_join_omim_phenos_2026-06-02.tsv")), "gene_name")
+    orphanet = index_first_by(load_reference_table(os.path.join(args.slivar_data_dir, "orphanet.txt")), "Ensembl_gene_id")
+    constraint = index_first_by(load_reference_table(os.path.join(args.slivar_data_dir, "gnomad_scores_transcript_level_v4.1.1.csv")), "Ensembl_transcript_id")
+    imprinting = index_first_by(load_reference_table(os.path.join(args.slivar_data_dir, "imprinting.txt")), "Gene")
+    pseudoautosomal = index_first_by(load_reference_table(os.path.join(args.slivar_data_dir, "pseudoautosomal.txt")), "Ensembl_gene_id")
     hgmd_by_variant, hgmd_genes = load_hgmd(args.hgmd)
 
     rows = []

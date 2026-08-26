@@ -2,11 +2,11 @@
 
 Madeline Couse
 
-**Version 2026-04**
+**Version 2026-08**
 
 ## Changelog
 
-Adapted from the long-read [crg2-pacbio pipeline](https://github.com/ccmbioinfo/crg2-pacbio) for GRCh38 DRAGEN v4.4 short-read genomes. Note that variant phasing here will mostly rely on the availability of parental genotypes, as read-only variant phasing is only possible across very short distances with short-read WGS.
+Adapted from the long-read [crg2-pacbio pipeline](https://github.com/ccmbioinfo/crg2-pacbio) for GRCh38 DRAGEN v4.4 short-read genomes. Sequence-variant preparation was updated to use the annotated VCF directly through slivar and Python. Note that variant phasing here will mostly rely on the availability of parental genotypes, as read-only variant phasing is only possible across very short distances with short-read WGS.
 
 ## Variant filtering and preparation for phasing
 
@@ -18,7 +18,7 @@ For SNVs/indels, variants are first filtered by the gnomAD filtering allele freq
 
 These synonymous/noncoding variants do not appear in the ‘wgs.coding’ report (unless they are in ClinVar) but are still considered in the CH status determination. Note that though variants that VEP has annotated as having the impact ‘intergenic\_variant’ are not considered in the CH status determination, those annotated as ‘upstream\_gene\_variant’ and ‘downstream\_gene\_variant’ are. VEP annotates variants within 5kb upstream or downstream as ‘upstream\_gene\_variant’ and ‘downstream\_gene\_variant’ respectively.
 
-Also note that if an SNV/indel overlaps multiple genes, the annotated gene is the gene with the higher impact. For example, if a variant is intronic in one gene and coding in the other, the variant will be annotated against the latter. If it is a tie between impact severities, the gene is effectively chosen randomly. These rules are imposed by the [gemini database](https://gemini.readthedocs.io/en/latest/index.html) we use to store and query variants.
+If an SNV/indel overlaps multiple genes, the slivar/Python workflow ranks all VEP annotations and selects one primary gene and consequence for the CH input tables. Selection is deterministic and considers curated disease-associated non-coding genes, pseudogene status, consequence severity, biotype, gene-symbol quality, MANE/canonical flags, transcript ID, and VEP input order. See the [small-variant report update](Small_Variant_Report_Slivar_Update.md#current-slivarpython-selection) for the complete priority order.
 
 ### SVs
 
@@ -69,7 +69,7 @@ CH algorithm inputs:
   - A table with Ensembl, HGNC, and NCBI gene IDs
   - Family pedigree file
 
-\* See documentation for variant impact classification [here](https://gemini.readthedocs.io/en/latest/content/database_schema.html#details-of-the-impact-and-impact-severity-columns).
+\* HIGH-MED and LOW are separated using `IMPACTFUL_CUTOFF` in the [slivar consequence order](Small_Variant_Report_Slivar_Update.md#appendix-slivar-consequence-order).
 
 CH algorithm outputs:
 
@@ -82,7 +82,7 @@ CH algorithm outputs:
 
 Sequence variant processing
 
-1.  Extract sequence variants from gemini db.
+1.  Select candidate sequence variants from the annotated VCF with slivar and build HIGH-MED and LOW TSVs directly from the candidate VCF.
 
 2.  Filter low impact sequence variants\*:
     
@@ -100,7 +100,7 @@ SV processing
 
 5.  Index SVs by chromosome, start position, end position, SVTYPE, and pbsv SV ID.
 
-6.  Filter for high impact SVs: filter out intergenic SVs and SVs with a gnomAD allele frequency less than 1%.
+6.  Filter for high impact SVs: filter out intergenic SVs and SVs with a gnomAD allele frequency greater than 1%.
 
 7.  Create an SV table in long format with Ensembl gene ID and per-sample genotype information (genotype, zygosity, phase set ID). Split variants by gene so that an SV that overlaps multiple genes is represented by multiple rows with one Ensembl gene ID per row.
 
@@ -114,7 +114,7 @@ CH status determination
 
 10. Identify genes with CH status in proband using only proband read-phased genotypes and phase block IDs from the variant table created in step 9.
 
-11. For genes with unknown CH status after step 9, attempt to determine CH status using parental variant genotypes if available.
+11. For genes with unknown CH status after step 10, attempt to determine CH status using parental variant genotypes if available.
 
 12. Export proband heterozygous variants with CH gene annotations to a CSV in the format described in Table 1 below.
 

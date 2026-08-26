@@ -5,44 +5,6 @@ def output_status(output_path):
 
 hpo_available = config["run"].get("hpo", "")
 
-hpo_panel_inputs = {
-    "panel_variant_report_dir": "small_variants/panel/{family}",
-    "panel_flank_variant_report_dir": "small_variants/panel-flank/{family}",
-    "HPO": config["run"]["hpo"],
-} if hpo_available else {}
-
-hpo_panel_outputs = {
-    "panel_variant_report_CH": "reports/{family}.panel.CH.hg38.csv",
-    "panel_flank_variant_report_CH": "reports/{family}.panel-flank.CH.hg38.csv",
-} if hpo_available else {}
-
-def get_hpo_panel_args(wildcards, input):
-    if hpo_available:
-        return (
-            f"--hpo {input.HPO} "
-            f"--panel_variant_report_dir {input.panel_variant_report_dir} "
-            f"--panel_flank_variant_report_dir {input.panel_flank_variant_report_dir}"
-        )
-    return ""
-
-rule get_small_variants_for_CH:
-    input:
-        gemini_db="annotated/coding/{family}-gemini.db"
-    output:
-        variants=temp("small_variants/{family}.{severity}.impact.variants.tsv"),
-    params:
-        severity="{severity}",
-        crg2_pacbio = config["tools"]["crg2_pacbio"],
-        seq_type="short"
-    log:
-        "logs/compound_hets/{family}.get.sequence.variants.for.CH.{severity}.log",
-    conda:
-        "../envs/gemini.yaml"
-    wildcard_constraints:
-        severity="HIGH-MED|LOW"
-    shell:
-        "{params.crg2_pacbio}/scripts/compound_hets/get_sequence_var_for_CH.sh {input.gemini_db} {params.severity} {params.seq_type} > {output.variants}"
-
 rule get_VCF_sample_order:
     input:
         vcf="annotated/coding/vcfanno/{family}.coding.vep.vcfanno.vcf.gz",
@@ -53,113 +15,7 @@ rule get_VCF_sample_order:
     conda:
         "../envs/common.yaml"
     shell:
-        "bcftools query -l {input.vcf} > {output.sample_order}"
-
-if len(children) > 0:
-    rule identify_compound_hets_with_denovo:
-        input:
-            high_med_variants="small_variants/{family}.HIGH-MED.impact.variants.tsv",
-            low_variants="small_variants/{family}.LOW.impact.variants.tsv",
-            small_variant_report_dir="small_variants/coding/{family}",
-            wgs_high_impact_variant_report_dir="small_variants/wgs-high-impact/{family}",
-            wgs_denovo_variant_report_dir="small_variants/denovo/{family}",
-            SV_report="sv/{family}.sv.csv",
-            CNV_report="cnv/{family}.cnv.csv",
-            ensembl=config["annotation"]["general"]["ensembl"],
-            ensembl_to_NCBI_df=config["annotation"]["general"]["ensembl_to_NCBI_df"],
-            pedigree=config["run"]["ped"],
-            sample_order="small_variants/{family}.sample.order.txt",
-            **hpo_panel_inputs,
-        output:
-            small_variant_report_CH=output_status("reports/{family}.wgs.coding.CH.hg38.csv"),
-            wgs_high_impact_variant_report_CH=output_status("reports/{family}.wgs.high.impact.CH.hg38.csv"),
-            wgs_denovo_variant_report_CH=output_status("reports/{family}.wgs.denovo.CH.hg38.csv"),
-            SV_report_CH=output_status("reports/{family}.sv.CH.hg38.csv"),
-            CNV_report_CH=output_status("reports/{family}.cnv.CH.hg38.csv"),
-            compound_het_status="reports/{family}.compound.het.status.CH.hg38.csv",
-            **hpo_panel_outputs,
-        params:
-            crg2_pacbio = config["tools"]["crg2_pacbio"],
-            seq_type="short",
-            hpo_panel_args=get_hpo_panel_args,
-            acmg_sf_flag = str(config["run"].get("acmg_sf", "false")).lower(),
-            mavedb_tsv = config["annotation"]["general"]["mavedb_tsv"]
-        conda:
-            "../envs/str_sv.yaml"
-        log:
-            "logs/compound_hets/{family}.identify.compound.hets.log",
-        shell:
-            """
-            (python3 {params.crg2_pacbio}/scripts/annotate_compound_hets.py --seq_type {params.seq_type} --high_med {input.high_med_variants} \
-            --low {input.low_variants} \
-            --sv {input.SV_report}  \
-            --cnv {input.CNV_report}  \
-            --ensembl {input.ensembl}  \
-            --ensembl_to_NCBI_df {input.ensembl_to_NCBI_df}  \
-            --pedigree {input.pedigree}  \
-            {params.hpo_panel_args}  \
-            --sequence_variant_report_dir {input.small_variant_report_dir}  \
-            --wgs_high_impact_variant_report_dir {input.wgs_high_impact_variant_report_dir}  \
-            --wgs_denovo_variant_report_dir {input.wgs_denovo_variant_report_dir}  \
-            --sample_order {input.sample_order}  \
-            --family {wildcards.family}  \
-            --acmg_sf {params.acmg_sf_flag} && \
-            python3 {params.crg2_pacbio}/scripts/add_mavedb_columns.py \
-            --family {wildcards.family} \
-            --reports-dir reports \
-            --mavedb-tsv {params.mavedb_tsv}) > {log} 2>&1
-            """
-else:
-        rule identify_compound_hets:
-            input:
-                high_med_variants="small_variants/{family}.HIGH-MED.impact.variants.tsv",
-                low_variants="small_variants/{family}.LOW.impact.variants.tsv",
-                small_variant_report_dir="small_variants/coding/{family}",
-                wgs_high_impact_variant_report_dir="small_variants/wgs-high-impact/{family}",
-                SV_report="sv/{family}.sv.csv",
-                CNV_report="cnv/{family}.cnv.csv",
-                ensembl=config["annotation"]["general"]["ensembl"],
-                ensembl_to_NCBI_df=config["annotation"]["general"]["ensembl_to_NCBI_df"],
-                pedigree=config["run"]["ped"],
-                sample_order="small_variants/{family}.sample.order.txt",
-                **hpo_panel_inputs,
-            output:
-                small_variant_report_CH=output_status("reports/{family}.wgs.coding.CH.hg38.csv"),
-                wgs_high_impact_variant_report_CH=output_status("reports/{family}.wgs.high.impact.CH.hg38.csv"),
-                SV_report_CH=output_status("reports/{family}.sv.CH.hg38.csv"),
-                CNV_report_CH=output_status("reports/{family}.cnv.CH.hg38.csv"),
-                compound_het_status="reports/{family}.compound.het.status.CH.hg38.csv",
-                **hpo_panel_outputs,
-            params:
-                crg2_pacbio = config["tools"]["crg2_pacbio"],
-                seq_type="short",
-                hpo_panel_args=get_hpo_panel_args,
-                acmg_sf_flag = str(config["run"].get("acmg_sf", "false")).lower(),
-                mavedb_tsv = config["annotation"]["general"]["mavedb_tsv"]
-            conda:
-                "../envs/str_sv.yaml"
-            log:
-                "logs/compound_hets/{family}.identify.compound.hets.log",
-            shell:
-                """
-                (python3 {params.crg2_pacbio}/scripts/annotate_compound_hets.py --seq_type {params.seq_type} --high_med {input.high_med_variants} \
-                --low {input.low_variants} \
-                --sv {input.SV_report}  \
-                --cnv {input.CNV_report}  \
-                --ensembl {input.ensembl}  \
-                --ensembl_to_NCBI_df {input.ensembl_to_NCBI_df}  \
-                --pedigree {input.pedigree}  \
-                {params.hpo_panel_args}  \
-                --sequence_variant_report_dir {input.small_variant_report_dir}  \
-                --wgs_high_impact_variant_report_dir {input.wgs_high_impact_variant_report_dir}  \
-                --sample_order {input.sample_order}  \
-                --family {wildcards.family}  \
-                --acmg_sf {params.acmg_sf_flag} && \
-                python3 {params.crg2_pacbio}/scripts/add_mavedb_columns.py \
-                --family {wildcards.family} \
-                --reports-dir reports \
-                --mavedb-tsv {params.mavedb_tsv}) > {log} 2>&1
-                """
+        "mkdir -p $(dirname {output.sample_order}) && bcftools query -l {input.vcf} > {output.sample_order}"
 
 slivar_hpo_panel_inputs = {
     "panel_variant_report": "small_variants_slivar/panel/{family}/{family}.panel.slivar.hg38.csv",
@@ -168,8 +24,8 @@ slivar_hpo_panel_inputs = {
 } if hpo_available else {}
 
 slivar_hpo_panel_outputs = {
-    "panel_variant_report_CH": "reports_slivar/{family}.panel.CH.hg38.csv",
-    "panel_flank_variant_report_CH": "reports_slivar/{family}.panel-flank.CH.hg38.csv",
+    "panel_variant_report_CH": "reports/{family}.panel.CH.hg38.csv",
+    "panel_flank_variant_report_CH": "reports/{family}.panel-flank.CH.hg38.csv",
 } if hpo_available else {}
 
 def get_slivar_hpo_panel_args(wildcards, input):
@@ -229,7 +85,7 @@ rule get_slivar_small_variants_for_CH:
         """
 
 if len(children) > 0:
-    rule identify_compound_hets_slivar_with_denovo:
+    rule identify_compound_hets_with_denovo:
         input:
             high_med_variants="small_variants_slivar/{family}.HIGH-MED.impact.variants.tsv",
             low_variants="small_variants_slivar/{family}.LOW.impact.variants.tsv",
@@ -244,12 +100,12 @@ if len(children) > 0:
             sample_order="small_variants/{family}.sample.order.txt",
             **slivar_hpo_panel_inputs,
         output:
-            small_variant_report_CH=output_status("reports_slivar/{family}.wgs.coding.CH.hg38.csv"),
-            wgs_high_impact_variant_report_CH=output_status("reports_slivar/{family}.wgs.high.impact.CH.hg38.csv"),
-            wgs_denovo_variant_report_CH=output_status("reports_slivar/{family}.wgs.denovo.CH.hg38.csv"),
-            SV_report_CH=output_status("reports_slivar/{family}.sv.CH.hg38.csv"),
-            CNV_report_CH=output_status("reports_slivar/{family}.cnv.CH.hg38.csv"),
-            compound_het_status="reports_slivar/{family}.compound.het.status.CH.hg38.csv",
+            small_variant_report_CH=output_status("reports/{family}.wgs.coding.CH.hg38.csv"),
+            wgs_high_impact_variant_report_CH=output_status("reports/{family}.wgs.high.impact.CH.hg38.csv"),
+            wgs_denovo_variant_report_CH=output_status("reports/{family}.wgs.denovo.CH.hg38.csv"),
+            SV_report_CH=output_status("reports/{family}.sv.CH.hg38.csv"),
+            CNV_report_CH=output_status("reports/{family}.cnv.CH.hg38.csv"),
+            compound_het_status="reports/{family}.compound.het.status.CH.hg38.csv",
             **slivar_hpo_panel_outputs,
         params:
             crg2_pacbio=config["tools"]["crg2_pacbio"],
@@ -261,7 +117,7 @@ if len(children) > 0:
         conda:
             "../envs/str_sv.yaml"
         log:
-            "logs/compound_hets/{family}.slivar.identify.compound.hets.log",
+            "logs/compound_hets/{family}.identify.compound.hets.log",
         shell:
             """
             (set -e
@@ -306,29 +162,29 @@ if len(children) > 0:
             --family {wildcards.family} \
             --reports-dir reports \
             --mavedb-tsv "$mavedb_tsv"
-            mkdir -p "$root/reports_slivar"
-            cp -a reports/. "$root/reports_slivar/") > {log} 2>&1
+            mkdir -p "$root/reports"
+            cp -a reports/. "$root/reports/") > {log} 2>&1
             """
 else:
-    rule identify_compound_hets_slivar:
+    rule identify_compound_hets:
         input:
             high_med_variants="small_variants_slivar/{family}.HIGH-MED.impact.variants.tsv",
             low_variants="small_variants_slivar/{family}.LOW.impact.variants.tsv",
             small_variant_report="small_variants_slivar/coding/{family}/{family}.coding.slivar.hg38.csv",
             wgs_high_impact_variant_report="small_variants_slivar/wgs-high-impact/{family}/{family}.wgs-high-impact.slivar.hg38.csv",
-            SV_report="reports/{family}.sv.csv",
-            CNV_report="reports/{family}.cnv.csv",
+            SV_report="sv/{family}.sv.csv",
+            CNV_report="cnv/{family}.cnv.csv",
             ensembl=config["annotation"]["general"]["ensembl"],
             ensembl_to_NCBI_df=config["annotation"]["general"]["ensembl_to_NCBI_df"],
             pedigree=config["run"]["ped"],
             sample_order="small_variants/{family}.sample.order.txt",
             **slivar_hpo_panel_inputs,
         output:
-            small_variant_report_CH=output_status("reports_slivar/{family}.wgs.coding.CH.hg38.csv"),
-            wgs_high_impact_variant_report_CH=output_status("reports_slivar/{family}.wgs.high.impact.CH.hg38.csv"),
-            SV_report_CH=output_status("reports_slivar/{family}.sv.CH.hg38.csv"),
-            CNV_report_CH=output_status("reports_slivar/{family}.cnv.CH.hg38.csv"),
-            compound_het_status="reports_slivar/{family}.compound.het.status.CH.hg38.csv",
+            small_variant_report_CH=output_status("reports/{family}.wgs.coding.CH.hg38.csv"),
+            wgs_high_impact_variant_report_CH=output_status("reports/{family}.wgs.high.impact.CH.hg38.csv"),
+            SV_report_CH=output_status("reports/{family}.sv.CH.hg38.csv"),
+            CNV_report_CH=output_status("reports/{family}.cnv.CH.hg38.csv"),
+            compound_het_status="reports/{family}.compound.het.status.CH.hg38.csv",
             **slivar_hpo_panel_outputs,
         params:
             crg2_pacbio=config["tools"]["crg2_pacbio"],
@@ -340,7 +196,7 @@ else:
         conda:
             "../envs/str_sv.yaml"
         log:
-            "logs/compound_hets/{family}.slivar.identify.compound.hets.log",
+            "logs/compound_hets/{family}.identify.compound.hets.log",
         shell:
             """
             (set -e
@@ -382,6 +238,6 @@ else:
             --family {wildcards.family} \
             --reports-dir reports \
             --mavedb-tsv "$mavedb_tsv"
-            mkdir -p "$root/reports_slivar"
-            cp -a reports/. "$root/reports_slivar/") > {log} 2>&1
+            mkdir -p "$root/reports"
+            cp -a reports/. "$root/reports/") > {log} 2>&1
             """

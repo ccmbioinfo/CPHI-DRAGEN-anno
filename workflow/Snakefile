@@ -29,24 +29,8 @@ else:
 #### define file suffix if acmg_sf flag is set to true in config file ####
 acmg_sf_enabled = str(config["run"].get("acmg_sf", "")).lower() == "true"
 sf_suffix = ".SF" if acmg_sf_enabled else ""
-slivar_preview_enabled = str(config["run"].get("slivar_preview", "")).lower() == "true"
 
 acmg_sf_report_output = ["reports/{family}.ACMG.SF.hg38.csv".format(family=family)] if acmg_sf_enabled else []
-if slivar_preview_enabled and acmg_sf_enabled:
-    acmg_sf_report_output.append("reports_slivar/{family}.ACMG.SF.hg38.csv".format(family=family))
-
-slivar_preview_outputs = [
-    "reports_slivar/{family}.wgs.coding.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
-    "reports_slivar/{family}.wgs.high.impact.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
-    "reports_slivar/{family}.sv.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
-    "reports_slivar/{family}.cnv.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
-    "reports_slivar/{family}.compound.het.status.CH.hg38.csv".format(family=family),
-    "reports_slivar_compare/{family}.coding.summary.tsv".format(family=family),
-    "reports_slivar_compare/{family}.wgs-high-impact.summary.tsv".format(family=family),
-    "reports_slivar/{family}.known.path.str.loci.hg38.csv".format(family=family),
-    "reports_slivar/{family}.mito.hg38.csv".format(family=family),
-    "reports_slivar/{family}.multiqc_report.html".format(family=family),
-] if slivar_preview_enabled else []
 
 ##### load rules #####
 include: "rules/common.smk"
@@ -66,13 +50,6 @@ if config["run"].get("hpo",""):
             "reports/{family}.panel.CH.hg38.csv".format(family=family),
             "reports/{family}.panel-flank.CH.hg38.csv".format(family=family),
      ]
-    if slivar_preview_enabled:
-        hpo_report_outputs.extend([
-            "reports_slivar/{family}.panel.CH.hg38.csv".format(family=family),
-            "reports_slivar/{family}.panel-flank.CH.hg38.csv".format(family=family),
-            "reports_slivar_compare/{family}.panel.summary.tsv".format(family=family),
-            "reports_slivar_compare/{family}.panel-flank.summary.tsv".format(family=family),
-        ])
 else:
      hpo_report_outputs=[]
 
@@ -81,8 +58,6 @@ rule all:
         "reports/{family}.wgs.coding.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
         "reports/{family}.wgs.high.impact.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
         "reports/{family}.wgs.denovo.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix) if len(children) > 0 else [],
-        "reports_slivar/{family}.wgs.denovo.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix) if slivar_preview_enabled and len(children) > 0 else [],
-        "reports_slivar_compare/{family}.denovo.summary.tsv".format(family=family) if slivar_preview_enabled and len(children) > 0 else [],
         "reports/{family}.known.path.str.loci.hg38.csv".format(family=family),
         "reports/{family}.sv.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
         "reports/{family}.cnv.CH{sf}.hg38.csv".format(family=family, sf=sf_suffix),
@@ -91,4 +66,3 @@ rule all:
         "reports/{family}.compound.het.status.CH.hg38.csv".format(family=family),
         *hpo_report_outputs,
         *acmg_sf_report_output,
-        *slivar_preview_outputs,

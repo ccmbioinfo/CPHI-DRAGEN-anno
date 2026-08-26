@@ -4,7 +4,7 @@
 
 ## Overview
 
-Small-variant reporting in the DRAGEN short-read and PacBio long-read pipelines is being updated from CRE/[GEMINI](https://gemini.readthedocs.io/en/latest/)/R to [slivar](https://github.com/brentp/slivar) and Python. The reasons for this change are:
+Small-variant reporting in the DRAGEN short-read and PacBio long-read pipelines has been updated from CRE/[GEMINI](https://gemini.readthedocs.io/en/latest/)/R to [slivar](https://github.com/brentp/slivar) and Python. The reasons for this change are:
 
 - GEMINI and related tools are no longer actively maintained
 - The CRE/GEMINI/R workflow does not provide special handling for disease-associated non-coding genes
@@ -13,9 +13,9 @@ Small-variant reporting in the DRAGEN short-read and PacBio long-read pipelines 
 - variant filtering is easier to inspect and control directly
 - transcript and consequence selection can be defined explicitly in the pipeline code
 
-In the current workflow, CRE/GEMINI loads each VEP/vcfanno-annotated small-variant VCF into a database, where [geneimpacts](https://github.com/brentp/geneimpacts) selects one primary transcript and consequence per variant. Most gene- or consequence-dependent filtering and transcript fields use that annotation, and an R script formats the final report.
+In the previous workflow, CRE/GEMINI loaded each VEP/vcfanno-annotated small-variant VCF into a database, where [geneimpacts](https://github.com/brentp/geneimpacts) selected one primary transcript and consequence per variant. Most gene- or consequence-dependent filtering and transcript fields used that annotation, and an R script formatted the final report.
 
-The updated workflow filters the annotated VCF directly with slivar without an intermediate database, allowing all VEP annotations to be considered when gene or consequence context matters. A Python script selects a primary annotation later for some report fields, while the new `_all` columns summarize the additional gene, transcript, and consequence context. The additional context is particularly important for variants that overlap both non-coding and protein-coding genes, for example RNU4-2 and SIRT4, since protein-coding transcripts, unless specified in the curated disease-associated non-coding gene list (see Appendix), are always prioritized over non-coding transcripts.
+The current workflow filters the annotated VCF directly with slivar without an intermediate database, allowing all VEP annotations to be considered when gene or consequence context matters. A Python script selects a primary annotation later for some report fields, while the new `_all` columns summarize the additional gene, transcript, and consequence context. The additional context is particularly important for variants that overlap both non-coding and protein-coding genes, for example RNU4-2 and SIRT4, since protein-coding transcripts, unless specified in the curated disease-associated non-coding gene list (see Appendix), are always prioritized over non-coding transcripts.
 
 ## Variant filtering
 

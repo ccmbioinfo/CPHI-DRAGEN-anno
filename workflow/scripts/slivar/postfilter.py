@@ -24,7 +24,7 @@ def parse_spliceai_score(record):
     if not has_value(value):
         return 0.0
 
-    # Roughly follows the SpliceAI parsing in workflow/scripts/cre/cre.vcf2db.R.
+    # Roughly follows the SpliceAI parsing in the former CRE/R implementation.
     # Values look like Allele|Gene|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|...
     # Repeated INFO values might be a tuple. Each value can also
     # still hold comma-separated annotations, so flatten both forms first.
@@ -58,7 +58,7 @@ def parse_promoterai_score(record):
     if not has_value(value):
         return 0.0
 
-    # Roughly follows the promoterAI parsing in workflow/scripts/cre/cre.vcf2db.R.
+    # Roughly follows the promoterAI parsing in the former CRE/R implementation.
     # Values are numeric score strings, for example "0.22" or "-0.14,0.03".
     # pysam may expose repeated INFO values as a tuple; otherwise, split a
     # scalar containing comma-separated scores.
