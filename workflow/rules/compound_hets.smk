@@ -108,7 +108,7 @@ if len(children) > 0:
             compound_het_status="reports/{family}.compound.het.status.CH.hg38.csv",
             **slivar_hpo_panel_outputs,
         params:
-            crg2_pacbio=config["tools"]["crg2_pacbio"],
+            crg2_pacbio = crg2_pacbio,
             seq_type="short",
             hpo_panel_args=get_slivar_hpo_panel_args,
             stage_hpo_panel_reports=stage_slivar_hpo_panel_reports,
