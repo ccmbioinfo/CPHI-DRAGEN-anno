@@ -5,9 +5,6 @@ from snakemake.shell import shell
 shell.executable("bash")
 
 mode = snakemake.params.mode
-profile = snakemake.params.get("profile", "dragen")
-if profile not in {"dragen", "pacbio"}:
-    raise ValueError(f"Unsupported slivar profile: {profile}")
 vcf = snakemake.input.vcf
 js = snakemake.params.js
 consequence_order_file = snakemake.params.consequence_order_file
@@ -71,20 +68,6 @@ if mode in {"coding", "wgs-high-impact", "denovo", "panel", "panel-flank"}:
     if mode == "coding":
         # Coding requires a consequence ranked before IMPACTFUL_CUTOFF in the order file.
         rare_main_expr = "INFO.impactful &&\n" + rare_main_expr
-
-    if profile == "pacbio" and mode == "wgs-high-impact":
-        # The PacBio CRE high-impact main branch also requires CoLoRSdb AF <= 1%.
-        # Missing values correspond to GEMINI's numeric -1 sentinel and therefore pass;
-        # ClinVar rescue branches intentionally do not use this extra condition.
-        rare_main_expr += dedent(
-            """
-            && (
-              !("CoLoRSdb_AF" in INFO) ||
-              !present(INFO.CoLoRSdb_AF) ||
-              INFO.CoLoRSdb_AF <= 0.01
-            )
-            """
-        )
 
     # Keep PASS, non-star variants with missing/low FAF and at least one sample with AD >= 3
     # (or family-wide missing AD); coding also requires INFO.impactful and high-impact FAF <= 0.001.

@@ -58,7 +58,7 @@ rule slivar_select_compound_het_candidates:
         "../wrappers/slivar/environment.yaml"
     params:
         js=f"{workflow.basedir}/scripts/slivar/slivar_functions.js",
-        consequence_order_file=f"{workflow.basedir}/scripts/slivar/default-order.txt",
+        consequence_order_file=f"{crg2_pacbio}/scripts/slivar/default-order.txt",
         mode="compound-hets",
     wrapper:
         get_wrapper_path("slivar")
@@ -73,13 +73,16 @@ rule get_slivar_small_variants_for_CH:
         "logs/compound_hets/{family}.slivar.get.sequence.variants.for.CH.log",
     conda:
         "../envs/slivar.yaml"
+    params:
+        consequence_order_file=f"{crg2_pacbio}/scripts/slivar/default-order.txt",
+        disease_rna_genes=f"{crg2_pacbio}/scripts/slivar/disease-rna-genes.txt",
     shell:
         """
         (set -e
         mkdir -p $(dirname {output.high_med})
-        python3 {workflow.basedir}/scripts/slivar/build_ch_tsv.py \
+        SLIVAR_DISEASE_RNA_GENES="{params.disease_rna_genes}" python3 {workflow.basedir}/scripts/slivar/build_ch_tsv.py \
         --vcf {input.vcf} \
-        --impact-order-file {workflow.basedir}/scripts/slivar/default-order.txt \
+        --impact-order-file {params.consequence_order_file} \
         --high-med-out {output.high_med} \
         --low-out {output.low}) > {log} 2>&1
         """
@@ -187,7 +190,7 @@ else:
             compound_het_status="reports/{family}.compound.het.status.CH.hg38.csv",
             **slivar_hpo_panel_outputs,
         params:
-            crg2_pacbio=config["tools"]["crg2_pacbio"],
+            crg2_pacbio=crg2_pacbio,
             seq_type="short",
             hpo_panel_args=get_slivar_hpo_panel_args,
             stage_hpo_panel_reports=stage_slivar_hpo_panel_reports,

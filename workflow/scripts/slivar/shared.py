@@ -19,8 +19,12 @@ def _load_disease_rna_genes(path):
 
 # Small non-coding disease genes VEP annotates under an overlapping protein-coding
 # gene. Membership promotes a CSQ to the primary report gene.
+DISEASE_RNA_GENES_PATH = os.environ.get(
+    "SLIVAR_DISEASE_RNA_GENES",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "disease-rna-genes.txt"),
+)
 DISEASE_RNA_GENES = _load_disease_rna_genes(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "disease-rna-genes.txt")
+    DISEASE_RNA_GENES_PATH
 )
 
 

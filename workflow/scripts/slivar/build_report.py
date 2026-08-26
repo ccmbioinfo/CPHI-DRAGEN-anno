@@ -64,19 +64,15 @@ DOT_MISSING_FIELDS = {
     "Refseq_change_all", "Revel_score", "Sift_score", "Sift_score_all",
     "TF_binding_sites", "Vest4_score", "ncER_score", "omim_inheritance_all",
     "omim_phenotype_all", "promoterAI_score", "phylop100way", "rsIDs",
-    "CoLoRSdb_AF", "CoLoRSdb_AC", "CoLoRSdb_AC_Hemi", "CoLoRSdb_nhomalt",
-    "TG_LRWGS_samples", "Dark_genes", "PS",
 }
 
 
 # Numeric frequency/count fields where missing values are reported as 0.
 ZERO_MISSING_FIELDS = {
     "GSO_AC", "GSO_AF", "GSO_hemi", "GSO_nhomalt",
-    "CoLoRSdb_AF", "CoLoRSdb_AC", "CoLoRSdb_AC_Hemi", "CoLoRSdb_nhomalt",
     "Gnomad_ac", "Gnomad_af", "Gnomad_af_grpmax", "Gnomad_fafmax_faf95_max",
     "Gnomad_hom", "Regeneron_exome_AF", "Regeneron_exome_AC",
     "thousandG_AF", "thousandG_AC", "thousandG_nhomalt",
-    "TG_LRWGS_AC", "TG_LRWGS_hom",
 }
 
 
@@ -193,12 +189,6 @@ def as_aligned_text(value):
         return ""
     items = value if isinstance(value, tuple) else (value,)
     return ",".join("" if item is None or str(item) in MISSING else str(item) for item in items)
-
-
-def format_phase_sets(value):
-    if isinstance(value, tuple):
-        return "|".join(str(item) if has_value(item) else "." for item in value)
-    return value_as_text(value).replace(",", "|")
 
 
 # Apply missing-value conventions after all row fields are populated.
@@ -583,7 +573,7 @@ def constraint_all_summary(transcripts, constraint_by_transcript):
     return join_unique_values(parts, sep=";")
 
 # Build the exact report header sequence for the selected Slivar mode.
-def make_columns(mode, samples, include_denovo=False, include_denovo_quality=False, profile="dragen"):
+def make_columns(mode, samples, include_denovo=False, include_denovo_quality=False):
     sample_headers = [report_sample_name(sample) for sample in samples]
     # Each extend appends the next CSV header group; changing this order changes the report.
     columns = ["Position", "UCSC_Link", "GNOMAD_Link", "Ref", "Alt"]
@@ -591,8 +581,6 @@ def make_columns(mode, samples, include_denovo=False, include_denovo_quality=Fal
     columns.extend(["Gene", "Gene_all"])
     columns.extend([f"Burden.{sample}" for sample in sample_headers])
     columns.append("gts")
-    if profile == "pacbio":
-        columns.append("PS")
     columns.extend(["Variation", "Info", "Refseq_change", "Depth", "Quality"])
     columns.extend([f"Alt_depths.{sample}" for sample in sample_headers])
     columns.extend([f"gt_quals.{sample}" for sample in sample_headers])
@@ -607,12 +595,8 @@ def make_columns(mode, samples, include_denovo=False, include_denovo_quality=Fal
     columns.extend(["Clinvar", "HGMD_id", "HGMD_gene", "HGMD_tag", "HGMD_ref"])
     columns.extend(["Gnomad_af_grpmax", "Gnomad_af", "Gnomad_ac", "Gnomad_hom", "Gnomad_male_ac"])
     columns.extend(["Gnomad_fafmax_faf95_max", "Gnomad_filter", "Regeneron_exome_AF", "Regeneron_exome_AC"])
-    if profile == "pacbio":
-        columns.extend(["CoLoRSdb_AF", "CoLoRSdb_AC", "CoLoRSdb_AC_Hemi", "CoLoRSdb_nhomalt"])
-        columns.extend(["TG_LRWGS_AC", "TG_LRWGS_samples", "TG_LRWGS_hom"])
-    else:
-        columns.extend(["thousandG_AF", "thousandG_AC", "thousandG_nhomalt"])
-        columns.extend(["GSO_AF", "GSO_AC", "GSO_nhomalt", "GSO_hemi"])
+    columns.extend(["thousandG_AF", "thousandG_AC", "thousandG_nhomalt"])
+    columns.extend(["GSO_AF", "GSO_AC", "GSO_nhomalt", "GSO_hemi"])
     columns.extend(["Ensembl_transcript_id", "rsIDs"])
 
     if mode == "coding":
@@ -622,8 +606,6 @@ def make_columns(mode, samples, include_denovo=False, include_denovo_quality=Fal
         columns.extend(["Sift_score", "Polyphen_score", "Cadd_score", "Vest4_score", "Revel_score", "Gerp_score", "AlphaMissense"])
         columns.extend(["phylop100way", "SpliceAI_impact", "SpliceAI_score"])
         columns.extend(["Imprinting_status", "Imprinting_expressed_allele", "Pseudoautosomal", "Old_multiallelic"])
-        if profile == "pacbio":
-            columns.append("Dark_genes")
         columns.extend(["CSQ_biotype", "CSQ_impact", "Sift_score_all", "Polyphen_score_all", "CSQ_biotype_all"])
     else:
         # All other Slivar modes use the WGS-style noncoding/report column set.
@@ -631,12 +613,9 @@ def make_columns(mode, samples, include_denovo=False, include_denovo_quality=Fal
         columns.extend(["Cadd_score", "phylop100way", "SpliceAI_impact", "SpliceAI_score"])
         columns.extend(["ncER_score", "ReMM_score", "LINSIGHT_score", "Noncoding_path_pred", "promoterAI_score"])
         columns.extend(["Imprinting_status", "Imprinting_expressed_allele", "Pseudoautosomal", "Old_multiallelic"])
-        if profile == "pacbio":
-            columns.append("Dark_genes")
         columns.extend(["UCE_100bp", "UCE_200bp", "DNaseI_hypersensitive_site", "CTCF_binding_site"])
         columns.extend(["ENH_cellline_tissue", "TF_binding_sites"])
-        if profile != "pacbio":
-            columns.extend(["GreenDB_variant_type", "GreenDB_closest_gene", "GreenDB_controlled_gene"])
+        columns.extend(["GreenDB_variant_type", "GreenDB_closest_gene", "GreenDB_controlled_gene"])
         columns.extend(["CSQ_biotype", "CSQ_impact", "CSQ_biotype_all"])
 
     # Put these aggregated annotation columns at the end of both report types.
@@ -665,7 +644,7 @@ def drop_empty_optional_columns(columns, rows, prefixes):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Unified slivar report builder.")
+    parser = argparse.ArgumentParser(description="Build DRAGEN Slivar reports.")
     parser.add_argument(
         "--mode",
         required=True,
@@ -676,7 +655,6 @@ def parse_args():
     parser.add_argument("--impact-order-file", required=True)
     parser.add_argument("--slivar-data-dir", required=True)
     parser.add_argument("--hgmd", default="")
-    parser.add_argument("--profile", choices=["dragen", "pacbio"], default="dragen")
     return parser.parse_args()
 
 
@@ -701,7 +679,7 @@ def main():
         # DN and DQ are optional FORMAT fields; include those columns only when present.
         include_denovo = "DN" in vcf.header.formats
         include_denovo_quality = "DQ" in vcf.header.formats
-        columns = make_columns(args.mode, samples, include_denovo, include_denovo_quality, args.profile)
+        columns = make_columns(args.mode, samples, include_denovo, include_denovo_quality)
         csq_fields = get_csq_fields(vcf)
         if not csq_fields:
             raise SystemExit("VCF header does not contain a usable INFO/CSQ field")
@@ -751,8 +729,6 @@ def main():
                     row[f"denovo_quality.{sample_header}"] = value_as_text(sample_data.get("DQ"))
 
             row["gts"] = ",".join(sample_gt_strings)
-            if args.profile == "pacbio":
-                row["PS"] = format_phase_sets(get_info_value(record, "PS"))
             row["Depth"] = value_as_text(get_info_value(record, "DP"))
             row["Quality"] = "" if record.qual is None else str(record.qual)
             row["Trio_coverage"] = "_".join(depth if has_value(depth) else "0" for depth in sample_depths)
@@ -777,10 +753,6 @@ def main():
                 ("thousandG_nhomalt", "thousandG_nhomalt"),
                 ("GSO_AF", "GSO_AF"), ("GSO_AC", "GSO_AC"),
                 ("GSO_nhomalt", "GSO_nhomalt"), ("GSO_hemi", "GSO_hemi"),
-                ("CoLoRSdb_AF", "CoLoRSdb_AF"), ("CoLoRSdb_AC", "CoLoRSdb_AC"),
-                ("CoLoRSdb_AC_Hemi", "CoLoRSdb_AC_Hemi"), ("CoLoRSdb_nhomalt", "CoLoRSdb_nhomalt"),
-                ("TG_LRWGS_AC", "tg_lrwgs_ac"), ("TG_LRWGS_samples", "tg_lrwgs_samples"),
-                ("TG_LRWGS_hom", "tg_lrwgs_hom"), ("Dark_genes", "Dark_genes"),
                 ("rsIDs", "rs_ids"),
                 ("Cadd_score", "CADD_phred"), ("Vest4_score", "Vest4_score"),
                 ("Revel_score", "REVEL_score"), ("Gerp_score", "Gerp_score"),

@@ -213,7 +213,7 @@ rule slivar_select:
         "../wrappers/slivar/environment.yaml"
     params:
         js=f"{workflow.basedir}/scripts/slivar/slivar_functions.js",
-        consequence_order_file=f"{workflow.basedir}/scripts/slivar/default-order.txt",
+        consequence_order_file=f"{crg2_pacbio}/scripts/slivar/default-order.txt",
         mode="{p}"
     wrapper:
         get_wrapper_path("slivar")
@@ -232,14 +232,17 @@ rule slivar_postfilter:
         "logs/slivar/{family}.{p}.postfilter.log"
     conda:
         "../envs/slivar.yaml"
+    params:
+        consequence_order_file=f"{crg2_pacbio}/scripts/slivar/default-order.txt",
+        disease_rna_genes=f"{crg2_pacbio}/scripts/slivar/disease-rna-genes.txt",
     shell:
         """
-        (python3 {workflow.basedir}/scripts/slivar/postfilter.py \
+        (SLIVAR_DISEASE_RNA_GENES="{params.disease_rna_genes}" python3 {workflow.basedir}/scripts/slivar/postfilter.py \
         --mode {wildcards.p} \
         --rare-main-vcf {input.rare_main} \
         --rare-clinvar-vcf {input.rare_clinvar} \
         --common-pathogenic-clinvar-vcf {input.common_pathogenic_clinvar} \
-        --impact-order-file {workflow.basedir}/scripts/slivar/default-order.txt \
+        --impact-order-file {params.consequence_order_file} \
         --out-vcf {output.vcf} &&
         bcftools sort -O v -o {output.vcf}.sorted {output.vcf} &&
         mv {output.vcf}.sorted {output.vcf}) > {log} 2>&1
@@ -256,15 +259,18 @@ rule slivar_report:
     conda:
         "../envs/slivar.yaml"
     params:
-        hgmd=f"{config['annotation']['slivar']['database_path']}/hgmd_hg38.csv"
+        hgmd=f"{config['annotation']['slivar']['database_path']}/hgmd_hg38.csv",
+        crg2_pacbio=crg2_pacbio,
+        consequence_order_file=f"{crg2_pacbio}/scripts/slivar/default-order.txt",
+        disease_rna_genes=f"{crg2_pacbio}/scripts/slivar/disease-rna-genes.txt",
     shell:
         """
         (mkdir -p $(dirname {output})
-        python3 {workflow.basedir}/scripts/slivar/build_report.py \
+        SLIVAR_DISEASE_RNA_GENES="{params.disease_rna_genes}" python3 {workflow.basedir}/scripts/slivar/build_report.py \
         --mode {wildcards.p} \
         --vcf {input.vcf} \
         --out-csv {output} \
-        --impact-order-file {workflow.basedir}/scripts/slivar/default-order.txt \
-        --slivar-data-dir {workflow.basedir}/scripts/slivar/data \
+        --impact-order-file {params.consequence_order_file} \
+        --slivar-data-dir {params.crg2_pacbio}/scripts/slivar/data \
         --hgmd {params.hgmd}) > {log} 2>&1
         """
