@@ -113,19 +113,6 @@ rule add_ps_field:
             rm annotated/{wildcards.p}/vcfanno/PS_annot.txt.gz annotated/{wildcards.p}/vcfanno/PS_annot.txt.gz.tbi annotated/{wildcards.p}/vcfanno/hdr.txt
         '''
 
-rule vcf2db:
-    input:
-        "annotated/{p}/vcfanno/{family}.{p}.vep.vcfanno.vcf.gz",
-    output:
-         db=temp("annotated/{p}/{family}-gemini.db"),
-    log:
-        "logs/vcf2db/{family}.vcf2db.{p}.log"
-    threads: 1
-    resources:
-        mem_mb = 20000
-    wrapper:
-        get_wrapper_path("vcf2db")
-
 rule bgzip:
    input:
        "{prefix}.vcf"
@@ -149,45 +136,6 @@ rule tabix:
            "../envs/common.yaml"
     wrapper:
         get_wrapper_path("tabix")
-
-rule allsnvreport:
-    input:
-        db="annotated/{p}/{family}-gemini.db",
-        vcf="annotated/{p}/vcfanno/{family}.{p}.vep.vcfanno.vcf.gz"
-    output:
-        directory("small_variants/{p}/{family}")
-    conda:
-        "../envs/cre.yaml"
-    log:
-        "logs/report/{p}/{family}.cre.log"
-    resources:
-         mem_mb=40000
-    params:
-         cre=config["tools"]["cre"],
-         database_path=config["annotation"]["cre"]["database_path"],
-         ref=config["ref"]["genome"]
-    shell:
-         '''
-         (set -eou pipefail;
-         mkdir -p {output}
-         cd {output}
-         ln -s ../../../{input.db} {family}-ensemble.db
-         #bgzip ../../../{input.vcf} -c > {family}-gatk-haplotype-annotated-decomposed.vcf.gz
-         ln -s ../../../{input.vcf} {family}-gatk-haplotype-annotated-decomposed.vcf.gz
-         tabix {family}-gatk-haplotype-annotated-decomposed.vcf.gz
-         ln -s {family}-gatk-haplotype-annotated-decomposed.vcf.gz {family}-ensemble-annotated-decomposed.vcf.gz
-         ln -s {family}-gatk-haplotype-annotated-decomposed.vcf.gz.tbi {family}-ensemble-annotated-decomposed.vcf.gz.tbi
-         cd ../
-         if [ {wildcards.p} == "coding" ]; then  
-         cre={params.cre} reference={params.ref} database={params.database_path} {params.cre}/cre.sh {family} 
-         elif [ {wildcards.p} == "wgs-high-impact" ]; then  
-         cre={params.cre} reference={params.ref} database={params.database_path} type=wgs.high.impact {params.cre}/cre.sh {family}
-         else
-         cre={params.cre} reference={params.ref} database={params.database_path} type=wgs {params.cre}/cre.sh {family}
-         unset type
-         fi;
-         ) > {log} 2>&1
-         '''
 
 if config["run"]["hpo"]:
 
@@ -247,3 +195,82 @@ rule filter_denovo:
         '''
         (bcftools filter -i "FORMAT/DN == 'DeNovo'" -O z -o {output} {input}) > {log} 2>&1
         '''
+
+# Use slivar expr to filter variants into three candidate branches per mode.
+rule slivar_select:
+    input:
+        vcf="annotated/{p}/vcfanno/{family}.{p}.vep.vcfanno.vcf.gz"
+    output:
+        rare_main=temp("small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_main.vcf.gz"),
+        rare_main_tbi=temp("small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_main.vcf.gz.tbi"),
+        rare_clinvar=temp("small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar.vcf.gz"),
+        rare_clinvar_tbi=temp("small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar.vcf.gz.tbi"),
+        common_pathogenic_clinvar=temp("small_variants_slivar/{p}/{family}/branches/{family}.{p}.common_pathogenic_clinvar.vcf.gz"),
+        common_pathogenic_clinvar_tbi=temp("small_variants_slivar/{p}/{family}/branches/{family}.{p}.common_pathogenic_clinvar.vcf.gz.tbi"),
+    log:
+        "logs/slivar/{family}.{p}.select.log"
+    conda:
+        "../wrappers/slivar/environment.yaml"
+    params:
+        js=f"{workflow.basedir}/scripts/slivar/slivar_functions.js",
+        consequence_order_file=f"{crg2_pacbio}/scripts/slivar/default-order.txt",
+        mode="{p}"
+    wrapper:
+        get_wrapper_path("slivar")
+
+
+# Merge the three Slivar branch VCFs, remove duplicate variants, and apply extra
+# high-impact filtering.
+rule slivar_postfilter:
+    input:
+        rare_main="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_main.vcf.gz",
+        rare_clinvar="small_variants_slivar/{p}/{family}/branches/{family}.{p}.rare_clinvar.vcf.gz",
+        common_pathogenic_clinvar="small_variants_slivar/{p}/{family}/branches/{family}.{p}.common_pathogenic_clinvar.vcf.gz",
+    output:
+        vcf=temp("small_variants_slivar/{p}/{family}/{family}.{p}.postfilter.vcf"),
+    log:
+        "logs/slivar/{family}.{p}.postfilter.log"
+    conda:
+        "../envs/slivar.yaml"
+    params:
+        consequence_order_file=f"{crg2_pacbio}/scripts/slivar/default-order.txt",
+        disease_rna_genes=f"{crg2_pacbio}/scripts/slivar/disease-rna-genes.txt",
+    shell:
+        """
+        (SLIVAR_DISEASE_RNA_GENES="{params.disease_rna_genes}" python3 {workflow.basedir}/scripts/slivar/postfilter.py \
+        --mode {wildcards.p} \
+        --rare-main-vcf {input.rare_main} \
+        --rare-clinvar-vcf {input.rare_clinvar} \
+        --common-pathogenic-clinvar-vcf {input.common_pathogenic_clinvar} \
+        --impact-order-file {params.consequence_order_file} \
+        --out-vcf {output.vcf} &&
+        bcftools sort -O v -o {output.vcf}.sorted {output.vcf} &&
+        mv {output.vcf}.sorted {output.vcf}) > {log} 2>&1
+        """
+
+
+rule slivar_report:
+    input:
+        vcf="small_variants_slivar/{p}/{family}/{family}.{p}.postfilter.vcf"
+    output:
+        temp("small_variants_slivar/{p}/{family}/{family}.{p}.slivar.hg38.csv")
+    log:
+        "logs/slivar/{family}.{p}.report.log"
+    conda:
+        "../envs/slivar.yaml"
+    params:
+        hgmd=f"{config['annotation']['slivar']['database_path']}/hgmd_hg38.csv",
+        crg2_pacbio=crg2_pacbio,
+        consequence_order_file=f"{crg2_pacbio}/scripts/slivar/default-order.txt",
+        disease_rna_genes=f"{crg2_pacbio}/scripts/slivar/disease-rna-genes.txt",
+    shell:
+        """
+        (mkdir -p $(dirname {output})
+        SLIVAR_DISEASE_RNA_GENES="{params.disease_rna_genes}" python3 {workflow.basedir}/scripts/slivar/build_report.py \
+        --mode {wildcards.p} \
+        --vcf {input.vcf} \
+        --out-csv {output} \
+        --impact-order-file {params.consequence_order_file} \
+        --slivar-data-dir {params.crg2_pacbio}/scripts/slivar/data \
+        --hgmd {params.hgmd}) > {log} 2>&1
+        """

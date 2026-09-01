@@ -1,0 +1,71 @@
+# Curated RNA disease genes, adapted from Illumina eMedgene's prioritized
+# RNA-gene list. 
+# https://help.connected.illumina.com/emedgene/emedgene-analyze-manual/tertiary-analysis-pipeline/how_does_emedgene_analyze_prioritize_transcripts
+# These small non-coding disease genes are usually annotated by
+# VEP under an overlapping protein-coding gene, so they lose the default primary
+# transcript selection. Listing a gene here promotes it to the primary report
+# gene when a variant overlaps it. This is display-only: it does NOT change which
+# variants are kept/filtered. One gene symbol per line; blank lines and lines
+# starting with "#" are ignored. Symbols must match the VEP SYMBOL exactly.
+#
+
+ATXN8OS
+CHASERR
+H19
+KCNQ1OT1
+MIAT
+MIR17HG
+MIR137
+MIR140
+MIR184
+MIR19B1
+MIR204
+MIR2861
+MIR4718
+MIR605
+MIR96
+MIR99A
+RMRP
+RNU2-2
+RNU4-2
+RNU4ATAC
+RNU5A-1
+RNU5B-1
+RNU6-1
+RNU6-2
+RNU6-8
+RNU6-9
+RNU6ATAC
+RNU7-1
+RNU12
+SNORA31
+SNORD116-1
+SNORD118
+TERC
+TRU-TCA1-1
+
+# Mitochondrial rRNA / tRNA genes
+MT-RNR1
+MT-RNR2
+MT-TA
+MT-TC
+MT-TD
+MT-TE
+MT-TF
+MT-TG
+MT-TH
+MT-TI
+MT-TK
+MT-TL1
+MT-TL2
+MT-TM
+MT-TN
+MT-TP
+MT-TQ
+MT-TR
+MT-TS1
+MT-TS2
+MT-TT
+MT-TV
+MT-TW
+MT-TY

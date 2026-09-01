@@ -22,7 +22,7 @@ elif outfile.endswith("bcf.gz"):
 
 
 if snakemake.params.get("samples"):
-    try: # cre/filtering.smk/rule pass
+    try: # legacy pass-filtering rule
         prefix = snakemake.wildcards.prefix
         sample_list = snakemake.params.samples
         samples = " -s " + ",".join(sample_list)

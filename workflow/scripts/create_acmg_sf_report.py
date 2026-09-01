@@ -130,6 +130,9 @@ def make_acmg_sf_report_rows(df, family, input_report_type, acmg_col, acmg_sf_li
         acmg_sf_gene_phenotype, acmg_sf_gene_inheritance = (
             get_acmg_sf_gene_annotations(acmg_sf_gene, acmg_sf_list)
         )
+        omim_phenotype = get_value(row, "omim_phenotype_all")
+        if omim_phenotype == ".":
+            omim_phenotype = get_value(row, "omim_phenotype")
 
         # OMIM comes from the annotated input; the ACMG values come from the
         # secondary-findings gene list loaded above.
@@ -142,7 +145,7 @@ def make_acmg_sf_report_rows(df, family, input_report_type, acmg_col, acmg_sf_li
             "REFSEQ_CHANGE": refseq_change,
             "GENE": gene,
             "ACMG_SF_GENE": acmg_sf_gene,
-            "OMIM_PHENOTYPE": get_value(row, "omim_phenotype"),
+            "OMIM_PHENOTYPE": omim_phenotype,
             "ACMG_SF_GENE_PHENOTYPE": acmg_sf_gene_phenotype,
             "ACMG_SF_GENE_INHERITANCE": acmg_sf_gene_inheritance,
             "CONSEQUENCE": consequence,

@@ -45,7 +45,7 @@ log = snakemake.log_fmt_shell(stdout=False, stderr=True)
 
 shell(
     "(vep --vcf -o stdout -i {incalls} {threadsprefix} --species homo_sapiens --no_stats --cache --offline {dirprefix} {dircacheprefix} --symbol --numbers --biotype --total_length "
-    "--canonical --gene_phenotype --ccds --uniprot --domains --regulatory --protein --tsl --appris "
+    "--canonical --mane --gene_phenotype --ccds --uniprot --domains --regulatory --protein --tsl --appris "
     "--pubmed --variant_class --allele_number {fastaprefix} "
     "--plugin SpliceRegion --sift b --polyphen b --hgvs --shift_hgvs 1 --merged  "
     "--custom file={phyloP100way},short_name=phyloP100way,format=bigwig "

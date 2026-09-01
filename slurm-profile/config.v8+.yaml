@@ -62,7 +62,5 @@ default-resources:
 # Rule specific resources
 # ---------------------------------------------------------------------------
 set-resources:
-    vcf2db:
-        runtime: "60h"
     snpeff:
         mem_mb: 40000
