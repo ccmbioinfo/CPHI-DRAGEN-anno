@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from pysam import VariantFile
 import argparse
-from annotation.annotate import prepare_OMIM, annotate_OMIM
+from annotation.annotate import aggregate_hpo_matches, prepare_OMIM, annotate_OMIM
 from collections import defaultdict
 from pybedtools import BedTool
 from sigfig import round
@@ -163,18 +163,15 @@ def add_hpo(hpo, gene):
         gene = gene.split("-")
         for g in gene:
             try:
-                term = str(hpo[hpo["Gene ID"] == g]["Features"].values[0])
-                term = term.replace("; ", ";").split(";")
-                term = list(set(term))
-                for t in term:
-                    if t not in terms:
-                        terms.append(t)
+                term = str(hpo[hpo["Gene ID"] == g]["HPO"].values[0])
+                if term not in terms:
+                    terms.append(term)
             except IndexError:
                 pass
     if len(terms) == 0:
         return "nan"
     else:
-        terms = ",".join(terms)
+        terms = ", ".join(terms)
         return terms
 
 
@@ -1339,6 +1336,7 @@ if __name__ == "__main__":
         )
         # Phenotips TSV has a space in column name: " Gene symbol"
         hpo.columns = hpo.columns.str.strip()
+        hpo = aggregate_hpo_matches(hpo)
 
     clingen_HI = pd.read_csv(
         args.clingen_HI,
