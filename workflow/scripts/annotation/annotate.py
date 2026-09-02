@@ -324,12 +324,60 @@ def gene_set(genes: str) -> str:
     return genes
 
 
+def aggregate_hpo_matches(hpo: pd.DataFrame) -> pd.DataFrame:
+    """Format HPO scores and combine gene/term rows into one row per gene."""
+    hpo = hpo.copy()
+    hpo.columns = hpo.columns.str.strip()
+    hpo = hpo.dropna(subset=["Gene ID", "Features"])
+
+    # Display each phenotype with its score; older files without the score stay unchanged.
+    formatted_matches = []
+    for _, row in hpo.iterrows():
+        phenotype = str(row["Features"]).strip()
+        score = row.get("HPO Match Score")
+        if pd.notna(score) and str(score).strip():
+            score = f"{float(score):.3f}".rstrip("0").rstrip(".")
+            # Keep whole-number scores in decimal form, for example 1.0.
+            if "." not in score:
+                score += ".0"
+            phenotype = f"{phenotype} ({score})"
+        formatted_matches.append(phenotype)
+    hpo["HPO"] = formatted_matches
+
+    # Collapse the gene/term rows before joining them to variants.
+    rows = []
+    for gene_id, gene_matches in hpo.groupby("Gene ID", sort=False):
+        matches = []
+        for match in gene_matches["HPO"]:
+            if match and match not in matches:
+                matches.append(match)
+
+        # Older files may contain multiple phenotypes in one row, so retain their supplied count.
+        if "Number of occurrences" in gene_matches:
+            counts = pd.to_numeric(gene_matches["Number of occurrences"], errors="coerce").dropna()
+            count = counts.max() if not counts.empty else len(matches)
+            if float(count).is_integer():
+                count = int(count)
+        else:
+            count = len(matches)
+
+        rows.append(
+            {
+                "Gene ID": gene_id,
+                "HPO": ", ".join(matches),
+                "Number of occurrences": count,
+            }
+        )
+
+    return pd.DataFrame(rows, columns=["Gene ID", "HPO", "Number of occurrences"])
+
+
 def add_hpo(hpo: pd.DataFrame, loci_ensembl: pd.DataFrame) -> list:
     """
     Add gene-based HPO terms
     """
-    hpo = hpo[["Gene ID", "Features"]].copy()
-    hpo.rename({"Gene ID": "gene_id", "Features": "HPO"}, axis=1, inplace=True)
+    hpo = aggregate_hpo_matches(hpo)[["Gene ID", "HPO"]]
+    hpo.rename({"Gene ID": "gene_id"}, axis=1, inplace=True)
     loci_ensembl_hpo = loci_ensembl.merge(hpo, how="left", on="gene_id")
     loci_ensembl_hpo["HPO"] = loci_ensembl_hpo["HPO"].fillna("-1")
 
