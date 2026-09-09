@@ -12,8 +12,6 @@ outdir = snakemake.params.outdir
 tool = snakemake.params.tool
 cphi_dragen_anno = snakemake.params.cphi_dragen_anno
 input_vcf = snakemake.input[0]
-pythonpath = tool.replace("bin", "")
-python = " export PYTHONPATH={pythonpath}; "
 
 # use mity's hg38 reference fasta 
 reference_fasta = pythonpath + "/mitylib/reference/hg38.chrM.fa"
@@ -26,4 +24,4 @@ tabix = " tabix {outdir}/{family}.mt.normalise.decompose.vcf.gz;"
 remove_intermediate_files = " rm {outdir}/{family}.normalise.decompose.unformatted.vcf.gz {outdir}/{family}.normalise.decompose.temp.vcf.gz {outdir}/{family}.normalise.vcf.gz"
 
 
-shell("(" + python + bcf_normalise + vt + add_VAF_field + reformat_empty_VAF + tabix + remove_intermediate_files +") {log}")
+shell("(" + bcf_normalise + vt + add_VAF_field + reformat_empty_VAF + tabix + remove_intermediate_files +") {log}")
