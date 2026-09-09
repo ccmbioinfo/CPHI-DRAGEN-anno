@@ -34,7 +34,6 @@ rule mity_report:
         temp("mitochondrial_variants/{family}.mity.report.xlsx")
     params:
         outdir="mitochondrial_variants/",
-        tool=config["tools"]["mity"],
         report_config=config["annotation"]["mity"]["report_config"],
         vcfanno_config=config["annotation"]["mity"]["vcfanno_config"],
         base_path=config["annotation"]["mity"]["base_path"]
