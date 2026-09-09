@@ -4,7 +4,6 @@ log = snakemake.log_fmt_shell(stdout=True, stderr=True,append=True)
 
 family = snakemake.wildcards.family
 outdir = snakemake.params.outdir
-tool = snakemake.params.tool
 
 chr_contig = "chrM"
 base_path= snakemake.params.base_path
