@@ -3,6 +3,6 @@ channels:
   - conda-forge
 dependencies:
   - python==3.12.4
-  - freebayes
+  - mity==2.0.1
   - gsort
   - vcfanno
