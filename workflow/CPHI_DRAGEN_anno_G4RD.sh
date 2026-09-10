@@ -5,14 +5,17 @@
 #SBATCH --mem=4G
 #SBATCH --output=logs/%x-%j.out
 
-micromamba activate /srv/shared/conda_envs/snakemake9.16.2
+source /storage/modules/anaconda/2020.11/etc/profile.d/conda.sh
+conda activate /srv/shared/conda_envs/snakemake9.16.2
+
 
 SF="/srv/shared/pipelines/CPHI-DRAGEN-anno/workflow/Snakefile"
 CP="/srv/shared/conda_envs/cphi-dragen-anno-snakemake"
 SLURM="/srv/shared/pipelines/CPHI-DRAGEN-anno/slurm-profile/"
 CONFIG="config_G4RD.yaml"
 
-export XDG_CACHE_HOME="/srv/shared/pipelines/CPHI-DRAGEN-anno/.cache" # otherwise, seem to have issues with NFS latency
-export TMPDIR=`pwd`
+export XDG_CACHE_HOME="/srv/shared/pipelines/CPHI-DRAGEN-anno/.cache"
+mkdir tmp
+export TMPDIR=`pwd`/tmp
 
 snakemake --use-conda -s ${SF} --conda-prefix ${CP}  --configfile ${CONFIG} --profile ${SLURM} --executor slurm --verbose -p --rerun-incomplete
