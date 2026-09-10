@@ -23,8 +23,4 @@ tabix = " tabix {outdir}/{family}.mt.normalise.decompose.vcf.gz;"
 remove_intermediate_files = " rm {outdir}/{family}.normalise.decompose.unformatted.vcf.gz {outdir}/{family}.normalise.decompose.temp.vcf.gz {outdir}/{family}.normalise.vcf.gz"
 
 
-<<<<<<< HEAD
 shell("(" + reference_fasta + bcf_normalise + vt + add_VAF_field + reformat_empty_VAF + tabix + remove_intermediate_files +") {log}")
-=======
-shell("(" + bcf_normalise + vt + add_VAF_field + reformat_empty_VAF + tabix + remove_intermediate_files +") {log}")
->>>>>>> 39ecf29b0ed86bb68b5a98c9f92adaac4c11fc32
