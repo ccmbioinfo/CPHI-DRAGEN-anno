@@ -17,8 +17,6 @@ tools:
   cphi-dragen-anno: "/srv/shared/pipelines/CPHI-DRAGEN-anno/"
   crg2_pacbio: "/srv/shared/pipelines/crg2-pacbio"
   annotSV: "/srv/shared/data/dccdipg/crg2-non-conda-tools/AnnotSV-3.1.1"
-  cre: "/srv/shared/pipelines/CPHI-DRAGEN-anno/workflow/scripts/cre"
-  mity: "/srv/shared/data/dccdipg/crg2-non-conda-tools/mity_v2.0.1/bin"
 
 ref:
   name: "GRCh38.115"

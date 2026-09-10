@@ -17,7 +17,6 @@ tools:
   cphi-dragen-anno: "~/CPHI-DRAGEN-anno/"
   crg2_pacbio: "~/crg2-pacbio"
   annotSV: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/crg2-pacbio-non-conda-tools/AnnotSV-3.1.1"
-  mity: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/crg2-non-conda-tools/mity_v2.0.1/bin"
 
 ref:
   name: "GRCh38.115"
