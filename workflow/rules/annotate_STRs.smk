@@ -5,11 +5,12 @@ rule expansionhunter:
         catalog=config["annotation"]["str_variant_catalog"],
         sex_check=f"qc/peddy/{family}.sex_check.csv"
     output:
-        vcf="STRs/expansionhunter/{sample}.vcf",
-        json="STRs/expansionhunter/{sample}.json",
-        realigned_bam="STRs/expansionhunter/{sample}_realigned.bam"
+        vcf=temp("STRs/expansionhunter/{sample}.vcf"),
+        json=temp("STRs/expansionhunter/{sample}.json"),
+        realigned_bam=temp("STRs/expansionhunter/{sample}_realigned.bam")
     params:
-        output_prefix="STRs/expansionhunter/{sample}"
+        output_prefix="STRs/expansionhunter/{sample}",
+        sif=config["tools"]["expansionhunter_sif"]
     log:
         "logs/STRs/expansionhunter/{sample}.log"
     conda:
@@ -22,8 +23,18 @@ rule expansionhunter:
         if [[ "$sex" == "male" || "$sex" == "female" ]]; then
             sex_arg="--sex $sex"
         fi
+        work_dir=$(pwd)
+        cram_dir=$(dirname {input.cram})
+        reference_dir=$(dirname {input.reference})
+        catalog_dir=$(dirname {input.catalog})
         echo "ExpansionHunter ped_sex for {wildcards.sample}: $sex" > {log}
-        ExpansionHunter \
+        apptainer exec \
+            --bind "$work_dir:$work_dir" \
+            --bind "$cram_dir:$cram_dir:ro" \
+            --bind "$reference_dir:$reference_dir:ro" \
+            --bind "$catalog_dir:$catalog_dir:ro" \
+            --pwd "$work_dir" \
+            {params.sif} ExpansionHunter \
             --reads {input.cram} \
             --reference {input.reference} \
             --variant-catalog {input.catalog} \
@@ -67,4 +78,4 @@ rule annotate_path_str_loci:
         disease_thresholds = config["annotation"]["str_disease_thresholds"]
     log: "logs/STRs/{family}.STR.report.log"
     conda: "../envs/annotate.yaml"
-    shell: "(python3 {params.cphi_dragen_anno}/workflow/scripts/annotate_path_str_loci.py --repeat_tsv {input.repeat_tsv} --disease_thresholds {params.disease_thresholds} --samples_tsv {input.samples_tsv} --output_file {output}) > {log} 2>&1" 
+    shell: "(python3 {params.cphi_dragen_anno}/workflow/scripts/annotate_path_str_loci.py --repeat_tsv {input.repeat_tsv} --disease_thresholds {params.disease_thresholds} --samples_tsv {input.samples_tsv} --output_file {output}) > {log} 2>&1"

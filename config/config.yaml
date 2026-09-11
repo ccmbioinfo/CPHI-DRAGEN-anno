@@ -16,6 +16,7 @@ genes:
 tools:
   cphi-dragen-anno: "~/CPHI-DRAGEN-anno/"
   crg2_pacbio: "~/crg2-pacbio"
+  expansionhunter_sif: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/STRs/ExpansionHunter/ExpansionHunter-5.0.0.sif"
   annotSV: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/crg2-pacbio-non-conda-tools/AnnotSV-3.1.1"
   mity: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/crg2-non-conda-tools/mity_v2.0.1/bin"
 

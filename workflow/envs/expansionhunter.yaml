@@ -1,6 +1,4 @@
 channels:
   - conda-forge
-  - bioconda
-  - defaults
 dependencies:
-  - expansionhunter=5.0.0
+  - apptainer=1.5.3
