@@ -19,7 +19,6 @@ rule bcftools_normalise:
         temp("mitochondrial_variants/{family}.mt.normalise.decompose.vcf.gz")
     params:
         outdir="mitochondrial_variants/",
-        tool=config["tools"]["mity"],
         cphi_dragen_anno=config["tools"]["cphi-dragen-anno"]
     log:
         "logs/mity/bcftools_normalise/{family}.bcftools_normalise.log"
@@ -34,7 +33,6 @@ rule mity_report:
         temp("mitochondrial_variants/{family}.mity.report.xlsx")
     params:
         outdir="mitochondrial_variants/",
-        tool=config["tools"]["mity"],
         report_config=config["annotation"]["mity"]["report_config"],
         vcfanno_config=config["annotation"]["mity"]["vcfanno_config"],
         base_path=config["annotation"]["mity"]["base_path"]
