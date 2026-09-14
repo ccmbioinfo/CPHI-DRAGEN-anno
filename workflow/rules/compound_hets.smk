@@ -1,3 +1,24 @@
+hpo_matches = "hpo/{family}.matched.tsv"
+
+
+if config["run"]["hpo"]:
+    rule prepare_hpo_matches:
+        input:
+            hpo=config["run"]["hpo"],
+        output:
+            hpo=hpo_matches,
+        params:
+            hpo_dir=config["hpo_matching"],
+        log:
+            "logs/hpo_matching/{family}.log",
+        resources:
+            mem_mb=8000,
+        conda:
+            "../envs/hpo_matcher.yaml"
+        script:
+            crg2_pacbio + "/scripts/prepare_hpo_matches.py"
+
+
 def output_status(output_path):
     if str(config["run"].get("acmg_sf", "")).lower() == "true":
         return temp(output_path)
@@ -20,7 +41,7 @@ rule get_VCF_sample_order:
 slivar_hpo_panel_inputs = {
     "panel_variant_report": "small_variants_slivar/panel/{family}/{family}.panel.slivar.hg38.csv",
     "panel_flank_variant_report": "small_variants_slivar/panel-flank/{family}/{family}.panel-flank.slivar.hg38.csv",
-    "HPO": config["run"]["hpo"],
+    "HPO": hpo_matches,
 } if hpo_available else {}
 
 slivar_hpo_panel_outputs = {
