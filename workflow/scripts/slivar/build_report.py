@@ -108,6 +108,16 @@ def join_unique_values(values, sep=","):
     return sep.join(output)
 
 
+def split_annotation_values(value, separators):
+    if not has_value(value):
+        return []
+    text = str(value)
+    separator = separators[0]
+    for alternate in separators[1:]:
+        text = text.replace(alternate, separator)
+    return [item.strip(" ,") for item in text.split(separator) if item.strip(" ,")]
+
+
 def replace_slashes(value):
     if value is None:
         return ""
@@ -445,17 +455,24 @@ def clinvar_text(record):
 
 
 # OMIM is keyed by gene symbol and can have multiple phenotype rows per gene.
-def join_omim(gene, omim_by_gene):
-    matches = omim_by_gene.get(gene, [])
+def join_omim(genes, omim_by_gene):
+    if isinstance(genes, str):
+        genes = [genes]
     phenotypes = []
     inheritances = []
-    for match in matches:
-        # Keep the two OMIM report columns separate while collecting every matching row.
-        phenotypes.append(match.get("omim_phenotype", ""))
-        inheritances.append(match.get("omim_inheritance", ""))
-    # Drop blanks/repeats and keep first-seen order for each OMIM column.
+    for gene in genes:
+        for match in omim_by_gene.get(gene, []):
+            # Phenotype descriptions contain commas, so their source entries are
+            # separated on semicolon/pipe before de-duplication.
+            phenotypes.extend(
+                split_annotation_values(match.get("omim_phenotype", ""), (";", "|"))
+            )
+            inheritances.extend(
+                split_annotation_values(match.get("omim_inheritance", ""), (",",))
+            )
+    # Drop blanks/repeats once after collecting annotations from every gene.
     return (
-        join_unique_values(phenotypes),
+        join_unique_values(phenotypes, sep="; "),
         join_unique_values(inheritances),
     )
 
@@ -861,8 +878,6 @@ def main():
             row["CSQ_impact_all"] = join_unique_values(impact_all_values)
 
             gene_desc_all = []
-            omim_pheno_all = []
-            omim_inh_all = []
             orphanet_all = []
             # Gene-level reference joins use Gene_all symbols, with ENSG used for
             # gene descriptions and Orphanet when available.
@@ -873,13 +888,15 @@ def main():
                 ensg = find_ensembl_gene_id(csq_records, symbol)
                 if has_value(ensg):
                     gene_desc_all.append(gene_descriptions.get(ensg, {}).get("Gene_description", ""))
-                    orphanet_all.append(lookup_orphanet(ensg, orphanet))
-                phen, inh = join_omim(symbol, omim)
-                omim_pheno_all.append(phen)
-                omim_inh_all.append(inh)
+                    orphanet_all.extend(
+                        split_annotation_values(lookup_orphanet(ensg, orphanet), (",",))
+                    )
+            omim_pheno_all, omim_inh_all = join_omim(
+                row["Gene_all"].split(","), omim
+            )
             row["Gene_description_all"] = join_unique_values(gene_desc_all)
-            row["omim_phenotype_all"] = join_unique_values(omim_pheno_all)
-            row["omim_inheritance_all"] = join_unique_values(omim_inh_all)
+            row["omim_phenotype_all"] = omim_pheno_all
+            row["omim_inheritance_all"] = omim_inh_all
             row["Orphanet_all"] = join_unique_values(orphanet_all)
 
             # Constraint_all summarizes every Ensembl transcript found in the CSQs.
