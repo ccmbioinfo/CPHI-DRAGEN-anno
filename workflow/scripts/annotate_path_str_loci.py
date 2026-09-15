@@ -19,7 +19,11 @@ def pivot_repeat_df(repeat_df):
 
     return repeat_pivot
 
-def is_disease(motif_count, gene, threshold):
+def is_disease(motif_count, gene, threshold, multi_motif):
+    # Match the PacBio report: compound-locus motif counts are not evaluated
+    # against one simple length threshold.
+    if multi_motif:
+        return None
     try:
         motif_count = [int(count) for count in motif_count.split("/")]
     except: # missing genotype
@@ -42,13 +46,13 @@ def is_disease(motif_count, gene, threshold):
 
 
 def main(repeat_tsv, disease_thresholds, samples_tsv, output_file):
-    repeat_df = pd.read_csv(repeat_tsv, sep="\t", names=["SAMPLE", "CHROM", "POS", "VARID", "REF", "RL", "RU", "GT", "SO", "motif_count", "REPCI", "ADSP", "ADFL", "ADIR", "coverage"])
-    repeat_df.set_index(["CHROM", "POS", "VARID", "REF", "RL", "RU"], inplace=True)
+    repeat_df = pd.read_csv(repeat_tsv, sep="\t", names=["SAMPLE", "CHROM", "POS", "VARID", "REF", "RL", "RU", "GT", "SO", "motif_count", "REPCI", "ADSP", "ADFL", "ADIR", "coverage", "MULTI_MOTIF"])
+    repeat_df.set_index(["CHROM", "POS", "VARID", "REF", "RL", "RU", "MULTI_MOTIF"], inplace=True)
     samples = repeat_df["SAMPLE"].unique()
     # convert repeat dataframe long to wide format
     repeat_pivot = pivot_repeat_df(repeat_df)
     # remove non-disease loci
-    repeat_pivot = repeat_pivot[~repeat_pivot["VARID"].str.contains("chr")].copy()
+    repeat_pivot = repeat_pivot[~repeat_pivot["VARID"].str.contains("chr", na=False)].copy()
     # rename some loci to match disease threshold file
     gene_dict = {"HOXA13_1": "HOXA13-I", "HOXA13_2": "HOXA13-II", "HOXA13_3": "HOXA13-III", "ARX_1": "EIEE1_ARX", "ARX_2": "PRTS_ARX","C9ORF72":"C9orf72"}
     repeat_pivot["VARID"] = repeat_pivot["VARID"].replace(gene_dict)
@@ -63,7 +67,8 @@ def main(repeat_tsv, disease_thresholds, samples_tsv, output_file):
             lambda row: is_disease(
                 row[col],
                 row["GENE"],
-                row.DISEASE_THRESHOLD
+                row.DISEASE_THRESHOLD,
+                row["MULTI_MOTIF"]
             ),
             axis=1,
         )

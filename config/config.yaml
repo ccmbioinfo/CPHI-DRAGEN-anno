@@ -16,6 +16,7 @@ genes:
 tools:
   cphi-dragen-anno: "~/CPHI-DRAGEN-anno/"
   crg2_pacbio: "~/crg2-pacbio"
+  expansionhunter_sif: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/STRs/ExpansionHunter/ExpansionHunter-5.0.0.sif"
   annotSV: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/crg2-pacbio-non-conda-tools/AnnotSV-3.1.1"
 
 ref:
@@ -59,7 +60,8 @@ annotation:
     conf: "~/CPHI-DRAGEN-anno/resources/vcfanno/vcfanno.conf"
     lua_script: "~/CPHI-DRAGEN-anno/resources/vcfanno/vcfanno.lua"
     base_path: "/hpf/largeprojects/ccmbio/nhanafi/c4r/downloads/databases/"
-  str_disease_thresholds: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation/ExpansionHunter/tandem_repeat_disease_loci_v1.1.3.tsv"
+  str_variant_catalog: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/STRs/STRchive-disease-loci.hg38.expansionhunter.json"
+  str_disease_thresholds: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/STRs/tandem_repeat_disease_loci_v1.1.4.tsv"
   slivar:
     database_path: "/hpf/largeprojects/ccmbio/nhanafi/c4r/downloads/databases/"
 qc:

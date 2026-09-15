@@ -2,16 +2,24 @@
 
 Madeline Couse
 
-**Version 2026-03**
+**Version 2026-09**
 
 ## Changelog
 
 Adapted from the [crg2-pacbio pipeline](https://github.com/ccmbioinfo/crg2-pacbio) for GRCh38 DRAGEN v4.4 genomes.
-Sample support fields are DRAGEN FORMAT fields (`motif_count`, `REPCI`, `ADSP`, `ADFL`, `ADIR`) rather than PacBio TRGT motif sequence, motif structure, and methylation fields.
+ExpansionHunter is also run on each sample CRAM so that disease loci absent from the DRAGEN STR VCF can still be reported. Sample support fields are the shared DRAGEN/ExpansionHunter FORMAT fields (`motif_count`, `REPCI`, `ADSP`, `ADFL`, `ADIR`).
 
 ## Summary
 
-DRAGEN-STR (based on ExpansionHunter) genotypes disease-causing repeats located in AFF2, AR, ARX_1, ARX_2, ATN1, ATXN1, ATXN10, ATXN2, ATXN3, ATXN7, ATXN8OS, BEAN1, C9ORF72, CACNA1A, CBL, CNBP, COMP, CSTB, DAB1, DIP2B, DMD, DMPK, EIF4A3, FMR1, FOXL2, FXN, GIPC1, GLS, HOXA13_1, HOXA13_2, HOXA13_3, HOXD13, HTT, JPH3, LRP12, MARCHF6, NIPA1, NOP56, NOTCH2NLC, NUTM2B-AS1, PABPN1, PHOX2B, PPP2R2B, PRDM12, PRNP, RAPGEF2, RFC1, RUNX2, SAMD12, SOX3, STARD7, TBP, TBX1, TCF4, TNRC6A, VWA1, XYLT1, YEATS2, ZIC2 and ZIC3 genes. We create a CSV report detailing repeat sizes with disease thresholds from the [STRchive BED file](https://strchive.org/_astro/STRchive-disease-loci.hg38.CE2vK2zA.bed). Descriptions for the report columns are listed in the table below.
+The report uses the STRchive ExpansionHunter catalog (https://github.com/dashnowlab/STRchive/releases/download/v2.26.1/STRchive-disease-loci-v2.26.1.hg19.expansionhunter.json) and applies the following order for each locus:
+
+1. Use the disease-labelled DRAGEN call when present.
+2. Otherwise, use an unlabelled DRAGEN call when its interval and repeat motif exactly match the reportable STRchive component.
+3. Otherwise, use the ExpansionHunter call.
+
+For a multi-component ExpansionHunter locus, the reported component is selected using the hg38 coordinates and reference motif in the disease-threshold table. As in the PacBio report, its automatic disease prediction is left missing because one component count cannot be interpreted with a simple locus-wide threshold. ExpansionHunter sex is taken from the peddy sex-check output when available.
+
+The resulting CSV reports repeat sizes and STRchive disease thresholds. Descriptions for the report columns are listed in the table below.
 
 Suggestions for filtering and interpretation
 
@@ -29,19 +37,19 @@ For detailed descriptions of repeat loci, including descriptions, pathogenic exp
 
 | **Column** | **Comment** | **Source** | **Example** |
 |---|---|---|---|
-| CHROM | Chromosome | DRAGEN VCF | chrX |
-| POS | Position| DRAGEN VCF | 147912050 |
-| REF_REPEAT_COUNT | Number of repeat units spanned by the repeat in the reference | DRAGEN VCF | 20 |
-| REF_LEN_BP | Reference length in bp | DRAGEN VCF | 60 | 
-| MOTIF | Repeat motif | DRAGEN VCF | CGG | 
-| GENE | Gene associated with repeat | DRAGEN VCF | FMR1 | 
+| CHROM | Chromosome | DRAGEN VCF with ExpansionHunter Fallback | chrX |
+| POS | Position| DRAGEN VCF with ExpansionHunter Fallback | 147912050 |
+| REF_REPEAT_COUNT | Number of repeat units spanned by the repeat in the reference | DRAGEN VCF with ExpansionHunter Fallback | 20 |
+| REF_LEN_BP | Reference length in bp | DRAGEN VCF with ExpansionHunter Fallback | 60 |
+| MOTIF | Repeat motif | DRAGEN VCF with ExpansionHunter Fallback | CGG |
+| GENE | Gene associated with repeat | STRchive/DRAGEN mapping | FMR1 |
 | DISORDER | Disorder associated with repeat | [STRchive](https://strchive.org/) | FRAXA: fragile X syndrome |
 | DISEASE_THRESHOLD | Number of repeat units at/above which an expansion is considered disease-causing | [STRchive](https://strchive.org/) | 201 |
-| &lt;SAMPLE_ID&gt;_DISEASE_PREDICTION | If sample motif count is greater than or equal to disease threshold, TRUE; otherwise FALSE | DRAGEN VCF | FALSE |
-| &lt;SAMPLE_ID&gt;_GT| Genotype | DRAGEN VCF | 1/1 |
-| &lt;SAMPLE_ID&gt;_motif_count | Motif count | DRAGEN VCF | 30/30 |
-| &lt;SAMPLE_ID&gt;_REPCI | Repeat confidence interval | DRAGEN VCF | 22-30/30-39 |
-| &lt;SAMPLE_ID&gt;_ADSP | Number of spanning reads consistent with allele | DRAGEN VCF | 4/4 |
-| &lt;SAMPLE_ID&gt;_ADFL | Number of flanking reads consistent with allele | DRAGEN VCF | 21/21 |
-| &lt;SAMPLE_ID&gt;_ADIR | Number of in-repeat reads consistent with allele | DRAGEN VCF | 0/0 |
-| &lt;SAMPLE_ID&gt;_coverage | Locus coverage | DRAGEN VCF | 18.37 |
+| &lt;SAMPLE_ID&gt;_DISEASE_PREDICTION | If sample motif count is greater than or equal to disease threshold, TRUE; otherwise FALSE | DRAGEN VCF with ExpansionHunter Fallback | FALSE |
+| &lt;SAMPLE_ID&gt;_GT| Genotype | DRAGEN VCF with ExpansionHunter Fallback | 1/1 |
+| &lt;SAMPLE_ID&gt;_motif_count | Motif count | DRAGEN VCF with ExpansionHunter Fallback | 30/30 |
+| &lt;SAMPLE_ID&gt;_REPCI | Repeat confidence interval | DRAGEN VCF with ExpansionHunter Fallback | 22-30/30-39 |
+| &lt;SAMPLE_ID&gt;_ADSP | Number of spanning reads consistent with allele | DRAGEN VCF with ExpansionHunter Fallback | 4/4 |
+| &lt;SAMPLE_ID&gt;_ADFL | Number of flanking reads consistent with allele | DRAGEN VCF with ExpansionHunter Fallback | 21/21 |
+| &lt;SAMPLE_ID&gt;_ADIR | Number of in-repeat reads consistent with allele | DRAGEN VCF with ExpansionHunter Fallback | 0/0 |
+| &lt;SAMPLE_ID&gt;_coverage | Locus coverage | DRAGEN VCF with ExpansionHunter Fallback | 18.37 |
