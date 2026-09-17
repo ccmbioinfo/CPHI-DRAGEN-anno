@@ -5,7 +5,7 @@ if config["run"]["hpo"]:
     rule prepare_hpo_matches:
         input:
             hpo=config["run"]["hpo"],
-            ensembl_to_ncbi=config["annotation"]["ensembl_to_NCBI_df"],
+            ensembl_to_ncbi=config["annotation"]["general"]["ensembl_to_NCBI_df"],
         output:
             hpo=hpo_matches,
         params:
