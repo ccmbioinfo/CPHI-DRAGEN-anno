@@ -8,6 +8,8 @@ run:
   acmg_sf: true
   dragen_output_schema: "" # "" CPHI family, "modified" for non-CPHI family
   
+hpo_matching: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/HPO/download"
+
 genes:
   ensembl: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/genes/ensembl/for_gene_panels/Homo_sapiens.GRCh38.115.gtf_subset.csv"
   refseq: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/genes/refseq/GRCh38_latest_genomic.gff_subset.csv"
