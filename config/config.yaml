@@ -8,8 +8,6 @@ run:
   acmg_sf: true
   dragen_output_schema: "" # "" CPHI family, "modified" for non-CPHI family
   
-hpo_matching: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/HPO/download"
-
 genes:
   ensembl: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/genes/ensembl/for_gene_panels/Homo_sapiens.GRCh38.115.gtf_subset.csv"
   refseq: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/genes/refseq/GRCh38_latest_genomic.gff_subset.csv"
@@ -43,6 +41,7 @@ annotation:
     exon: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/DRAGEN_genes/MANE/MANE.GRCh38.v1.5.ensembl_genomic.bed"
     ensembl: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/DRAGEN_genes/ensembl/Homo_sapiens.GRCh38.115.chr.processed.csv"
     ensembl_to_NCBI_df: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/genes/ensembl/ensembl_to_NCBI_ID.csv"
+    hpo_matching: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/HPO/download"
     adotto_repeats: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/repeats/repeat_catalogs_for_TRGT/adotto_repeats.hg38.bed"
     clingen_path: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/ClinGen/"
     acmg_sf_list: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/ACMG/ACMG_SF_v3.3.tsv"

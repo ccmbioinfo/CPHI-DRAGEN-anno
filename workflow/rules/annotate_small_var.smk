@@ -147,7 +147,7 @@ if config["run"]["hpo"]:
 
     rule hpo_to_panel:
         input: 
-            hpo=hpo_matches,
+            hpo=config["run"]["hpo"],
             ensembl=config["genes"]["ensembl"],
             refseq=config["genes"]["refseq"],
             hgnc=config["genes"]["hgnc"]
