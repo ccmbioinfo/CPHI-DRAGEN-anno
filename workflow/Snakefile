@@ -34,13 +34,13 @@ acmg_sf_report_output = ["reports/{family}.ACMG.SF.hg38.csv".format(family=famil
 
 ##### load rules #####
 include: "rules/common.smk"
+include: "rules/compound_hets.smk"
 include: "rules/annotate_STRs.smk"
 include: "rules/svreport.smk"
 include: "rules/cnvreport.smk"
 include: "rules/annotate_small_var.smk"
 include: "rules/annotate_mt_var.smk"
 include: "rules/qc.smk"
-include: "rules/compound_hets.smk"
 
 if str(config["run"].get("acmg_sf", "")).lower() == "true":
     include: "rules/acmg_sf.smk"

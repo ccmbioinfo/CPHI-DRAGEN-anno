@@ -1,0 +1,8 @@
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pandas=2.2
+  - pip
+  - pip:
+      - hpo-toolkit==0.8.1

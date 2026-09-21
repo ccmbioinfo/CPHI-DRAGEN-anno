@@ -173,6 +173,8 @@ def add_hpo(hpo, gene):
                 pass
     if len(terms) == 0:
         return "nan"
+    elif "HPO Match Score" in hpo.columns:
+        return ", ".join(terms)
     else:
         terms = ",".join(terms)
         terms = ", ".join(
