@@ -1,5 +1,7 @@
 channels:
+  - conda-forge
   - bioconda
+  - defaults
 dependencies:
   - vcfanno =0.3.2
   - bcftools =1.9

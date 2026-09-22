@@ -3,6 +3,7 @@ channels:
   - conda-forge
 dependencies:
   - python==3.12.4
+  - mity==2.0.1
   - bcftools
   - vt
   - pysam
