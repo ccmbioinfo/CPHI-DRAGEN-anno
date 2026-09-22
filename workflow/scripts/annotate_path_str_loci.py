@@ -1,160 +1,181 @@
+#!/usr/bin/env python3
+
 import argparse
+import csv
 from datetime import date
 import os
-import pandas as pd
-import numpy as np
 
 
-def pivot_repeat_df(repeat_df):
-    # convert repeat dataframe long to wide format
-    repeat_pivot = repeat_df.pivot(columns=["SAMPLE"], values=["GT", "SO", "motif_count", "REPCI", "ADSP", "ADFL", "ADIR", "coverage"])
-    # collapse multi-level index 
-    repeat_pivot = repeat_pivot.reset_index()
-    cols = repeat_pivot.columns
-    new_cols = []
-    for col in cols:
-        new_col = col[1] + "_" + col[0] if col[1] != "" else col[0]
-        new_cols.append(new_col)
-    repeat_pivot.columns = new_cols
+CATEGORIES = [
+    ("BENIGN", "Benign range(s)"),
+    ("INTERMEDIATE", "Intermediate range(s)"),
+    ("PATHOGENIC", "Pathogenic range(s)"),
+]
+CALL_FIELDS = [
+    ("GT", "GT"),
+    ("motif_count", "REPCN"),
+    ("REPCI", "REPCI"),
+    ("FILTER", "FILTER"),
+    ("SO", "SO"),
+    ("ADSP", "ADSP"),
+    ("ADFL", "ADFL"),
+    ("ADIR", "ADIR"),
+    ("coverage", "LC"),
+]
 
-    return repeat_pivot
 
-def is_disease(motif_count, gene, threshold, multi_motif):
-    # Match the PacBio report: compound-locus motif counts are not evaluated
-    # against one simple length threshold.
-    if multi_motif:
-        return None
+def ranges(value):
+    parsed = []
+    for interval in filter(None, value.split(";")):
+        minimum, separator, maximum = interval.partition("-")
+        parsed.append(
+            (int(minimum), None if separator and maximum == "*" else int(maximum or minimum))
+        )
+    return parsed
+
+
+def classify_allele(count, threshold):
+    for category, field in CATEGORIES:
+        for minimum, maximum in ranges(threshold[field]):
+            if count >= minimum and (maximum is None or count <= maximum):
+                return category
+    return "UNKNOWN"
+
+
+def classify(repcn, threshold):
     try:
-        motif_count = [int(count) for count in motif_count.split("/")]
-    except: # missing genotype
-        return "Missing"
-    is_disease = False
-    if pd.isna(threshold):
-        # threshold is NaN
-        is_disease = None
-    else:
-        for count in motif_count:
-            if count == ".":
-                continue
-            elif gene == "VWA1":
-                if count != 2: # 2 copies is benign as per STRchive 
-                    is_disease = True
-            elif count >= int(threshold):
-                is_disease = True
+        counts = [int(float(value)) for value in repcn.replace("|", "/").split("/")]
+    except (AttributeError, ValueError):
+        return "MISSING"
+    if threshold["Classification enabled"].lower() != "true":
+        return "UNKNOWN"
 
-    return is_disease
+    allele_classes = [classify_allele(count, threshold) for count in counts]
+    if "PATHOGENIC" in allele_classes:
+        return "PATHOGENIC"
+    if "UNKNOWN" in allele_classes:
+        return "UNKNOWN"
+    if "INTERMEDIATE" in allele_classes:
+        return "INTERMEDIATE"
+    return "BENIGN"
+
+
+def read_tsv(path):
+    with open(path, newline="") as handle:
+        return list(csv.DictReader(handle, delimiter="\t"))
+
+
+def first_call(calls, samples, field):
+    for sample in samples:
+        value = calls.get(sample, {}).get(field, ".")
+        if value not in ("", "."):
+            return value
+    return "."
+
+
+def build_report(repeat_tsv, thresholds_tsv, samples_tsv):
+    samples = [row["sample"] for row in read_tsv(samples_tsv)]
+    calls = {
+        (row["STRCHIVE_LOCUS_ID"], row["SAMPLE"]): row
+        for row in read_tsv(repeat_tsv)
+    }
+    report = []
+
+    for threshold in read_tsv(thresholds_tsv):
+        locus_id = threshold["STRchive LocusId"]
+        locus_calls = {sample: calls.get((locus_id, sample), {}) for sample in samples}
+        chromosome, coordinates = threshold["Target region (hg38)"].split(":", 1)
+        start = coordinates.split("-", 1)[0]
+        row = {
+            "CHROM": chromosome,
+            "POS": start,
+            "REF_REPEAT_COUNT": first_call(locus_calls, samples, "REF"),
+            "REF_LEN_BP": first_call(locus_calls, samples, "RL"),
+            "MOTIF": threshold["Target motif"],
+            "GENE": threshold["Gene"],
+            "DISORDER": threshold["Disorder"],
+            "DISEASE_THRESHOLD": threshold["Disease threshold"] or ".",
+        }
+        for sample in samples:
+            row[f"{sample}_DISEASE_PREDICTION"] = classify(
+                locus_calls[sample].get("REPCN", "."), threshold
+            )
+        for sample in samples:
+            for output_name, input_name in CALL_FIELDS:
+                row[f"{sample}_{output_name}"] = (
+                    locus_calls[sample].get(input_name, ".") or "."
+                )
+        row.update(
+            {
+                "STRCHIVE_LOCUS_ID": locus_id,
+                "BENIGN_RANGES": threshold["Benign range(s)"] or ".",
+                "INTERMEDIATE_RANGES": threshold["Intermediate range(s)"] or ".",
+                "PATHOGENIC_RANGES": threshold["Pathogenic range(s)"] or ".",
+                "TARGET_REGION": threshold["Target region (hg38)"],
+                "TARGET_VARIANT_ID": threshold["Target VariantId"],
+                "STRCHIVE_URL": threshold["STRchive URL"],
+            }
+        )
+        report.append(row)
+    return report, samples
 
 
 def main(repeat_tsv, disease_thresholds, samples_tsv, output_file):
-    repeat_df = pd.read_csv(repeat_tsv, sep="\t", names=["SAMPLE", "CHROM", "POS", "VARID", "REF", "RL", "RU", "GT", "SO", "motif_count", "REPCI", "ADSP", "ADFL", "ADIR", "coverage", "MULTI_MOTIF"])
-    repeat_df.set_index(["CHROM", "POS", "VARID", "REF", "RL", "RU", "MULTI_MOTIF"], inplace=True)
-    samples = repeat_df["SAMPLE"].unique()
-    # convert repeat dataframe long to wide format
-    repeat_pivot = pivot_repeat_df(repeat_df)
-    # remove non-disease loci
-    repeat_pivot = repeat_pivot[~repeat_pivot["VARID"].str.contains("chr", na=False)].copy()
-    # rename some loci to match disease threshold file
-    gene_dict = {"HOXA13_1": "HOXA13-I", "HOXA13_2": "HOXA13-II", "HOXA13_3": "HOXA13-III", "ARX_1": "EIEE1_ARX", "ARX_2": "PRTS_ARX","C9ORF72":"C9orf72"}
-    repeat_pivot["VARID"] = repeat_pivot["VARID"].replace(gene_dict)
-    disease_thresholds = pd.read_csv(disease_thresholds, sep="\t")
-    disease_thresholds.columns = disease_thresholds.columns.str.upper()
-    repeat_pivot_with_thresholds = repeat_pivot.merge(disease_thresholds, left_on="VARID", right_on="GENE", how="left")
-    # now annotate with disease status
-    repeat_pivot_with_thresholds.rename(columns={"DISEASE THRESHOLD": "DISEASE_THRESHOLD"}, inplace=True)
-    motif_count_cols = repeat_pivot_with_thresholds.columns[repeat_pivot_with_thresholds.columns.str.contains("motif_count")]
-    for col in motif_count_cols:
-        repeat_pivot_with_thresholds[f"{col}_DISEASE_PREDICTION"] = repeat_pivot_with_thresholds.apply(
-            lambda row: is_disease(
-                row[col],
-                row["GENE"],
-                row.DISEASE_THRESHOLD,
-                row["MULTI_MOTIF"]
-            ),
-            axis=1,
+    rows, samples = build_report(repeat_tsv, disease_thresholds, samples_tsv)
+    leading = [
+        "CHROM",
+        "POS",
+        "REF_REPEAT_COUNT",
+        "REF_LEN_BP",
+        "MOTIF",
+        "GENE",
+        "DISORDER",
+        "DISEASE_THRESHOLD",
+    ]
+    predictions = [f"{sample}_DISEASE_PREDICTION" for sample in samples]
+    sample_fields = [
+        f"{sample}_{output_name}"
+        for sample in samples
+        for output_name, _ in CALL_FIELDS
+    ]
+    resource_fields = [
+        "STRCHIVE_LOCUS_ID",
+        "BENIGN_RANGES",
+        "INTERMEDIATE_RANGES",
+        "PATHOGENIC_RANGES",
+        "TARGET_REGION",
+        "TARGET_VARIANT_ID",
+        "STRCHIVE_URL",
+    ]
+
+    output_prefix = output_file.removesuffix(".hg38.csv")
+    dated_output = f"{output_prefix}.{date.today().isoformat()}.hg38.csv"
+    os.makedirs(os.path.dirname(output_file) or ".", exist_ok=True)
+    with open(dated_output, "w", newline="") as handle:
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=leading + predictions + sample_fields + resource_fields,
+            lineterminator="\n",
         )
-    disease_pred_cols = [col for col in repeat_pivot_with_thresholds.columns if "PREDICTION" in col and "motif_count" in col]
-    for col in disease_pred_cols:
-        rename_col = col.replace("_motif_count", "")
-        repeat_pivot_with_thresholds.rename(columns={col: rename_col}, inplace=True)
-    # format for export
-    samples = pd.read_csv(samples_tsv, sep="\t", dtype=str)
-    samples = samples["sample"].tolist()
-    sample_cols = []
-    disease_pred_cols = []
-    for sample in samples:
-        cols = [col for col in repeat_pivot_with_thresholds.columns if sample in col]
-        for col in cols:
-            if "DISEASE_PREDICTION" in col:
-                disease_pred_cols.append(col)
-            else:
-                if "_SO" not in col:
-                    sample_cols.append(col)
-    report_cols = (
-        [
-            "CHROM",
-            "POS",
-            "REF",
-            "RL",
-            "RU",
-            "VARID",
-            "DISORDER",
-            "DISEASE_THRESHOLD",
-        ] + list(disease_pred_cols) + list(sample_cols)
-    )
+        writer.writeheader()
+        writer.writerows(rows)
 
-    repeat_pivot_with_thresholds = repeat_pivot_with_thresholds[report_cols].copy()
-    repeat_pivot_with_thresholds["DISEASE_THRESHOLD"] = repeat_pivot_with_thresholds["DISEASE_THRESHOLD"].astype(str)
-    repeat_pivot_with_thresholds["DISEASE_THRESHOLD"] = repeat_pivot_with_thresholds["DISEASE_THRESHOLD"].str.replace(".0", "")
-    repeat_pivot_with_thresholds.rename(columns={"VARID": "GENE", "REF": "REF_REPEAT_COUNT", "RL": "REF_LEN_BP", "RU": "MOTIF"}, inplace=True)
-    repeat_pivot_with_thresholds.replace({np.nan: "."}, inplace=True)
-    today = date.today()
-    today = today.strftime("%Y-%m-%d")
-    output_prefix = output_file.replace(".hg38.csv", "")
-    repeat_pivot_with_thresholds.to_csv(f"{output_prefix}.{today}.hg38.csv", index=False)
-    # Write a symlink instead of a new copy for the Snakemake target
-    symlink_path = f"{output_file}"
-    target_path = f"{output_prefix}.{today}.hg38.csv"
-    try:
-        if os.path.islink(symlink_path) or os.path.exists(symlink_path):
-            os.remove(symlink_path)
-        os.symlink(os.path.basename(target_path), symlink_path)
-    except Exception as e:
-        print(f"Could not create symlink {symlink_path} -> {target_path}: {e}")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    if os.path.lexists(output_file):
+        os.remove(output_file)
+    os.symlink(os.path.basename(dated_output), output_file)
+    print(f"Wrote {dated_output} ({len(rows)} loci)")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Generates a report for known pathogenic repeat expansion loci from a DRAGEN genotyped STRs"
-    )
-    parser.add_argument("--repeat_tsv", type=str, help="Repeat TSV", required=True)
-    parser.add_argument("--disease_thresholds", type=str, help="Repeat loci", required=True)
-    parser.add_argument("--samples_tsv", type=str, help="Samples TSV", required=True)
-    parser.add_argument("--output_file", type=str, help="Output filename", required=True)
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--repeat_tsv", required=True)
+    parser.add_argument("--disease_thresholds", required=True)
+    parser.add_argument("--samples_tsv", required=True)
+    parser.add_argument("--output_file", required=True)
     args = parser.parse_args()
-    repeat_tsv = args.repeat_tsv
-    disease_thresholds = args.disease_thresholds
-    samples_tsv = args.samples_tsv
-    output_file =args.output_file
-
     main(
-        repeat_tsv,
-        disease_thresholds,
-        samples_tsv,
-        output_file
+        args.repeat_tsv,
+        args.disease_thresholds,
+        args.samples_tsv,
+        args.output_file,
     )

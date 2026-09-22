@@ -1,234 +1,154 @@
-import argparse
-import json
-import re
+#!/usr/bin/env python3
 
-import pandas as pd
+import argparse
+import csv
+from pathlib import Path
+
 from pysam import VariantFile
 
 
-OUTPUT_COLUMNS = ["SAMPLE","CHROM","POS","VARID","REF","RL","RU","GT","SO","REPCN","REPCI","ADSP","ADFL","ADIR","LC",]
+# Keep the flattened ExpansionHunter output close to the columns previously emitted from DRAGEN VCFs.
+OUTPUT_COLUMNS = [
+    "SAMPLE",
+    "STRCHIVE_LOCUS_ID",
+    "CHROM",
+    "POS",
+    "END",
+    "VARID",
+    "REF",
+    "RL",
+    "RU",
+    "GT",
+    "SO",
+    "REPCN",
+    "REPCI",
+    "ADSP",
+    "ADFL",
+    "ADIR",
+    "LC",
+    "FILTER",
+]
 
-# Native DRAGEN VARIDs that differ from the threshold report keys.
-DRAGEN_GENE_NAMES = {
-    "HOXA13_1": "HOXA13-I",
-    "HOXA13_2": "HOXA13-II",
-    "HOXA13_3": "HOXA13-III",
-    "ARX_1": "EIEE1_ARX",
-    "ARX_2": "PRTS_ARX",
-    "C9ORF72": "C9orf72",
-}
-
-# Catalog IDs whose report key cannot be taken from the final underscore field.
-CATALOG_REPORT_NAMES = {
-    "pre-MIR7-2_CHNG3": "pre-MIR7-2",
-}
-
-
-def recode_gt(gt):
-    alleles = []
-    for allele in gt:
-        if allele is None:
-            alleles.append(".")
-        else:
-            alleles.append(str(allele))
-    return "/".join(alleles)
+COMPLEMENT = str.maketrans("ACGTN", "TGCAN")
 
 
-def vcf_to_df(vcf_file):
+def canonical_motif(sequence):
+    # Match motifs independently of their starting base or reference strand.
+    sequence = sequence.upper()
+    reverse_complement = sequence.translate(COMPLEMENT)[::-1]
+    rotations = {
+        value[index:] + value[:index]
+        for value in (sequence, reverse_complement)
+        for index in range(len(value))
+    }
+    return min(rotations)
+
+
+def normalize_chromosome(chromosome):
+    return chromosome if chromosome.startswith("chr") else f"chr{chromosome}"
+
+
+def load_targets(threshold_path):
+    # Index each reportable component by its region and normalized target motif.
+    targets = {}
+    with open(threshold_path, newline="") as handle:
+        for row in csv.DictReader(handle, delimiter="\t"):
+            chromosome, coordinates = row["Target region (hg38)"].split(":", 1)
+            start, end = coordinates.split("-", 1)
+            key = (normalize_chromosome(chromosome), int(start), int(end), canonical_motif(row["Target motif"]),)
+            targets[key] = row["STRchive LocusId"]
+    return targets
+
+
+def format_value(value, precision=None):
+    # Preserve multi-valued VCF fields with slash separators and represent missing values as dots.
+    if value is None:
+        return "."
+    if isinstance(value, (tuple, list)):
+        return "/".join(format_value(item, precision) for item in value)
+    if isinstance(value, float) and precision is not None:
+        return str(round(value, precision))
+    return str(value)
+
+
+def genotype(sample_call):
+    alleles = sample_call.get("GT")
+    if alleles is None:
+        return "."
+    separator = "|" if sample_call.phased else "/"
+    return separator.join("." if allele is None else str(allele) for allele in alleles)
+
+
+def record_key(record):
+    # Build the same component key from an ExpansionHunter record and its repeat unit.
+    repeat_unit = record.info["RU"]
+    if isinstance(repeat_unit, (tuple, list)):
+        repeat_unit = repeat_unit[0]
+    return (normalize_chromosome(record.chrom), record.pos, record.stop, canonical_motif(str(repeat_unit)),)
+
+
+def call_row(sample, locus_id, record, sample_call):
+    # Flatten the selected VCF INFO and FORMAT fields into one report-compatible row.
+    sample_value = lambda field: format_value(sample_call.get(field))
+    filters = ";".join(record.filter.keys()) or "."
+    return {
+        "SAMPLE": sample,
+        "STRCHIVE_LOCUS_ID": locus_id,
+        "CHROM": normalize_chromosome(record.chrom),
+        "POS": record.pos,
+        "END": record.stop,
+        "VARID": format_value(record.info.get("VARID")),
+        "REF": format_value(record.info.get("REF")),
+        "RL": format_value(record.info.get("RL")),
+        "RU": format_value(record.info.get("RU")),
+        "GT": genotype(sample_call),
+        "SO": sample_value("SO"),
+        "REPCN": sample_value("REPCN"),
+        "REPCI": sample_value("REPCI"),
+        "ADSP": sample_value("ADSP"),
+        "ADFL": sample_value("ADFL"),
+        "ADIR": sample_value("ADIR"),
+        "LC": format_value(sample_call.get("LC"), precision=2),
+        "FILTER": filters,
+    }
+
+
+def sample_calls(vcf_path, sample, targets):
     rows = []
-    with VariantFile(vcf_file) as variants:
-        for rec in variants:
-            # INFO fields
-            VARID = rec.info["VARID"]
-            REF = rec.info["REF"]  # Number of repeat units in the reference
-            RL = rec.info["RL"]  # Reference length in bp
-            RU = rec.info["RU"]  # Repeat unit in the reference orientation
-
-            # Sample fields
-            for sample in variants.header.samples:
-                GT = recode_gt(rec.samples[sample]["GT"])  # Genotype
-                SO = rec.samples[sample]["SO"]  # Supporting-read types
-                REPCN = rec.samples[sample]["REPCN"]  # Allele repeat counts
-                REPCI = rec.samples[sample]["REPCI"]  # REPCN confidence intervals
-                ADSP = rec.samples[sample]["ADSP"]  # Spanning-read support
-                ADFL = rec.samples[sample]["ADFL"]  # Flanking-read support
-                ADIR = rec.samples[sample]["ADIR"]  # In-repeat-read support
-                LC = round(rec.samples[sample]["LC"], 2)  # Locus coverage
-                rows.append(
-                    [
-                        sample,
-                        rec.chrom,
-                        rec.pos,
-                        VARID,
-                        REF,
-                        RL,
-                        RU,
-                        GT,
-                        SO,
-                        REPCN,
-                        REPCI,
-                        ADSP,
-                        ADFL,
-                        ADIR,
-                        LC,
-                        rec.stop,
-                    ]
-                )
-    return pd.DataFrame(rows, columns=OUTPUT_COLUMNS + ["END"])
+    with VariantFile(vcf_path) as variants:
+        vcf_sample = sample if sample in variants.header.samples else next(iter(variants.header.samples))
+        for record in variants:
+            if "RU" not in record.info:
+                continue
+            # Retain only the component configured as reportable in the threshold resource.
+            locus_id = targets.get(record_key(record))
+            if locus_id:
+                rows.append(call_row(sample, locus_id, record, record.samples[vcf_sample]))
+    return rows
 
 
-def parse_region(region):
-    chrom, coordinates = region.split(":", 1)
-    start, end = coordinates.split("-", 1)
-    return chrom, int(start), int(end)
+def main(samples_tsv, expansionhunter_dir, disease_thresholds, output_file):
+    with open(samples_tsv, newline="") as handle:
+        samples = [row["sample"] for row in csv.DictReader(handle, delimiter="\t")]
+    targets = load_targets(disease_thresholds)
+    rows = [
+        row
+        for sample in samples
+        for row in sample_calls(Path(expansionhunter_dir) / f"{sample}.vcf", sample, targets)
+    ]
 
-
-def get_catalog_targets(variant_catalog, disease_thresholds):
-    # The threshold table supplies the report key and identifies which repeat
-    # component should be reported for each disease locus.
-    thresholds = pd.read_csv(disease_thresholds, sep="\t", dtype=str)
-    thresholds = thresholds.set_index("Gene", drop=False)
-    with open(variant_catalog) as handle:
-        catalog = json.load(handle)
-
-    targets = []
-    for locus in catalog:
-        locus_id = locus["LocusId"]
-        gene = CATALOG_REPORT_NAMES.get(locus_id)
-        if gene is None:
-            # Keep IDs that are already threshold keys; otherwise extract the
-            # gene from STRchive's disease_gene locus naming convention.
-            gene = (
-                locus_id
-                if locus_id in thresholds.index
-                else locus_id.rsplit("_", 1)[-1]
-            )
-        threshold = thresholds.loc[gene]
-
-        # ExpansionHunter represents compound loci with parallel lists of
-        # reference regions and repeat motifs; simple loci contain one string.
-        regions = locus["ReferenceRegion"]
-        if isinstance(regions, str):
-            regions = [regions]
-        motifs = re.findall(r"\(([ACGTN]+)\)\*", locus["LocusStructure"], re.I)
-
-        # Threshold coordinates are 1-based, while catalog region starts and
-        # ExpansionHunter VCF positions use the catalog's 0-based start value.
-        threshold_region = None
-        if pd.notna(threshold["Coordinates (hg38)"]):
-            threshold_region = parse_region(threshold["Coordinates (hg38)"])
-        threshold_motif = None
-        if pd.notna(threshold["Motif (reference orientation)"]):
-            threshold_motif = threshold["Motif (reference orientation)"].upper()
-
-        components = []
-        for region, motif in zip(regions, motifs):
-            chrom, pos, end = parse_region(region)
-            components.append(
-                {
-                    "CHROM": chrom,
-                    "POS": pos,
-                    "END": end,
-                    "GENE": gene,
-                    "RU": motif.upper(),
-                }
-            )
-
-        # Prefer the component identified by the threshold coordinates. Some
-        # thresholds span a whole compound locus, so use its motif next. The
-        # final fallback handles single-component legacy loci.
-        target = next(
-            (
-                component
-                for component in components
-                if (component["CHROM"], component["POS"] + 1, component["END"])
-                == threshold_region
-            ),
-            None,
-        )
-        if target is None and threshold_motif:
-            target = next(
-                (
-                    component
-                    for component in components
-                    if component["RU"] == threshold_motif
-                ),
-                None,
-            )
-        if target is None:
-            target = components[0]
-        # Do not make a disease prediction for compound loci because
-        # their motif counts cannot be interpreted by the simple threshold.
-        target["MULTI_MOTIF"] = len(components) > 1
-        targets.append(target)
-
-    return pd.DataFrame(targets)
-
-
-def exact_catalog_matches(repeats, catalog_targets):
-    matches = repeats.merge(catalog_targets, on=["CHROM", "POS", "END", "RU"], how="inner",)
-    matches["VARID"] = matches["GENE"]
-    return matches[OUTPUT_COLUMNS + ["END", "GENE"]]
-
-
-def remove_covered(repeats, covered):
-    sample_genes = zip(repeats["SAMPLE"], repeats["GENE"])
-    return repeats[[pair not in covered for pair in sample_genes]].copy()
-
-
-def main(samples_tsv, expansionhunter_dir, variant_catalog, disease_thresholds, output_file,):
-    samples = pd.read_csv(samples_tsv, sep="\t", dtype=str)
-    catalog_targets = get_catalog_targets(variant_catalog, disease_thresholds)
-
-    dragen_repeats = pd.concat([vcf_to_df(vcf) for vcf in samples["STR"]], ignore_index=True)
-    expansionhunter_repeats = pd.concat([vcf_to_df(f"{expansionhunter_dir}/{sample}.vcf") for sample in samples["sample"]], ignore_index=True,)
-
-    # Keep the disease-labelled DRAGEN calls, as in the original workflow.
-    is_unlabelled = dragen_repeats["VARID"].str.startswith("chr")
-    final_repeats = dragen_repeats[~is_unlabelled].copy()
-    dragen_to_match = dragen_repeats[is_unlabelled].copy()
-    final_repeats["GENE"] = final_repeats["VARID"].replace(DRAGEN_GENE_NAMES)
-
-    # Add exact catalog matches from the remaining unlabelled DRAGEN calls.
-    matched_dragen = exact_catalog_matches(dragen_to_match, catalog_targets)
-    covered = set(zip(final_repeats["SAMPLE"], final_repeats["GENE"]))
-    matched_dragen = remove_covered(matched_dragen, covered)
-    final_repeats = pd.concat([final_repeats, matched_dragen], ignore_index=True)
-
-    # Keep one reportable component per EH locus, then remove loci already
-    # supplied by DRAGEN and append what remains.
-    expansionhunter_repeats = exact_catalog_matches(expansionhunter_repeats, catalog_targets)
-    covered = set(zip(final_repeats["SAMPLE"], final_repeats["GENE"]))
-    expansionhunter_repeats = remove_covered(expansionhunter_repeats, covered)
-    final_repeats = pd.concat([final_repeats, expansionhunter_repeats], ignore_index=True)
-
-    multi_motif_genes = set(
-        catalog_targets.loc[catalog_targets["MULTI_MOTIF"], "GENE"]
-    )
-    final_repeats["MULTI_MOTIF"] = final_repeats["GENE"].isin(multi_motif_genes)
-    final_repeats[OUTPUT_COLUMNS + ["MULTI_MOTIF"]].to_csv(
-        output_file, sep="\t", index=False, header=False
-    )
-
-    print(f"DRAGEN disease-labelled calls: {sum(~is_unlabelled)}")
-    print(f"DRAGEN exact catalog matches added: {len(matched_dragen)}")
-    print(f"ExpansionHunter fallback calls added: {len(expansionhunter_repeats)}")
+    with open(output_file, "w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=OUTPUT_COLUMNS, delimiter="\t", lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(rows)
+    print(f"Wrote {len(rows)} target-component calls")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Combines DRAGEN and ExpansionHunter repeat calls")
+    parser = argparse.ArgumentParser()
     parser.add_argument("--samples_tsv", required=True)
-    parser.add_argument("--family", required=True)
     parser.add_argument("--expansionhunter_dir", required=True)
-    parser.add_argument("--variant_catalog", required=True)
     parser.add_argument("--disease_thresholds", required=True)
     parser.add_argument("--output_file", required=True)
     args = parser.parse_args()
-
-    main(
-        args.samples_tsv,
-        args.expansionhunter_dir,
-        args.variant_catalog,
-        args.disease_thresholds,
-        args.output_file,
-    )
+    main(args.samples_tsv, args.expansionhunter_dir, args.disease_thresholds, args.output_file,)
