@@ -17,7 +17,8 @@ tools:
   cphi-dragen-anno: "~/CPHI-DRAGEN-anno/"
   crg2_pacbio: "~/crg2-pacbio"
   annotSV: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/crg2-pacbio-non-conda-tools/AnnotSV-3.1.1"
-
+  expansionhunter_sif: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/annotation_hg38/STRs/ExpansionHunter/ExpansionHunter-5.0.0.sif"
+  
 ref:
   name: "GRCh38.115"
   genome: "/hpf/largeprojects/ccm_dccforge/dccdipg/Common/genomes/DRAGEN_hg38-fasta-0-1_graph/hg38.fa"
