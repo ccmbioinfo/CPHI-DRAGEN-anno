@@ -95,6 +95,7 @@ def build_report(repeat_tsv, thresholds_tsv, samples_tsv):
             "GENE": threshold["Gene"],
             "DISORDER": threshold["Disorder"],
             "DISEASE_THRESHOLD": threshold["Disease threshold"] or ".",
+            "NOTE": threshold["Note"] or ".",
         }
         for sample in samples:
             row[f"{sample}_DISEASE_PREDICTION"] = classify(
@@ -131,6 +132,7 @@ def main(repeat_tsv, disease_thresholds, samples_tsv, output_file):
         "GENE",
         "DISORDER",
         "DISEASE_THRESHOLD",
+        "NOTE",
     ]
     predictions = [f"{sample}_DISEASE_PREDICTION" for sample in samples]
     sample_fields = [

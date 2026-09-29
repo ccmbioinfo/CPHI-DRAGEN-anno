@@ -29,34 +29,16 @@ OUTPUT_COLUMNS = [
     "FILTER",
 ]
 
-COMPLEMENT = str.maketrans("ACGTN", "TGCAN")
-
-
-def canonical_motif(sequence):
-    # Match motifs independently of their starting base or reference strand.
-    sequence = sequence.upper()
-    reverse_complement = sequence.translate(COMPLEMENT)[::-1]
-    rotations = {
-        value[index:] + value[:index]
-        for value in (sequence, reverse_complement)
-        for index in range(len(value))
-    }
-    return min(rotations)
-
-
 def normalize_chromosome(chromosome):
     return chromosome if chromosome.startswith("chr") else f"chr{chromosome}"
 
 
 def load_targets(threshold_path):
-    # Index each reportable component by its region and normalized target motif.
+    # ExpansionHunter emits these stable component IDs from the same catalog.
     targets = {}
     with open(threshold_path, newline="") as handle:
         for row in csv.DictReader(handle, delimiter="\t"):
-            chromosome, coordinates = row["Target region (hg38)"].split(":", 1)
-            start, end = coordinates.split("-", 1)
-            key = (normalize_chromosome(chromosome), int(start), int(end), canonical_motif(row["Target motif"]),)
-            targets[key] = row["STRchive LocusId"]
+            targets[row["Target VariantId"]] = row["STRchive LocusId"]
     return targets
 
 
@@ -79,12 +61,11 @@ def genotype(sample_call):
     return separator.join("." if allele is None else str(allele) for allele in alleles)
 
 
-def record_key(record):
-    # Build the same component key from an ExpansionHunter record and its repeat unit.
-    repeat_unit = record.info["RU"]
-    if isinstance(repeat_unit, (tuple, list)):
-        repeat_unit = repeat_unit[0]
-    return (normalize_chromosome(record.chrom), record.pos, record.stop, canonical_motif(str(repeat_unit)),)
+def record_variant_id(record):
+    variant_id = record.info.get("VARID")
+    if isinstance(variant_id, (tuple, list)):
+        variant_id = variant_id[0]
+    return None if variant_id is None else str(variant_id)
 
 
 def call_row(sample, locus_id, record, sample_call):
@@ -116,12 +97,14 @@ def call_row(sample, locus_id, record, sample_call):
 def sample_calls(vcf_path, sample, targets):
     rows = []
     with VariantFile(vcf_path) as variants:
-        vcf_sample = sample if sample in variants.header.samples else next(iter(variants.header.samples))
+        vcf_sample = (
+            sample
+            if sample in variants.header.samples
+            else next(iter(variants.header.samples))
+        )
         for record in variants:
-            if "RU" not in record.info:
-                continue
             # Retain only the component configured as reportable in the threshold resource.
-            locus_id = targets.get(record_key(record))
+            locus_id = targets.get(record_variant_id(record))
             if locus_id:
                 rows.append(call_row(sample, locus_id, record, record.samples[vcf_sample]))
     return rows
@@ -138,7 +121,12 @@ def main(samples_tsv, expansionhunter_dir, disease_thresholds, output_file):
     ]
 
     with open(output_file, "w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=OUTPUT_COLUMNS, delimiter="\t", lineterminator="\n")
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=OUTPUT_COLUMNS,
+            delimiter="\t",
+            lineterminator="\n",
+        )
         writer.writeheader()
         writer.writerows(rows)
     print(f"Wrote {len(rows)} target-component calls")
@@ -151,4 +139,9 @@ if __name__ == "__main__":
     parser.add_argument("--disease_thresholds", required=True)
     parser.add_argument("--output_file", required=True)
     args = parser.parse_args()
-    main(args.samples_tsv, args.expansionhunter_dir, args.disease_thresholds, args.output_file,)
+    main(
+        args.samples_tsv,
+        args.expansionhunter_dir,
+        args.disease_thresholds,
+        args.output_file,
+    )
