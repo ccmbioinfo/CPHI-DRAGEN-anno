@@ -149,7 +149,6 @@ Single-value columns are based on the primary VEP annotation/transcript chosen, 
 | `Sift_score_all` | All SIFT scores represented in the VEP annotations (coding reports) | dbNSFP | 0.04,0.12 |
 | `Polyphen_score_all` | All PolyPhen scores represented in the VEP annotations (coding reports) | dbNSFP | 0.943,0.627 |
 | `Cadd_score` | CADD v1.7 Phred-scaled score | [CADD v1.7 GRCh38](https://krishna.gs.washington.edu/download/CADD/v1.7/GRCh38/) | 44 |
-| `AlphaGenome_raw_score` | Uncalibrated AlphaGenome AVI model score; higher values indicate greater predicted impact. | [AlphaGenome Atlas](https://deepmind.google/science/alphagenome/) | -0.03868 |
 | `AlphaGenome_PHRED` | Phred-scaled genome-wide rank of the AlphaGenome AVI score; higher values indicate greater predicted impact. A score of 30 represents the top 0.1% and 40 the top 0.01% of genome-wide SNVs. | [AlphaGenome Atlas](https://deepmind.google/science/alphagenome/) | 1.06466 |
 | `Vest4_score` | VEST4 score (max over transcripts) | dbNSFP/VEST3_score |  |
 | `Revel_score` | REVEL score | dbNSFP/REVEL_score | 0.213 |
