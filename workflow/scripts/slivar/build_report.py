@@ -44,7 +44,8 @@ CONSTRAINT_COLUMNS = [
 
 # Fields where empty report values are written as "." to match CRE output.
 DOT_MISSING_FIELDS = {
-    "AA_position", "AlphaMissense", "Cadd_score", "Clinvar", "ENH_cellline_tissue",
+    "AA_position", "AlphaGenome_PHRED", "AlphaMissense",
+    "Cadd_score", "Clinvar", "ENH_cellline_tissue",
     # Ensembl_gene_id is deliberately absent: annotate_compound_hets.py left-merges the
     # compound-het table onto the report on this column, and compound_hets.py groups
     # gene-less variants under the literal ".". Writing "." here would make every
@@ -620,14 +621,14 @@ def make_columns(mode, samples, include_denovo=False, include_denovo_quality=Fal
         # Coding reports use coding-specific consequence and protein columns.
         columns.extend(["AA_position", "Exon", "Protein_domains"])
         columns.extend(CONSTRAINT_COLUMNS)
-        columns.extend(["Sift_score", "Polyphen_score", "Cadd_score", "Vest4_score", "Revel_score", "Gerp_score", "AlphaMissense"])
+        columns.extend(["Sift_score", "Polyphen_score", "Cadd_score", "AlphaGenome_PHRED", "Vest4_score", "Revel_score", "Gerp_score", "AlphaMissense"])
         columns.extend(["phylop100way", "SpliceAI_impact", "SpliceAI_score"])
         columns.extend(["Imprinting_status", "Imprinting_expressed_allele", "Pseudoautosomal", "Old_multiallelic"])
         columns.extend(["CSQ_biotype", "CSQ_impact", "Sift_score_all", "Polyphen_score_all", "CSQ_biotype_all"])
     else:
         # All other Slivar modes use the WGS-style noncoding/report column set.
         columns.extend(CONSTRAINT_COLUMNS)
-        columns.extend(["Cadd_score", "phylop100way", "SpliceAI_impact", "SpliceAI_score"])
+        columns.extend(["Cadd_score", "AlphaGenome_PHRED", "phylop100way", "SpliceAI_impact", "SpliceAI_score"])
         columns.extend(["ncER_score", "ReMM_score", "LINSIGHT_score", "Noncoding_path_pred", "promoterAI_score"])
         columns.extend(["Imprinting_status", "Imprinting_expressed_allele", "Pseudoautosomal", "Old_multiallelic"])
         columns.extend(["UCE_100bp", "UCE_200bp", "DNaseI_hypersensitive_site", "CTCF_binding_site"])
@@ -771,7 +772,9 @@ def main():
                 ("GSO_AF", "GSO_AF"), ("GSO_AC", "GSO_AC"),
                 ("GSO_nhomalt", "GSO_nhomalt"), ("GSO_hemi", "GSO_hemi"),
                 ("rsIDs", "rs_ids"),
-                ("Cadd_score", "CADD_phred"), ("Vest4_score", "Vest4_score"),
+                ("Cadd_score", "CADD_phred"),
+                ("AlphaGenome_PHRED", "AlphaGenome_PHRED"),
+                ("Vest4_score", "Vest4_score"),
                 ("Revel_score", "REVEL_score"), ("Gerp_score", "Gerp_score"),
                 ("AlphaMissense", "AlphaMissense"),
                 ("ncER_score", "ncER"), ("ReMM_score", "ReMM"),

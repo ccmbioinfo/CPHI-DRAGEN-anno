@@ -77,7 +77,8 @@ rule vcfanno:
         "logs/vcfanno/{family}.vcfanno.{p}.log"
     threads: 10
     resources:
-        mem_mb = 20000
+        mem_mb = 20000,
+        runtime = 2880  # minutes (48 hours)
     params:
         lua_script=config["annotation"]["vcfanno"]["lua_script"],
         conf=config["annotation"]["vcfanno"]["conf"],
