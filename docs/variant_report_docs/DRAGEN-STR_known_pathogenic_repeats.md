@@ -1,6 +1,6 @@
 # DRAGEN-STR repeat genotypes for known pathogenic loci
 
-Madeline Couse
+Madeline Couse and Rohan Khan
 
 **Version 2026-09**
 
@@ -18,7 +18,7 @@ ExpansionHunter genotypes disease-associated repeats at 86 configured loci. The 
 
 The hg38 catalog and locus information use [STRchive v2.26.1](https://github.com/dashnowlab/STRchive/releases/tag/v2.26.1) as the base. The [STRchive ExpansionHunter catalog](https://github.com/dashnowlab/STRchive/releases/download/v2.26.1/STRchive-disease-loci-v2.26.1.hg38.expansionhunter.json) is supplemented at selected loci with definitions from a pinned version of the Broad Institute [`str-analysis` hg38 catalog](https://github.com/broadinstitute/str-analysis/blob/6490e03a81187795ed37f452ad5e64ca36e4b53a/str_analysis/variant_catalogs/variant_catalog_without_offtargets.GRCh38.json). Four legacy supplemental loci absent from current STRchive are also retained.
 
-Broad definitions are used where they better represent the hg38 locus. The main reasons are that the STRchive interval includes extra bases that can shift the repeat count, the motif phase does not match the start of the hg38 interval, or a compound or interrupted repeat is represented more completely by the Broad definition. STRchive remains the primary source for locus and disease information. A Broad definition changes how the repeat is represented and counted but does not by itself change its interpretation.
+Repeat locus definitions from the Broad are used where they better represent the hg38 locus. The main reasons are that the STRchive interval includes extra bases that can shift the repeat count, the motif phase does not match the start of the hg38 interval, or a compound or interrupted repeat is represented more completely by the Broad definition. STRchive remains the primary source for locus and disease information. A Broad definition changes how the repeat is represented and counted but does not by itself change its interpretation.
 
 At loci with more than one repeat motif, the report shows the component relevant to the associated disorder. The `NOTE` column identifies loci where the displayed count has an unusual convention, the locus has a complex repeat structure, or a source difference or interpretation caveat requires additional context.
 
@@ -72,3 +72,95 @@ For detailed descriptions of repeat loci, including pathogenic repeat ranges, pr
 | TARGET_REGION | hg38 coordinates of the repeat component shown in the report | STRchive/Broad catalog | chrX:147912050-147912110 |
 | TARGET_VARIANT_ID | Identifier of the repeat component shown in the report | STRchive/Broad catalog | FXS_FMR1 |
 | STRCHIVE_URL | Link to the corresponding STRchive locus page; `.` if unavailable | STRchive | https://strchive.org/loci/fxs_fmr1/ |
+
+## Appendix
+Genes targeted 
+
+| **Gene** | 
+|---|
+|*ABCD3*|
+|*AFF2*|
+|*AFF3*|
+|*AR*|
+|*ARX* (EIEE1)|
+|*ARX* (PRTS)|
+|*ATN1*|
+|*ATXN1*|
+|*ATXN10*|
+|*ATXN2*|
+|*ATXN3*|
+|*ATXN7*|
+|*ATXN8OS*|
+|*BCLAF3*|
+|*BEAN1*|
+|*C11ORF80*|
+|*C9orf72*|
+|*CACNA1A*|
+|*CBL*|
+|*CEL*|
+|*CNBP*|
+|*COMP*|
+|*CSNK1E*|
+|*CSTB*|
+|*DAB1*|
+|*DIP2B*|
+|*DMD*|
+|*DMPK*|
+|*EIF4A3*|
+|*EP400*|
+|*FAM193B*|
+|*FGF14*|
+|*FMR1*|
+|*FOXL2*|
+|*FRA10AC1*|
+|*FXN*|
+|*GIPC1*|
+|*GLS*|
+|*GOLGA8A*|
+|*HOXA13-I*|
+|*HOXA13-II*|
+|*HOXA13-III*|
+|*HOXD13*|
+|*HTT*|
+|*JPH3*|
+|*LRP12*|
+|*MARCHF6*|
+|*MIR7-2*|
+|*MUC1*|
+|*NAXE*|
+|*NIPA1*|
+|*NOP56*|
+|*NOTCH2NLA*|
+|*NOTCH2NLC*|
+|*NUTM2B-AS1*|
+|*PABPN1*|
+|*PHOX2B*|
+|*PLIN4*|
+|*POLG*|
+|*PPP2R2B*|
+|*PRDM12*|
+|*PRNP*|
+|*RAI1*|
+|*RAPGEF2*|
+|*RFC1*|
+|*RILPL1*|
+|*RUNX2*|
+|*SAMD12*|
+|*SOX3*|
+|*STARD7*|
+|*TAF1*|
+|*TBC1D7*|
+|*TBP*|
+|*TBX1*|
+|*TCF4*|
+|*THAP11*|
+|*TMEM185A*|
+|*TNRC6A*|
+|*TYMS*|
+|*VWA1*|
+|*XYLT1*|
+|*YEATS2*|
+|*ZFHX3*|
+|*ZIC2*|
+|*ZIC3*|
+|*ZNF713*|
