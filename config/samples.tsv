@@ -1,2 +1,2 @@
-sample	CRAM	STR	metrics
-XXXX-000000_EXP_0000	/path/to/CRAM.cram	/path/to/STR.vcf.gz	/path/to/metrics.tsv
+sample	CRAM	metrics
+XXXX-000000_EXP_0000	/path/to/CRAM.cram	/path/to/metrics.tsv
