@@ -15,7 +15,7 @@
 ## Running the pipeline
 1. Clone this repo to your home directory: `git clone https://github.com/ccmbioinfo/CPHI-DRAGEN-anno/`. NOTE: you can clone the directory elsewhere, but make sure to change the relevant paths in `config.yaml` and `CPHI-DRAGEN-anno.sh`. 
 2. Clone crg2-pacbio to your home directory: `git clone https://github.com/ccmbioinfo/crg2-pacbio/`. NOTE: you can clone the directory elsewhere, but make sure to change the relevant path in `config.yaml`.
-3. Make a folder in a directory with sufficient space. Copy over the template files `CPHI-DRAGEN-anno/config/config.yaml`, `CPHI-DRAGEN-anno/config/samples.tsv`, `CPHI-DRAGEN-anno/config/units.tsv`, `CPHI-DRAGEN-anno/workflow/CPHI_DRAGEN_anno.sh`. 
+3. Make a folder in a directory with sufficient space. Copy over the template files `CPHI-DRAGEN-anno/config/config.yaml`, `CPHI-DRAGEN-anno/config/samples.tsv`, `CPHI-DRAGEN-anno/config/units.tsv`, `CPHI-DRAGEN-anno/workflow/CPHI_DRAGEN_anno.sh`. If you are running this pipeline in G4RD, use `CPHI-DRAGEN-anno/config/config_G4RD.yaml` and `CPHI-DRAGEN-anno/workflow/CPHI_DRAGEN_anno_G4RD.sh`.
 
 ```
 $ mkdir FAM-000000
@@ -24,7 +24,7 @@ $ cd FAM-000000
 ```
 
 3. Set up pipeline run: 
-- reconfigure `samples.tsv` and `units.tsv` to reflect sample names and input files. Note that because several of the inputs are joint-genotyped, one row in the units.tsv file corresponds to one family, not one sample. `units.tsv` must be configured with the path to: the joint-genotyped (or singleton, if no family members were sequenced) DRAGEN `sequence_variant_vcf`, the joint-genotyped (or singleton) DRAGEN `SV_vcf`, and the joint-genotyped (or singleton) DRAGEN `CNV_vcf`. The `samples.tsv` file should contain one row per family member, with the `sample` column corresponding to the sample ID, `CRAM` corresponding to the CRAM file, `STR` corresponding to the STR VCF, and `metrics` corresponding to the metrics TSV file. 
+- reconfigure `samples.tsv` and `units.tsv` to reflect sample names and input files. Note that because several of the inputs are joint-genotyped, one row in the units.tsv file corresponds to one family, not one sample. `units.tsv` must be configured with the path to: the joint-genotyped (or singleton, if no family members were sequenced) DRAGEN `sequence_variant_vcf`, the joint-genotyped (or singleton) DRAGEN `SV_vcf`, and the joint-genotyped (or singleton) DRAGEN `CNV_vcf`. The `samples.tsv` file should contain one row per family member, with the `sample` column corresponding to the sample ID, `CRAM` corresponding to the CRAM file, and `metrics` corresponding to the metrics TSV file. 
 
 `units.tsv` example:
 ```
@@ -34,9 +34,9 @@ FAM-000000	/path/to/FAM-000000.hard-filtered.vcf.gz	/path/to/FAM-000000.sv.vcf.g
 `samples.tsv` example:
 ```
 sample  CRAM    STR metrics
-XXXX-000000_EXP_0000    /path/to/XXXX-000000_EXP_0000.cram  /path/to/XXXX-000000_EXP_0000.repeats.vcf.gz    /path/to/XXXX-000000_EXP_0000.metrics.tsv   
-XXXX-000001_EXP_0000    /path/to/XXXX-000001_EXP_0000.cram  /path/to/XXXX-000001_EXP_0000.repeats.vcf.gz    /path/to/XXXX-000001_EXP_0000.metrics.tsv
-XXXX-000002_EXP_0000    /path/to/XXXX-000002_EXP_0000.cram  /path/to/XXXX-000002_EXP_0000.repeats.vcf.gz    /path/to/XXXX-000002_EXP_0000.metrics.tsv
+XXXX-000000_EXP_0000    /path/to/XXXX-000000_EXP_0000.cram   /path/to/XXXX-000000_EXP_0000.metrics.tsv   
+XXXX-000001_EXP_0000    /path/to/XXXX-000001_EXP_0000.cram   /path/to/XXXX-000001_EXP_0000.metrics.tsv
+XXXX-000002_EXP_0000    /path/to/XXXX-000002_EXP_0000.cram   /path/to/XXXX-000002_EXP_0000.metrics.tsv
 ```
 - Add paths to the HPO term file and pedigree file to `config.yaml`. The HPO term file is optional; if it is not provided, the small variant `wgs.panel` and `wgs.panel-flank` reports will not be produced, and variant reports will not include proband- or family-specific HPO terms. **A pedigree file is mandatory**, because the compound heterozygosity module determines the proband based on the pedigree. If you are running a singleton, the 'Phenotype' status for that individual in the pedigree must be `2`.
 - Do a dry run: add a `-n` flag to the Snakemake command in `CPHI_DRAGEN_anno.sh`. This will print out the rules that will be run, but not actually run them.
