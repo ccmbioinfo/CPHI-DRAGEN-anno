@@ -17,6 +17,7 @@ tools:
   cphi-dragen-anno: "/srv/shared/pipelines/CPHI-DRAGEN-anno/"
   crg2_pacbio: "/srv/shared/pipelines/crg2-pacbio"
   annotSV: "/srv/shared/data/dccdipg/crg2-non-conda-tools/AnnotSV-3.1.1"
+  expansionhunter_sif: "/srv/shared/data/dccdipg/annotation_hg38/STRs/ExpansionHunter-5.0.0.sif"
 
 ref:
   name: "GRCh38.115"
@@ -59,7 +60,8 @@ annotation:
     conf: "/srv/shared/pipelines/CPHI-DRAGEN-anno/resources/vcfanno/vcfanno.conf"
     lua_script: "/srv/shared/pipelines/CPHI-DRAGEN-anno/resources/vcfanno/vcfanno.lua"
     base_path: "/srv/shared/data/dccdipg/annotation_hg38/vcfanno/"
-  str_disease_thresholds: "/srv/shared/data/dccdipg/annotation/ExpansionHunter/tandem_repeat_disease_loci_v1.1.3.tsv"
+  str_variant_catalog: "/srv/shared/data/dccdipg/annotation_hg38/STRs/resources/STRchive-disease-loci.hg38.expansionhunter.json"
+  str_disease_thresholds: "/srv/shared/data/dccdipg/annotation/ExpansionHunter/tandem_repeat_disease_loci_v1.1.4.tsv"
   slivar:
     database_path: "/srv/shared/data/dccdipg/annotation_hg38/vcfanno/"
 qc:

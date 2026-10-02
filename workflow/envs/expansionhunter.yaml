@@ -1,0 +1,4 @@
+channels:
+  - conda-forge
+dependencies:
+  - apptainer=1.5.3
