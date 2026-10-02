@@ -36,12 +36,13 @@ rule cnv_annotsv:
 rule cnv_report:
     input: 
         snpeff = "cnv/{family}.cnv.snpeff.vcf",
-        annotsv = "cnv/{family}.AnnotSV.tsv"
+        annotsv = "cnv/{family}.AnnotSV.tsv",
+        hpo = [hpo_matches] if config["run"]["hpo"] else [],
     output: temp("cnv/{family}.cnv.csv")
     log: "logs/cnv/{family}.cnv.report.log"
     params:
         cphi_dragen = config["tools"]["cphi-dragen-anno"],
-        HPO = config["run"]["hpo"] if config["run"]["hpo"] else "none",
+        HPO = hpo_matches if config["run"]["hpo"] else "none",
         omim = config["annotation"]["omim_path"],
         exon = config["annotation"]["general"]["exon"],
         repeats = config["annotation"]["general"]["adotto_repeats"],
