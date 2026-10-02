@@ -2,7 +2,7 @@
 
 ## Overview
 
-The following accepts patient HPO terms, `hp.json`, and `genes_to_phenotype.txt` and returns related, non-exact HPO terms and their directly annotated genes. This recovers genes missed by an exact HPO-ID join. For example, direct gene-to-HPO matching for a patient with *bilateral sensorineural hearing impairment* excludes *CDC14A* because that gene is annotated only to *sensorineural hearing impairment*. Indirect matching recovers *CDC14A*, resulting in the inclusion of this HPO term in the annotated report for variants in *CDC14A*. Exact HPO matches remain separate and receive score `1.0`.
+The following accepts patient HPO terms, `hp.json`, and `genes_to_phenotype.txt` and uses related, non-exact HPO terms to recover additional genes. Reports display the original patient term with the highest supporting score; exact matches receive score `1.0`.
 
 `hpo-toolkit==0.8.1` loads the ontology. The `hp.json` and annotation file (`genes_to_phenotype.txt`) should come from the same HPO release. The thresholds were calibrated with HPO release `2026-06-23` and retested with release `2026-09-01`, which produced the same control performance. A future release with substantial ontology or annotation changes may require recalibration and review.
 
@@ -179,7 +179,7 @@ Related candidates may still be too broad to add useful information to the repor
 
 An indirect candidate is also omitted when it is within two edges of *Phenotypic abnormality* and its propagated branch contains more than 2,000 genes. Only that broad candidate is removed; other matches from the patient term and all exact patient-term matches are retained.
 
-The final output contains one row per directly annotated `(gene, candidate HPO term)` pair. If multiple patient terms reach the same pair, only the highest relationship score is retained.
+The final output contains one row per `(gene, patient HPO term)` pair. Multiple indirect matches for the pair are reduced to the highest score, and an exact score of `1.0` takes precedence.
 
 ## 8. Validation
 
