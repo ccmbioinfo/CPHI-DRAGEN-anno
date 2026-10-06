@@ -24,6 +24,12 @@ At loci with more than one repeat motif, the report shows the component relevant
 
 The `<SAMPLE_ID>_DISEASE_PREDICTION` columns report `PATHOGENIC` when a called allele is in a pathogenic range, `INTERMEDIATE` for an intermediate, reduced-penetrance, or premutation range, and `BENIGN` when the called alleles are in the benign range. `UNKNOWN` indicates that the call cannot be interpreted confidently from repeat count alone or does not fall within a configured range. `MISSING` indicates that no usable repeat-count call is available.
 
+## REViewer and FlipBook
+
+The workflow also creates `reports/<family>.STR.review.html`. [REViewer](https://github.com/Illumina/REViewer) generates an SVG read-pileup plot for each sample at every disease locus in the ExpansionHunter catalog. [FlipBook](https://github.com/broadinstitute/flipbook) combines the plots into a family HTML report, with call and interpretation values taken from the generated STR CSV. 
+
+The plots follow the locus structure in the ExpansionHunter catalog and show the reads that ExpansionHunter recognized and realigned at that locus. A plot can therefore be incomplete or appear incorrectly aligned when ExpansionHunter does not recognize or assign reads as expected, or when the catalog definition does not adequately represent the sample allele. 
+
 Suggestions for filtering and interpretation
 
   - Filter for pathogenic loci in the proband: `<proband_ID>_DISEASE_PREDICTION == 'PATHOGENIC'`.
