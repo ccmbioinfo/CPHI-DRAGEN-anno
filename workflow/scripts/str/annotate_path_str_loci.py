@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+"""Create the family disease-locus STR report from ExpansionHunter calls.
+"""
+
 import argparse
 import csv
 from datetime import date
@@ -25,6 +28,8 @@ CALL_FIELDS = [
 
 
 def ranges(value):
+    """Parse semicolon-separated thresholds, including open-ended ``N-*`` ranges."""
+
     parsed = []
     for interval in filter(None, value.split(";")):
         minimum, separator, maximum = interval.partition("-")
@@ -35,6 +40,8 @@ def ranges(value):
 
 
 def classify_allele(count, threshold):
+    """Classify one repeat count against the configured disease ranges."""
+
     for category, field in CATEGORIES:
         for minimum, maximum in ranges(threshold[field]):
             if count >= minimum and (maximum is None or count <= maximum):
@@ -43,6 +50,8 @@ def classify_allele(count, threshold):
 
 
 def classify(repcn, threshold):
+    """Summarize all allele classifications into one sample prediction."""
+
     try:
         counts = [int(float(value)) for value in repcn.replace("|", "/").split("/")]
     except (AttributeError, ValueError):
@@ -51,6 +60,8 @@ def classify(repcn, threshold):
         return "UNKNOWN"
 
     allele_classes = [classify_allele(count, threshold) for count in counts]
+    # Report the most clinically significant allele. An unclassified allele is
+    # kept UNKNOWN rather than allowing another benign allele to mask it.
     if "PATHOGENIC" in allele_classes:
         return "PATHOGENIC"
     if "UNKNOWN" in allele_classes:
@@ -66,6 +77,8 @@ def read_tsv(path):
 
 
 def first_call(calls, samples, field):
+    """Return shared locus metadata from the first sample with a called value."""
+
     for sample in samples:
         value = calls.get(sample, {}).get(field, ".")
         if value not in ("", "."):
@@ -74,6 +87,8 @@ def first_call(calls, samples, field):
 
 
 def build_report(repeat_tsv, thresholds_tsv, samples_tsv):
+    """Build one report row per locus in the disease-threshold resource."""
+
     samples = [row["sample"] for row in read_tsv(samples_tsv)]
     calls = {
         (row["STRCHIVE_LOCUS_ID"], row["SAMPLE"]): row
@@ -81,6 +96,8 @@ def build_report(repeat_tsv, thresholds_tsv, samples_tsv):
     }
     report = []
 
+    # Iterating over thresholds rather than observed calls retains loci without
+    # a successful genotype and fills their sample fields with dots/MISSING.
     for threshold in read_tsv(thresholds_tsv):
         locus_id = threshold["STRchive LocusId"]
         locus_calls = {sample: calls.get((locus_id, sample), {}) for sample in samples}
@@ -98,6 +115,8 @@ def build_report(repeat_tsv, thresholds_tsv, samples_tsv):
             "NOTE": threshold["Note"] or ".",
         }
         for sample in samples:
+            # Disease interpretation is derived only from the repeat count and
+            # configured locus ranges; the remaining fields are supporting data.
             row[f"{sample}_DISEASE_PREDICTION"] = classify(
                 locus_calls[sample].get("REPCN", "."), threshold
             )
@@ -149,6 +168,7 @@ def main(repeat_tsv, disease_thresholds, samples_tsv, output_file):
         "TARGET_VARIANT_ID",
         "STRCHIVE_URL",
     ]
+    fieldnames = leading + predictions + sample_fields + resource_fields
 
     output_prefix = output_file.removesuffix(".hg38.csv")
     dated_output = f"{output_prefix}.{date.today().isoformat()}.hg38.csv"
@@ -156,11 +176,18 @@ def main(repeat_tsv, disease_thresholds, samples_tsv, output_file):
     with open(dated_output, "w", newline="") as handle:
         writer = csv.DictWriter(
             handle,
-            fieldnames=leading + predictions + sample_fields + resource_fields,
+            fieldnames=fieldnames,
             lineterminator="\n",
         )
         writer.writeheader()
-        writer.writerows(rows)
+        # Use string formulas to preserve every report value as text.
+        writer.writerows(
+            {
+                field: '="' + str(row[field]).replace('"', '""') + '"'
+                for field in fieldnames
+            }
+            for row in rows
+        )
 
     if os.path.lexists(output_file):
         os.remove(output_file)

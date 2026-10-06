@@ -225,7 +225,18 @@ def build_site(job):
     """Stage REViewer plots, run FlipBook, and write the report launcher."""
 
     with open(job.input.report, newline="") as handle:
-        report_rows = list(csv.DictReader(handle))
+        report_rows = []
+        for row in csv.DictReader(handle):
+            # The CSV uses ="value" to stop Excel from converting genotypes and
+            # ranges to dates. FlipBook needs the underlying display values.
+            report_rows.append(
+                {
+                    field: value[2:-1].replace('""', '"')
+                    if value.startswith('="') and value.endswith('"')
+                    else value
+                    for field, value in row.items()
+                }
+            )
     with open(job.input.samples_tsv, newline="") as handle:
         samples = [row["sample"] for row in csv.DictReader(handle, delimiter="\t")]
 

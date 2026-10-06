@@ -108,7 +108,7 @@ rule repeat_VCF_to_df:
         "../envs/annotate.yaml"
     shell:
         """
-        python3 {params.cphi_dragen_anno}/workflow/scripts/repeat_VCF_to_df.py \
+        python3 {params.cphi_dragen_anno}/workflow/scripts/str/repeat_VCF_to_df.py \
             --samples_tsv {input.samples_tsv} \
             --expansionhunter_dir {params.expansionhunter_dir} \
             --disease_thresholds {input.disease_thresholds} \
@@ -132,7 +132,7 @@ rule annotate_path_str_loci:
         "../envs/annotate.yaml"
     shell:
         """
-        python3 {params.cphi_dragen_anno}/workflow/scripts/annotate_path_str_loci.py \
+        python3 {params.cphi_dragen_anno}/workflow/scripts/str/annotate_path_str_loci.py \
             --repeat_tsv {input.repeat_tsv} \
             --disease_thresholds {input.disease_thresholds} \
             --samples_tsv {input.samples_tsv} \
