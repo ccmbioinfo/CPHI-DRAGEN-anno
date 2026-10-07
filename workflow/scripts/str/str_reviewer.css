@@ -1,0 +1,283 @@
+/*
+ * Small overrides for FlipBook's generated Semantic UI/DataTables pages.
+ * Classes beginning with str- come from the companion Python builder; the ui,
+ * DataTables and img-* classes come from FlipBook. Defaults are otherwise left
+ * alone so the report remains close to the upstream static site.
+ */
+
+:root {
+  --str-small: 13px;
+  --str-base: 15px;
+  --str-large: 25px;
+  --str-line: #d0d7de;
+  --str-soft: #f6f8fa;
+  --str-muted: #57606a;
+  --str-danger: #7f2d29;
+  --str-warning: #604900;
+  --str-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* Keep typography consistent across FlipBook controls and report content. */
+body,
+input,
+button {
+  color: #24292f !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif !important;
+  font-size: var(--str-base) !important;
+}
+
+/* FlipBook reserves one grid column for navigation. The family report links
+ * loci from the table instead, so remove that column and use the page width. */
+body > .ui.grid > .row > .one.wide.column {
+  display: none !important;
+}
+
+body > .ui.grid > .row > .fourteen.wide.column {
+  padding: 1.25rem 1.5rem 2rem !important;
+  width: 100% !important;
+}
+
+.str-report-header,
+#data-table_wrapper,
+.str-locus-grid,
+.str-sample-grid,
+.str-image-section {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  max-width: 1380px;
+  width: 100% !important;
+}
+
+/* A modest report heading rather than a separate application banner. */
+.str-report-header {
+  background: var(--str-soft);
+  border-bottom: 2px solid var(--str-muted);
+  margin-bottom: 1rem !important;
+  padding: 1rem 1.1rem;
+}
+
+.str-report-header h1 {
+  font-size: var(--str-large) !important;
+  margin: 0 0 .25rem;
+}
+
+.str-report-header p {
+  color: var(--str-muted);
+  margin: .2rem 0 .65rem;
+}
+
+#str-table-filter {
+  border: 1px solid var(--str-line);
+  border-radius: 0;
+  margin-top: .3rem;
+  max-width: 30rem;
+  padding: .45rem .55rem;
+  width: 100%;
+}
+
+/* DataTables still supplies borders, sorting and paging. Its export controls
+ * and duplicate search box are hidden because this report has its own filter. */
+.dt-buttons,
+.dataTables_filter,
+.dataTables_length {
+  display: none !important;
+}
+
+#data-table th,
+#data-table td {
+  font-size: var(--str-base) !important;
+  overflow-wrap: anywhere;
+  padding: .5rem !important;
+  vertical-align: top;
+}
+
+#data-table .str-sample-card {
+  min-width: 14rem;
+}
+
+/* Wrap long disease names instead of letting that column set the table width. */
+#data-table th:nth-child(4),
+#data-table td:nth-child(4) {
+  max-width: 16rem;
+  min-width: 12rem;
+  width: 16rem;
+  white-space: normal;
+}
+
+#data-table .str-evidence {
+  display: none;
+}
+
+/* Motifs and locus structures may be long; break them without widening the table. */
+.str-sequence {
+  display: block;
+  font-family: var(--str-mono);
+  max-width: 11rem;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.str-ranges,
+.str-target {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .2rem .8rem;
+}
+
+.str-ranges span,
+.str-target span,
+.str-call-grid > span,
+.str-evidence span {
+  white-space: nowrap;
+}
+
+/* Highlight interpretation only; benign and missing calls stay neutral. */
+.str-badge {
+  display: inline-block;
+  font-size: var(--str-small);
+  font-weight: 700;
+  padding: 1px 5px;
+}
+
+.prediction-benign,
+.prediction-unknown,
+.prediction-missing {
+  background: #eaeef2;
+  color: #3f4750;
+}
+
+.prediction-intermediate {
+  background: #f4e3a7;
+  color: var(--str-warning);
+}
+
+.prediction-pathogenic {
+  background: #efd1cc;
+  color: var(--str-danger);
+}
+
+/* The detail-page script moves FlipBook's metadata blocks into these grids.
+ * Borders create aligned key/value cells without adding card containers. */
+.str-locus-grid,
+.str-sample-grid {
+  border-left: 1px solid var(--str-line);
+  border-top: 1px solid var(--str-line);
+  display: grid;
+  margin-bottom: .8rem !important;
+}
+
+.str-locus-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.str-sample-grid {
+  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+}
+
+.str-meta-item {
+  border-bottom: 1px solid var(--str-line);
+  border-right: 1px solid var(--str-line);
+  display: block !important;
+  margin: 0 !important;
+  padding: .5rem .55rem;
+}
+
+.str-meta-disorder {
+  grid-column: span 3;
+}
+
+.str-meta-note,
+.str-meta-motif,
+.str-meta-locus-structure {
+  grid-column: span 2;
+}
+
+.str-meta-item > b:first-child {
+  color: var(--str-muted);
+  display: block;
+  font-size: var(--str-small);
+  margin-bottom: .2rem;
+}
+
+.str-sample-grid .str-meta-item > b:first-child {
+  background: var(--str-soft);
+  color: #24292f;
+  font-size: var(--str-base);
+  margin: -.5rem -.55rem .4rem;
+  padding: .4rem .55rem;
+}
+
+.str-card-badges {
+  margin-bottom: .35rem;
+}
+
+.str-call-grid {
+  display: grid;
+  gap: .18rem .7rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.str-call-grid > span:last-child {
+  grid-column: 1 / -1;
+  white-space: normal;
+}
+
+.str-evidence {
+  border-top: 1px solid var(--str-line);
+  margin-top: .4rem;
+  padding-top: .35rem;
+}
+
+.str-evidence > b {
+  color: var(--str-muted);
+  font-size: var(--str-small);
+}
+
+.str-evidence > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .18rem .7rem;
+  margin-top: .2rem;
+}
+
+/* FlipBook toggles img-default-view/img-zoomed-in-view on click. Keep the normal
+ * plot centered, then let the enlarged SVG overflow its scrollable wrapper. */
+.str-image-section {
+  overflow-x: auto;
+}
+
+.str-image-section img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+img.img-default-view {
+  cursor: zoom-in;
+  height: auto;
+  max-width: 100% !important;
+  width: auto;
+}
+
+img.img-zoomed-in-view {
+  cursor: zoom-out;
+  height: auto;
+  margin-left: 0;
+  max-width: none !important;
+  min-width: 150%;
+  width: auto;
+}
+
+@media (max-width: 900px) {
+  .str-locus-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .str-meta-disorder {
+    grid-column: span 1;
+  }
+
+  .str-sample-grid {
+    grid-template-columns: 1fr;
+  }
+}

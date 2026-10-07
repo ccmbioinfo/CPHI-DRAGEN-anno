@@ -44,6 +44,54 @@ rule expansionhunter:
         """
 
 
+rule sort_expansionhunter_bam:
+    input:
+        bam="STRs/expansionhunter/{sample}_realigned.bam"
+    output:
+        bam=temp("STRs/expansionhunter/{sample}_realigned.sorted.bam"),
+        bai=temp("STRs/expansionhunter/{sample}_realigned.sorted.bam.bai")
+    log:
+        "logs/STRs/reviewer/{sample}.sort.log"
+    conda:
+        "../envs/samtools.yaml"
+    shell:
+        """
+        mkdir -p logs/STRs/reviewer
+        samtools sort -o {output.bam} {input.bam} > {log} 2>&1 && samtools index {output.bam} {output.bai} >> {log} 2>&1
+        """
+
+
+rule reviewer:
+    input:
+        bam="STRs/expansionhunter/{sample}_realigned.sorted.bam",
+        bai="STRs/expansionhunter/{sample}_realigned.sorted.bam.bai",
+        vcf="STRs/expansionhunter/{sample}.vcf",
+        reference=config["ref"]["genome"],
+        reference_fai=config["ref"]["genome"] + ".fai",
+        catalog=config["annotation"]["str_variant_catalog"]
+    output:
+        reviewer_dir=temp(directory("STRs/reviewer_work/{sample}"))
+    params:
+        log_dir="logs/STRs/reviewer/{sample}"
+    conda:
+        "../envs/str_tools.yaml"
+    shell:
+        """
+        mkdir -p {output.reviewer_dir} {params.log_dir}
+        for locus in $(python3 -c 'import json, sys; print(*(row["LocusId"] for row in json.load(open(sys.argv[1]))), sep="\\n")' {input.catalog}); do
+            mkdir -p {output.reviewer_dir}/$locus {params.log_dir}/$locus
+            REViewer \
+                --reads {input.bam} \
+                --vcf {input.vcf} \
+                --reference {input.reference} \
+                --catalog {input.catalog} \
+                --locus $locus \
+                --output-prefix {output.reviewer_dir}/$locus/{wildcards.sample} \
+                > {params.log_dir}/$locus/{wildcards.sample}.reviewer.log 2>&1 || true
+        done
+        """
+
+
 rule repeat_VCF_to_df:
     input:
         samples_tsv=config["run"]["samples"],
@@ -60,7 +108,7 @@ rule repeat_VCF_to_df:
         "../envs/annotate.yaml"
     shell:
         """
-        python3 {params.cphi_dragen_anno}/workflow/scripts/repeat_VCF_to_df.py \
+        python3 {params.cphi_dragen_anno}/workflow/scripts/str/repeat_VCF_to_df.py \
             --samples_tsv {input.samples_tsv} \
             --expansionhunter_dir {params.expansionhunter_dir} \
             --disease_thresholds {input.disease_thresholds} \
@@ -84,10 +132,28 @@ rule annotate_path_str_loci:
         "../envs/annotate.yaml"
     shell:
         """
-        python3 {params.cphi_dragen_anno}/workflow/scripts/annotate_path_str_loci.py \
+        python3 {params.cphi_dragen_anno}/workflow/scripts/str/annotate_path_str_loci.py \
             --repeat_tsv {input.repeat_tsv} \
             --disease_thresholds {input.disease_thresholds} \
             --samples_tsv {input.samples_tsv} \
             --output_file {output} \
             > {log} 2>&1
         """
+
+
+rule build_str_reviewer_site:
+    input:
+        report="reports/{family}.known.path.str.loci.hg38.csv",
+        samples_tsv=config["run"]["samples"],
+        catalog=config["annotation"]["str_variant_catalog"],
+        reviewer_dirs=expand("STRs/reviewer_work/{sample}", sample=samples.index)
+    output:
+        metadata="STRs/reviewer/{family}/flipbook_metadata.tsv",
+        site=directory("STRs/reviewer/{family}/site"),
+        launcher="reports/{family}.STR.review.html"
+    log:
+        "logs/STRs/{family}.reviewer_site.log"
+    conda:
+        "../envs/str_tools.yaml"
+    script:
+        "../scripts/str/build_str_reviewer_site.py"
