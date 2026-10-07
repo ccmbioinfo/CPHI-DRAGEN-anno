@@ -64,12 +64,13 @@ rule annotsv:
 rule sv_report:
     input: 
         snpeff = "sv/{family}.sv.snpeff.vcf",
-        annotsv = "sv/{family}.AnnotSV.tsv"
+        annotsv = "sv/{family}.AnnotSV.tsv",
+        hpo = [hpo_matches] if config["run"]["hpo"] else [],
     output: temp("sv/{family}.sv.csv")
     log: "logs/sv/{family}.sv.report.log"
     params:
         cphi_dragen = config["tools"]["cphi-dragen-anno"],
-        HPO = config["run"]["hpo"] if config["run"]["hpo"] else "none",
+        HPO = hpo_matches if config["run"]["hpo"] else "none",
         omim = config["annotation"]["omim_path"],
         exon = config["annotation"]["general"]["exon"],
         repeats = config["annotation"]["general"]["adotto_repeats"],

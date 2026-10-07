@@ -1,0 +1,65 @@
+tier	patient_term	candidate_term	score
+yes	Bilateral sensorineural hearing impairment	Sensorineural hearing impairment	0.85
+yes	Congenital sensorineural hearing impairment	Sensorineural hearing impairment	0.85
+yes	Postlingual sensorineural hearing impairment	Sensorineural hearing impairment	0.70
+yes	Sensorineural hearing impairment	Bilateral sensorineural hearing impairment	0.70
+yes	Prelingual sensorineural hearing impairment	Postlingual sensorineural hearing impairment	0.62
+yes	Bilateral sensorineural hearing impairment	Unilateral sensorineural hearing impairment	0.33
+yes	Developmental cataract	Cataract	0.85
+yes	Cataract	Developmental cataract	0.70
+yes	Developmental cataract	Juvenile cataract	0.31
+yes	Developmental cataract	Abnormal lens morphology	0.70
+yes	Developmental cataract	Ocular anterior segment dysgenesis	0.85
+yes	Rod-cone dystrophy	Retinal dystrophy	0.85
+yes	Retinal dystrophy	Rod-cone dystrophy	0.70
+yes	Rod-cone dystrophy	Cone/cone-rod dystrophy	0.41
+yes	Pericentral retinitis pigmentosa	Cone/cone-rod dystrophy	0.00
+yes	Rod-cone dystrophy	Abnormal retinal morphology	0.70
+yes	High myopia	Myopia	0.85
+yes	Myopia	High myopia	0.70
+yes	High myopia	Mild myopia	0.40
+yes	High myopia	Abnormality of refraction	0.70
+yes	Hypertrophic cardiomyopathy	Cardiomyopathy	0.85
+yes	Cardiomyopathy	Hypertrophic cardiomyopathy	0.70
+yes	Hypertrophic cardiomyopathy	Dilated cardiomyopathy	0.25
+yes	Hypertrophic cardiomyopathy	Abnormal myocardium morphology	0.70
+yes	Distal muscle weakness	Proximal muscle weakness	0.27
+yes	Congenital nephrotic syndrome	Nephrotic syndrome	0.85
+yes	Nephrotic syndrome	Congenital nephrotic syndrome	0.70
+yes	Severe intellectual disability	Mild intellectual disability	0.30
+weak	Bilateral tonic-clonic seizure	Seizure	0.85
+weak	Severe intellectual disability	Intellectual disability	0.85
+weak	Bilateral sensorineural hearing impairment	Hearing impairment	0.70
+weak	Distal muscle weakness	Muscle weakness	0.85
+weak	Congenital nephrotic syndrome	Abnormal renal physiology	0.70
+weak	Bilateral tonic-clonic seizure	Generalized non-motor (absence) seizure	0.00
+weak	CSF polymorphonuclear pleocytosis	CSF lymphocytic pleiocytosis	0.00
+weak	Absent stapes	Otosclerosis	0.00
+weak	Acute kidney injury	Stage 5 chronic kidney disease	0.33
+weak	Ventricular fibrillation	Wolff-Parkinson-White syndrome	0.00
+weak	Broad philtrum	Narrow philtrum	0.35
+weak	Focal necrotic thalamus lesion	Thalamic calcification	0.00
+weak	Congenital knee dislocation	Hip dislocation	0.00
+weak	Cerebral ischemia	Raynaud phenomenon	0.00
+weak	Increased circulating IgM concentration	Increased circulating IgE concentration	0.00
+weak	Abnormality of urinary uric acid level	Glycosuria	0.00
+weak	Elevated circulating parathyroid hormone level	Elevated circulating calcitonin concentration	0.00
+weak	Anti-nucleoporin 62 antibody positivity	Anti-dsDNA antibody positivity	0.00
+weak	Giant neutrophil granules	Decreased total neutrophil count	0.00
+weak	Renal tubular acidosis	Lactic acidosis	0.00
+weak	Sulfite oxidase deficiency	Aldehyde oxidase deficiency	0.00
+weak	Neoplasm of the male external genitalia	Hypoplastic male external genitalia	0.00
+weak	Bone-marrow foam cells	Coronary artery atherosclerosis	0.00
+weak	Nephroblastoma	Hepatoblastoma	0.00
+no	Angioid streaks	Retinal hamartoma	0.00
+no	Elevated urinary 2,4-dihydroxyglutarate level	Methylmalonic aciduria	0.00
+no	Chordoma	Exostoses	0.00
+no	Pain in penis	Jaw pain	0.00
+no	Eyelid pain	Abdominal pain	0.00
+no	Mastalgia	Abdominal pain	0.00
+no	Abnormal glycosidase enzyme activity	Abnormality of Krebs cycle metabolism	0.00
+no	Elevated CSF hydroxyproline concentration	Hydrocephalus	0.00
+no	Frontal hirsutism	High forehead	0.00
+no	Celiac disease	Asthma	0.00
+no	Laryngeal papilloma	Neoplasm of the lung	0.00
+no	Fixated interest with abnormal focus	Suicidal ideation	0.00
