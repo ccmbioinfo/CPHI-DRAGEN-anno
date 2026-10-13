@@ -28,6 +28,8 @@ The `<SAMPLE_ID>_DISEASE_PREDICTION` columns report `PATHOGENIC` when a called a
 
 The workflow also creates `reports/<family>.STR.review.html`. [REViewer](https://github.com/Illumina/REViewer) generates an SVG read-pileup plot for each sample at every disease locus in the ExpansionHunter catalog. [FlipBook](https://github.com/broadinstitute/flipbook) combines the plots into a family HTML report, with call and interpretation values taken from the generated STR CSV. 
 
+The launcher has a companion `reports/<family>.STR.review/` directory containing the static site and its plots. Keep the HTML file and companion directory together.
+
 The plots follow the locus structure in the ExpansionHunter catalog and show the reads that ExpansionHunter recognized and realigned at that locus. A plot can therefore be incomplete or appear incorrectly aligned when ExpansionHunter does not recognize or assign reads as expected, or when the catalog definition does not adequately represent the sample allele. 
 
 Suggestions for filtering and interpretation

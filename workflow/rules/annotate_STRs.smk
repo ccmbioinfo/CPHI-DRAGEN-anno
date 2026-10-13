@@ -149,7 +149,7 @@ rule build_str_reviewer_site:
         reviewer_dirs=expand("STRs/reviewer_work/{sample}", sample=samples.index)
     output:
         metadata="STRs/reviewer/{family}/flipbook_metadata.tsv",
-        site=directory("STRs/reviewer/{family}/site"),
+        site=directory("reports/{family}.STR.review"),
         launcher="reports/{family}.STR.review.html"
     log:
         "logs/STRs/{family}.reviewer_site.log"

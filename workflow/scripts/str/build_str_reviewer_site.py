@@ -12,6 +12,7 @@ HTML and CSS fragments to the generated site.
 import csv
 import html
 import json
+import os
 from pathlib import Path
 import re
 import shutil
@@ -23,6 +24,15 @@ from urllib.parse import quote
 def safe_name(value):
     """Return a name safe to use for FlipBook directories and SVG files."""
     return re.sub(r"[^A-Za-z0-9._-]+", "_", value).strip("._")
+
+
+def relative_site_url(site, launcher):
+    """Return a portable URL from the launcher to the site's index page."""
+    relative_index = os.path.relpath(
+        Path(site) / "index.html",
+        start=Path(launcher).parent,
+    )
+    return quote(Path(relative_index).as_posix(), safe="/")
 
 
 def esc(value):
@@ -314,10 +324,10 @@ def build_site(job):
     shutil.move(image_root / "flipbook_html", Path(job.output.site))
     shutil.rmtree(image_root)
 
-    # The report target stays under reports/, while the larger site remains with
-    # the STR working files. This tiny page redirects browsers to that site.
-    url = quote("../" + Path(job.output.site).as_posix() + "/index.html", safe="/")
     launcher = Path(job.output.launcher)
+    # Keep this link relative so the launcher and companion directory remain
+    # usable when the complete reports directory is moved or synced elsewhere.
+    url = relative_site_url(job.output.site, launcher)
     launcher.parent.mkdir(parents=True, exist_ok=True)
     launcher.write_text(f"""<!doctype html>
 <html lang="en"><head>
