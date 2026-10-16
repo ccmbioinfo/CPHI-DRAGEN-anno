@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+"""Flatten per-sample ExpansionHunter VCFs into one family STR table.
+"""
+
 import argparse
 import csv
 from pathlib import Path
@@ -34,7 +37,10 @@ def normalize_chromosome(chromosome):
 
 
 def load_targets(threshold_path):
-    # ExpansionHunter emits these stable component IDs from the same catalog.
+    """Map each reportable ExpansionHunter VariantId to its STRchive locus."""
+
+    # A locus can contain several variant components, but the threshold file
+    # identifies the repeat component used for disease interpretation.
     targets = {}
     with open(threshold_path, newline="") as handle:
         for row in csv.DictReader(handle, delimiter="\t"):
@@ -43,7 +49,8 @@ def load_targets(threshold_path):
 
 
 def format_value(value, precision=None):
-    # Preserve multi-valued VCF fields with slash separators and represent missing values as dots.
+    """Preserve multi-valued VCF fields with slash separators and represent missing values as dots."""
+
     if value is None:
         return "."
     if isinstance(value, (tuple, list)):
@@ -62,6 +69,8 @@ def genotype(sample_call):
 
 
 def record_variant_id(record):
+    """Return one comparable string for the record's VARID value."""
+
     variant_id = record.info.get("VARID")
     if isinstance(variant_id, (tuple, list)):
         variant_id = variant_id[0]
@@ -69,7 +78,8 @@ def record_variant_id(record):
 
 
 def call_row(sample, locus_id, record, sample_call):
-    # Flatten the selected VCF INFO and FORMAT fields into one report-compatible row.
+    """Flatten the selected VCF INFO and FORMAT fields into one report-compatible row."""
+
     sample_value = lambda field: format_value(sample_call.get(field))
     filters = ";".join(record.filter.keys()) or "."
     return {
@@ -95,8 +105,11 @@ def call_row(sample, locus_id, record, sample_call):
 
 
 def sample_calls(vcf_path, sample, targets):
+    """Collect reportable calls from one sample's ExpansionHunter VCF."""
+
     rows = []
     with VariantFile(vcf_path) as variants:
+        # ExpansionHunter VCFs contain one sample. Prefer the configured sample name.
         vcf_sample = (
             sample
             if sample in variants.header.samples
@@ -111,6 +124,8 @@ def sample_calls(vcf_path, sample, targets):
 
 
 def main(samples_tsv, expansionhunter_dir, disease_thresholds, output_file):
+    """Combine reportable calls for all samples in pedigree order."""
+
     with open(samples_tsv, newline="") as handle:
         samples = [row["sample"] for row in csv.DictReader(handle, delimiter="\t")]
     targets = load_targets(disease_thresholds)

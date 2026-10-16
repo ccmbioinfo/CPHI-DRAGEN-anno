@@ -14,15 +14,23 @@ The report also includes the ExpansionHunter filter, allele support type, classi
 
 ## Summary
 
-ExpansionHunter genotypes disease-associated repeats at 86 configured loci. The CSV report details the associated gene and disorder, repeat size, disease prediction, confidence interval, quality information, and read support for every sample in the family. Descriptions of the report columns are listed in the table below.
+ExpansionHunter genotypes disease-associated repeats at 87 configured loci. The CSV report details the associated gene and disorder, repeat size, disease prediction, confidence interval, quality information, and read support for every sample in the family. Descriptions of the report columns are listed in the table below.
 
-The hg38 catalog and locus information use [STRchive v2.26.1](https://github.com/dashnowlab/STRchive/releases/tag/v2.26.1) as the base. The [STRchive ExpansionHunter catalog](https://github.com/dashnowlab/STRchive/releases/download/v2.26.1/STRchive-disease-loci-v2.26.1.hg38.expansionhunter.json) is supplemented at selected loci with definitions from a pinned version of the Broad Institute [`str-analysis` hg38 catalog](https://github.com/broadinstitute/str-analysis/blob/6490e03a81187795ed37f452ad5e64ca36e4b53a/str_analysis/variant_catalogs/variant_catalog_without_offtargets.GRCh38.json). Four legacy supplemental loci absent from current STRchive are also retained.
+The hg38 catalog and locus information use [STRchive v2.26.1](https://github.com/dashnowlab/STRchive/releases/tag/v2.26.1) as the base. The [STRchive ExpansionHunter catalog](https://github.com/dashnowlab/STRchive/releases/download/v2.26.1/STRchive-disease-loci-v2.26.1.hg38.expansionhunter.json) is supplemented at selected loci with definitions from a pinned version of the Broad Institute [`str-analysis` hg38 catalog](https://github.com/broadinstitute/str-analysis/blob/6490e03a81187795ed37f452ad5e64ca36e4b53a/str_analysis/variant_catalog_without_offtargets.GRCh38.json). Five supplemental loci absent from current STRchive are also retained.
 
 Repeat locus definitions from the Broad are used where they better represent the hg38 locus. The main reasons are that the STRchive interval includes extra bases that can shift the repeat count, the motif phase does not match the start of the hg38 interval, or a compound or interrupted repeat is represented more completely by the Broad definition. STRchive remains the primary source for locus and disease information. A Broad definition changes how the repeat is represented and counted but does not by itself change its interpretation.
 
 At loci with more than one repeat motif, the report shows the component relevant to the associated disorder. The `NOTE` column identifies loci where the displayed count has an unusual convention, the locus has a complex repeat structure, or a source difference or interpretation caveat requires additional context.
 
 The `<SAMPLE_ID>_DISEASE_PREDICTION` columns report `PATHOGENIC` when a called allele is in a pathogenic range, `INTERMEDIATE` for an intermediate, reduced-penetrance, or premutation range, and `BENIGN` when the called alleles are in the benign range. `UNKNOWN` indicates that the call cannot be interpreted confidently from repeat count alone or does not fall within a configured range. `MISSING` indicates that no usable repeat-count call is available.
+
+## REViewer and FlipBook
+
+The workflow also creates `reports/<family>.STR.review.html`. [REViewer](https://github.com/Illumina/REViewer) generates an SVG read-pileup plot for each sample at every disease locus in the ExpansionHunter catalog. [FlipBook](https://github.com/broadinstitute/flipbook) combines the plots into a family HTML report, with call and interpretation values taken from the generated STR CSV.
+
+The launcher has a companion `reports/<family>.STR.review/` directory containing the static site and its plots. Keep the HTML file and companion directory together.
+
+The plots follow the locus structure in the ExpansionHunter catalog and show the reads that ExpansionHunter recognized and realigned at that locus. A plot can therefore be incomplete or appear incorrectly aligned when ExpansionHunter does not recognize or assign reads as expected, or when the catalog definition does not adequately represent the sample allele.
 
 Suggestions for filtering and interpretation
 
@@ -54,7 +62,7 @@ For detailed descriptions of repeat loci, including pathogenic repeat ranges, pr
 | GENE | Gene associated with the repeat | STRchive | FMR1 |
 | DISORDER | Disorder associated with the repeat | STRchive | FRAXA: fragile X syndrome |
 | DISEASE_THRESHOLD | Primary disease-associated threshold shown for quick reference; consult the range columns and `NOTE` for interpretation | STRchive/Broad thresholds | 201 |
-| NOTE | Locus-specific context that may affect interpretation; `.` when no additional note is required | STRchive/Broad comparison | Allele structure, read support, and the literature should be looked at carefully. |
+| NOTE | Locus-specific context that may affect interpretation; `.` when no additional note is required | STRchive/Broad comparison | Repeat purity is relevant to phenotype and CCA interruptions may reduce transcriptional silencing. |
 | &lt;SAMPLE_ID&gt;_DISEASE_PREDICTION | Screening category for the sample call | ExpansionHunter VCF and STRchive/Broad thresholds | PATHOGENIC |
 | &lt;SAMPLE_ID&gt;_GT | Genotype | ExpansionHunter VCF | 1/1 |
 | &lt;SAMPLE_ID&gt;_motif_count | Estimated repeat count for each allele | ExpansionHunter VCF (`REPCN`) | 30/30 |
@@ -97,6 +105,7 @@ Genes targeted
 |*C9orf72*|
 |*CACNA1A*|
 |*CBL*|
+|*CHD3*|
 |*CEL*|
 |*CNBP*|
 |*COMP*|
