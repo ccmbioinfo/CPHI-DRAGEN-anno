@@ -33,7 +33,7 @@ FAM-000000	/path/to/FAM-000000.hard-filtered.vcf.gz	/path/to/FAM-000000.sv.vcf.g
 ```
 `samples.tsv` example:
 ```
-sample  CRAM    STR metrics
+sample  CRAM    metrics
 XXXX-000000_EXP_0000    /path/to/XXXX-000000_EXP_0000.cram   /path/to/XXXX-000000_EXP_0000.metrics.tsv   
 XXXX-000001_EXP_0000    /path/to/XXXX-000001_EXP_0000.cram   /path/to/XXXX-000001_EXP_0000.metrics.tsv
 XXXX-000002_EXP_0000    /path/to/XXXX-000002_EXP_0000.cram   /path/to/XXXX-000002_EXP_0000.metrics.tsv
