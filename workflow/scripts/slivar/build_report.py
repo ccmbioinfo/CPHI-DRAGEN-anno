@@ -246,6 +246,32 @@ def compact_protein_domains(value, max_pdb_structures=5):
     return "&".join(other_domains + kept_pdb)
 
 
+def build_info_all(csq_records, consequence_order, max_transcripts_per_gene=5):
+    """Keep the highest ranked transcript summaries for each overlapping gene."""
+    info_by_gene = {}
+    # For each gene, build the Info column for each transcript
+    for csq in sorted(
+        csq_records,
+        key=lambda annotation: primary_csq_sort_key(annotation, consequence_order),
+    ):
+        gene = get_gene_symbol(csq) or get_csq_ensembl_gene_id(csq)
+        info = build_info_item(csq)
+        gene_info = info_by_gene.setdefault(gene, [])
+        if info not in gene_info:
+            gene_info.append(info)
+
+    output = []
+    # Limit info_all to 5 different transcripts per gene
+    for gene, gene_info in info_by_gene.items():
+        output.extend(gene_info[:max_transcripts_per_gene])
+        omitted = len(gene_info) - max_transcripts_per_gene
+        if omitted > 0:
+            output.append(
+                f"{gene or 'Unknown'}:[...{omitted} additional transcript annotations truncated...]"
+            )
+    return ",".join(output)
+
+
 # Keep only the c./p. suffix so it can be paired with the chosen RefSeq accession.
 def split_hgvs_suffix(value):
     if not has_value(value):
@@ -894,7 +920,7 @@ def main():
             row["Ensembl_gene_id_all"] = join_unique_values(all_gene_ids + unnamed_gene_ids)
             row["Ensembl_transcript_id_all"] = join_unique_values(all_ensembl_transcripts)
             row["Variation_all"] = join_unique_values(variation_all_values)
-            row["Info_all"] = join_unique_values(build_info_item(csq) for csq in csq_records)
+            row["Info_all"] = build_info_all(csq_records, order_map)
             row["Refseq_change_all"] = refseq_change_all(csq_records)
             set_if_column_present(row, "Sift_score_all", join_unique_values(sift_all_values) or "None")
             set_if_column_present(row, "Polyphen_score_all", join_unique_values(polyphen_all_values) or "None")

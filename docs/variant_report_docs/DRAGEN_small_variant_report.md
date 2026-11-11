@@ -6,7 +6,7 @@ Kristin Kernohan, Sergey Naumenko, Christian Marshall, Arun Ramani, Madeline Cou
 
 ## Changelog
 
-Adapted from [crg2 pipeline](https://github.com/ccmbioinfo/crg2) for GRCh38 DRAGEN v4.4 genomes. Updated small-variant filtering and report generation from CRE/GEMINI/R to slivar and Python. Updated the `Protein_domains` and HPO column descriptions to reflect report size limits and multigene HPO annotation.
+Adapted from [crg2 pipeline](https://github.com/ccmbioinfo/crg2) for GRCh38 DRAGEN v4.4 genomes. Updated small-variant filtering and report generation from CRE/GEMINI/R to slivar and Python. Updated the `Protein_domains`, `Info_all`, and HPO column descriptions to reflect report size limits and multigene HPO annotation.
 
 ## Summary
 
@@ -82,7 +82,7 @@ The 1000 Genomes sequence variant database (n=3,202, 602 trios) used to annotate
 
 ## 2\. Column descriptions
 
-Single-value columns are based on the primary VEP annotation/transcript chosen, as detailed in the [slivar report differences](https://github.com/ccmbioinfo/CPHI-DRAGEN-anno/docs/variant_report_docs/DRAGEN_small_variant_slivar_report_differences.md). Columns ending in `_all` retain values from all VEP transcript and consequence annotations.
+Single-value columns are based on the primary VEP annotation/transcript chosen, as detailed in the [slivar report differences](https://github.com/ccmbioinfo/CPHI-DRAGEN-anno/docs/variant_report_docs/DRAGEN_small_variant_slivar_report_differences.md). Columns ending in `_all` retain values from all VEP transcript and consequence annotations, except `Info_all`, which only retains up to five ranked transcript summaries per overlapping gene.
 
 | **Column_id** | **Comment** | **Source** | **Example** |
 | --- | --- | --- | --- |
@@ -179,7 +179,7 @@ Single-value columns are based on the primary VEP annotation/transcript chosen, 
 | `CSQ_biotype` | VEP biotype for the selected primary annotation | VEP | protein_coding |
 | `CSQ_impact` | VEP impact category for the selected primary annotation | VEP | MODERATE |
 | `CSQ_biotype_all` | All biotypes represented in the VEP annotations | VEP | protein_coding,nonsense_mediated_decay |
-| `Info_all` | Formatted gene/exon/nucleotide/protein context for all VEP annotations | VEP | CASZ1:exon21/21:ENST00000377022.3:c.4624G>A:p.Val1542Met, ... |
+| `Info_all` | Formatted gene/exon/nucleotide/protein context for up to five of the highest ranked transcripts per overlapping gene. | VEP | `CASZ1:exon21/21:ENST00000377022.3:c.4624G>A:p.Val1542Met,CASZ1:[...2 additional transcript annotations truncated...]` |
 | `CSQ_impact_all` | All VEP impact categories represented in the VEP annotations | VEP | MODERATE,LOW |
 | `Ensembl_transcript_id_all` | All Ensembl transcript IDs represented in the VEP annotations | VEP | ENST00000374632,ENST00000688609 |
 | `Variation_all` | All VEP consequences represented across annotations | VEP | missense_variant,splice_region_variant |
