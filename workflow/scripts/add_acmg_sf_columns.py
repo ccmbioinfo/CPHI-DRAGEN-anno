@@ -64,7 +64,8 @@ def main(family, input_report_type, input_csv, output_csv, acmg_sf_tsv, acmg_sf_
     # Gene_all lists every gene the variant overlaps and is only present in the slivar
     # reports; prefer it so a secondary-finding gene is not missed just because another
     # overlapping gene was chosen as the primary one. Other reports fall back to Gene.
-    for col_name in ["Gene_all", "Gene", "GENE_NAME_CDS", "GENE_NAME", "GENE", "gene"]: # only consider SVs that overlap gene CDS
+    # For SV/CNV, prefer GENE_NAME_CDS or fall back to the first GENE_NAME column.
+    for col_name in ["Gene_all", "Gene", "GENE_NAME_CDS", "GENE_NAME", "GENE", "gene"]:
         if col_name in df.columns:
             gene_col = col_name
             break

@@ -2,7 +2,7 @@
 
 Rohan Khan, Madeline Couse
 
-**Version 2026-04**
+**Version 2026-11**
 
 ## Changelog
 
@@ -14,6 +14,7 @@ The SV/CNV annotation and report generation pipeline was adapted from the PacBio
   - Population annotations use gnomAD SV, DGV, and a DRAGEN-derived 1000 Genomes SV database rather than PacBio-specific C4R, TG, and CoLoRSdb resources
   - Sample support fields are DRAGEN FORMAT fields (`GT`, `PR`, `SR`, `VF`, `GQ`, `FS`, `DQ`, `DN`, `CN`) rather than PacBio long-read genotype/read-depth and phasing fields
   - `CPHI-DRAGEN-anno` converts inversion-like BND records to `INV` before SV annotation
+  - Long `GENE_NAME` and `ENSEMBL_GENE` values are continued in dynamically numbered columns rather than truncated
 
 ## Summary
 
@@ -70,7 +71,7 @@ Other analysis considerations:
   - For SVs, use the sample-level support fields when assessing confidence in a candidate call. In particular, review `sampleID_PR_alt`, `sampleID_SR_alt`, `sampleID_VF_alt`, `sampleID_GQ`, and `sampleID_FS`.
   - For CNVs, review `sampleID_CN`, `sampleID_DQ`, and `sampleID_DN` instead of the SV read-support fields.
   - The `sampleID_GT` column reports the called genotype, where `0` is reference and `1` is alternate. The corresponding `sampleID_zyg` column simplifies this to `het`, `hom`, `-`, `./.`, or for some sex-chromosome CNVs `hemi`.
-  - For very large SVs/CNVs (`|SVLEN| > 500000`), the `GENE_NAME` and `ENSEMBL_GENE` fields are condensed in the final report to keep the output manageable and Excel-compatible. In these cases, only the first and last gene entries are retained rather than the full gene list.
+  - If the `GENE_NAME` or `ENSEMBL_GENE` value approaches the Excel cell limit, it is continued in dynamically created columns such as `GENE_NAME_2` or `ENSEMBL_GENE_2`. The complete gene list is retained in both intermediate and final CSV reports.
 
 ## Column descriptions
 
@@ -86,8 +87,8 @@ The SV and CNV reports share most columns. Columns that are SV-only or CNV-only 
 | `ID` | DRAGEN variant ID. Present in the SV report; excluded from the final CNV report. | DRAGEN VCF | DRAGEN:INS:207297:0:0:0:0:0 |
 | `INFO` | VCF INFO field. For SVs, BND directionality information is retained/added where applicable. | Generated value from DRAGEN VCF INFO | END=248484;SVTYPE=INS; SVLEN=109;CIGAR=1M109I; CIPOS=0,50;HOMLEN=50; HOMSEQ=CCGCATTCATCTCTC CAGGTAGCCTGGCACGGGGAGC CCACATTCATCTC |
 | `FILTER` | Filter field from VCF | DRAGEN VCF | PASS |
-| `GENE_NAME` | Gene symbol(s) impacted by the SV/CNV | SnpEff | FAM20C |
-| `ENSEMBL_GENE` | Ensembl gene ID(s) impacted by the SV/CNV | SnpEff | ENSG00000177706 |
+| `GENE_NAME_*` | Gene symbol(s) impacted by the SV/CNV. If needed for Excel compatibility, the list continues in dynamically numbered `GENE_NAME_2`, `GENE_NAME_3`, ... columns. | SnpEff | FAM20C |
+| `ENSEMBL_GENE_*` | Ensembl gene ID(s) impacted by the SV/CNV. If needed for Excel compatibility, the list continues in dynamically numbered `ENSEMBL_GENE_2`, `ENSEMBL_GENE_3`, ... columns. | SnpEff | ENSG00000177706 |
 | `GENE_NAME_CDS` | Gene symbol(s) whose CDS overlaps the SV/CNV | Generated value | FAM20C |
 | `GENE_NAME_START` | Gene symbol(s) overlapped by the start coordinate | Generated value | FAM20C |
 | `GENE_NAME_END` | Gene symbol(s) overlapped by the end coordinate | Generated value | FAM20C |
