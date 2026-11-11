@@ -26,6 +26,7 @@ from shared import (
     select_ensembl_gene_id,
     select_primary_csq,
     value_as_text,
+    parse_spliceai2,
 )
 
 
@@ -307,64 +308,6 @@ def best_refseq_change_for_gene(csq_records, symbol, order_map):
     return "NA"
 
 
-# Build the report SpliceAI_impact and SpliceAI_score fields.
-def parse_spliceai(value):
-    if not has_value(value):
-        # No SpliceAI record for this variant. A real max score of 0 is reported as 0 below.
-        return "NA|NA|NA", "."
-    # Roughly follows the SpliceAI parsing used by postfilter.py and the former CRE/R implementation.
-    # Values look like Allele|Gene|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|...
-    # Repeated INFO values might be a tuple. Each value can also still hold
-    # comma-separated annotations, so flatten both forms first.
-    annotations = []
-    if isinstance(value, tuple):
-        for item in value:
-            annotations.extend(str(item).split(","))
-    else:
-        annotations = str(value).split(",")
-    # These report fields stay tied together: the highest DS score determines
-    # which gene, splice impact label, and DP position are reported.
-    best_gene = "NA"
-    best_impact = "NA"
-    best_score = 0.0
-    best_pos = "NA"
-    fields = [("acceptor_gain", 2, 6), ("acceptor_loss", 3, 7), ("donor_gain", 4, 8), ("donor_loss", 5, 9)]
-    # Track the strongest DS_* value along with its gene, impact type, and DP position.
-    for annotation in annotations:
-        parts = annotation.split("|")
-        # Short or malformed annotations cannot contain all four DS/DP pairs.
-        if len(parts) < 10:
-            continue
-        scores = []
-        gene = parts[1]
-        for impact_name, score_idx, pos_idx in fields:
-            try:
-                score = float(parts[score_idx])
-            except Exception:
-                continue
-            scores.append((impact_name, score, parts[pos_idx]))
-        if not scores:
-            continue
-        # Pick the strongest DS value within this annotation, keeping its impact and position.
-        max_score = max(score for _, score, _ in scores)
-        impact = "NA"
-        pos = "NA"
-        for impact_name, score, pos_value in scores:
-            if score == max_score:
-                impact = impact_name
-                pos = pos_value
-        # Only replace the current report values when this annotation has the
-        # strongest score seen so far.
-        if best_score < max_score:
-            best_score = max_score
-            best_gene = gene
-            best_impact = impact
-            best_pos = pos
-    if best_score == 0:
-        return "NA|NA|NA", "0"
-    return f"{best_gene}|{best_impact}|{best_pos}", str(best_score)
-
-
 def max_numeric_csv(value):
     # Some INFO fields contain comma-separated numeric predictions; report the largest.
     if not has_value(value):
@@ -622,13 +565,13 @@ def make_columns(mode, samples, include_denovo=False, include_denovo_quality=Fal
         columns.extend(["AA_position", "Exon", "Protein_domains"])
         columns.extend(CONSTRAINT_COLUMNS)
         columns.extend(["Sift_score", "Polyphen_score", "Cadd_score", "AlphaGenome_PHRED", "Vest4_score", "Revel_score", "Gerp_score", "AlphaMissense"])
-        columns.extend(["phylop100way", "SpliceAI_impact", "SpliceAI_score"])
+        columns.extend(["phylop100way", "SpliceAI2_impact", "SpliceAI2_score"])
         columns.extend(["Imprinting_status", "Imprinting_expressed_allele", "Pseudoautosomal", "Old_multiallelic"])
         columns.extend(["CSQ_biotype", "CSQ_impact", "Sift_score_all", "Polyphen_score_all", "CSQ_biotype_all"])
     else:
         # All other Slivar modes use the WGS-style noncoding/report column set.
         columns.extend(CONSTRAINT_COLUMNS)
-        columns.extend(["Cadd_score", "AlphaGenome_PHRED", "phylop100way", "SpliceAI_impact", "SpliceAI_score"])
+        columns.extend(["Cadd_score", "AlphaGenome_PHRED", "phylop100way", "SpliceAI2_impact", "SpliceAI2_score"])
         columns.extend(["ncER_score", "ReMM_score", "LINSIGHT_score", "Noncoding_path_pred", "promoterAI_score"])
         columns.extend(["Imprinting_status", "Imprinting_expressed_allele", "Pseudoautosomal", "Old_multiallelic"])
         columns.extend(["UCE_100bp", "UCE_200bp", "DNaseI_hypersensitive_site", "CTCF_binding_site"])
@@ -820,9 +763,9 @@ def main():
                 if field in row:
                     row[field] = row.get(field, "") or "None"
 
-            spliceai_impact, spliceai_score = parse_spliceai(get_info_value(record, "spliceai_score"))
-            set_if_column_present(row, "SpliceAI_impact", spliceai_impact)
-            set_if_column_present(row, "SpliceAI_score", spliceai_score)
+            spliceai2_impact, spliceai2_score = parse_spliceai2(record)
+            set_if_column_present(row, "SpliceAI2_impact", spliceai2_impact)
+            set_if_column_present(row, "SpliceAI2_score", spliceai2_score)
             set_if_column_present(row, "promoterAI_score", parse_promoterai(get_info_value(record, "promoterAI")))
             if "Noncoding_path_pred" in row:
                 row["Noncoding_path_pred"] = noncoding_pred_fraction(
