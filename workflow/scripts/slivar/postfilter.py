@@ -18,38 +18,19 @@ from shared import (
 )
 
 
-# Get the highest SpliceAI score.
-def parse_spliceai_score(record):
-    value = get_info_value(record, "spliceai_score")
+# Get the highest SpliceAI2 score.
+def parse_spliceai2_score(record):
+    value = get_info_value(record, "spliceai2_summary_score")
+    
     if not has_value(value):
         return 0.0
 
-    # Roughly follows the SpliceAI parsing in the former CRE/R implementation.
-    # Values look like Allele|Gene|DS_AG|DS_AL|DS_DG|DS_DL|DP_AG|...
-    # Repeated INFO values might be a tuple. Each value can also
-    # still hold comma-separated annotations, so flatten both forms first.
-    annotations = []
+    # Repeated INFO values might be a tuple. Each value should *not*
+    # still hold comma-separated annotations, so no need for that flattening.
     if isinstance(value, tuple):
-        for item in value:
-            annotations.extend(str(item).split(","))
-    else:
-        annotations = str(value).split(",")
+        return max(float(score) for score in value)
 
-    # Use the highest delta score across every SpliceAI annotation.
-    best_score = 0.0
-    for annotation in annotations:
-        parts = annotation.split("|")
-        # Short or malformed annotations cannot contain all four DS values.
-        if len(parts) < 10:
-            continue
-        # SpliceAI DS_AG/DS_AL/DS_DG/DS_DL occupy fields 2-5 in this annotation.
-        for idx in (2, 3, 4, 5):
-            try:
-                score = float(parts[idx])
-            except Exception:
-                continue
-            best_score = max(best_score, score)
-    return best_score
+    return float(value)
 
 
 # Get the highest absolute promoterAI score.
@@ -149,16 +130,16 @@ def high_impact_csq_sort_key(csq, consequence_order):
 # for this inclusion gate has an associated gene symbol. This CSQ choice is
 # separate from the final report transcript selection in build_report.py.
 def passes_high_impact_gate(record, csq_fields, consequence_order):
-    spliceai_score = parse_spliceai_score(record)
+    spliceai2_score = parse_spliceai2_score(record)
     cadd_score = get_info_value(record, "CADD_phred")
     promoterai_score = parse_promoterai_score(record)
 
-    # Match the CRE high-impact score gate: SpliceAI >= 0.2, missing CADD,
-    # CADD >= 10, or absolute promoterAI >= 0.1.
+    # Match the CRE high-impact score gate: SpliceAI2 >= 0.1 (equivalent to
+    # SpliceAI >= 0.2), missing CADD, CADD >= 10, or absolute promoterAI >= 0.1.
     cadd_is_missing = not has_value(cadd_score)
     cadd_numeric = value_as_float(cadd_score)
     passes_score_gate = (
-        spliceai_score >= 0.2
+        spliceai2_score >= 0.1
         or cadd_is_missing
         or (cadd_numeric is not None and cadd_numeric >= 10)
         or promoterai_score >= 0.1

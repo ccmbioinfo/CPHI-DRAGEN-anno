@@ -14,7 +14,7 @@ Adapted from the long-read [crg2-pacbio pipeline](https://github.com/ccmbioinfo/
 
 For SNVs/indels, variants are first filtered by the gnomAD filtering allele frequency (less than 1%). We are interested in rare nonsynonymous variants as well as rare synonymous/noncoding (deep intronic, UTR) variants that may be damaging. So, when determining gene compound heterozygous (CH) status in the ‘wgs.coding’ report, we also consider rare genic synonymous/noncoding variants with the following filter:
 
-  - SpliceAI \>= 0.2 OR CADD \>= 10 OR abs(promoterAI) \>= 0.1 OR indel without CADD score (indels do not receive SpliceAI scores, and only common indels are scored by CADD)
+  - SpliceAI2 \>= 0.1 OR CADD \>= 10 OR abs(promoterAI) \>= 0.1 OR indel without CADD score (indels do not receive SpliceAI2 scores, and only common indels are scored by CADD)
 
 These synonymous/noncoding variants do not appear in the ‘wgs.coding’ report (unless they are in ClinVar) but are still considered in the CH status determination. Note that though variants that VEP has annotated as having the impact ‘intergenic\_variant’ are not considered in the CH status determination, those annotated as ‘upstream\_gene\_variant’ and ‘downstream\_gene\_variant’ are. VEP annotates variants within 5kb upstream or downstream as ‘upstream\_gene\_variant’ and ‘downstream\_gene\_variant’ respectively.
 
@@ -76,7 +76,7 @@ CH algorithm outputs:
   - ‘wgs.coding’ report CSV with two additional columns, ‘CH\_variant\_types’ and ‘CH\_status’, that indicate if a gene contains at least one pair of heterozygous variants in *trans* in the proband, and what type of variants are in the gene.
   - SV report CSV with two additional columns, ‘CH\_variant\_types’ and ‘CH\_status’, as above.
   - CNV report CSV with two additional columns, ‘CH\_variant\_types’ and ‘CH\_status’, as above.
-  - A ‘\<family\>\_compound\_het\_variants’ CSV that comprises all sequence variants, SVs, and CNVs that are heterozygous in the proband, with gene CH status annotated (see Table 1). Sequence variants are annotated with gnomAD AF, CADD score, SpliceAI score, and ClinVar. Refer to this table to view CH status for all genes. If there is only one sequence variant in a gene that is annotated as CH in the ‘wgs.coding’ report, refer to this table to see additional variant(s) in the gene (e.g a deep intronic variant that would not be included in the ‘wgs.coding’ report). Note – SVs and CNVs that overlap multiple genes will be spread over multiple rows, with one gene per row.
+  - A ‘\<family\>\_compound\_het\_variants’ CSV that comprises all sequence variants, SVs, and CNVs that are heterozygous in the proband, with gene CH status annotated (see Table 1). Sequence variants are annotated with gnomAD AF, CADD score, SpliceAI2 score, and ClinVar. Refer to this table to view CH status for all genes. If there is only one sequence variant in a gene that is annotated as CH in the ‘wgs.coding’ report, refer to this table to see additional variant(s) in the gene (e.g a deep intronic variant that would not be included in the ‘wgs.coding’ report). Note – SVs and CNVs that overlap multiple genes will be spread over multiple rows, with one gene per row.
 
 #### CH algorithm
 
@@ -88,7 +88,7 @@ Sequence variant processing
     
     1.  Variant is not intergenic
     
-    2.  SpliceAI \>= 0.2 OR CADD \>= 10 OR abs(promoterAI) \>= 0.1 OR indel without CADD score (indels do not receive SpliceAI scores, and only common indels are scored by CADD)
+    2.  SpliceAI2 \>= 0.1 OR CADD \>= 10 OR abs(promoterAI) \>= 0.1 OR indel without CADD score (indels do not receive SpliceAI2 scores, and only common indels are scored by CADD)
 
 3.  Index sequence variants by chromosome, position, ref allele, alt allele
 
@@ -134,7 +134,8 @@ Annotate variant reports with CH status
 | Clinvar | Clinvar pathogenic status. Only available for sequence variants in this table. | Pathogenic |
 | Gnomad_af_grpmax | Maximum allele frequency across genetic ancestry groups in joint (WES and WGS) dataset. Only available for sequence variants in this table. | 0.000946139974985 |
 | Cadd_score | CADD score. Only available for sequence variants in this table. | 27.9 |
-| SpliceAI_score | SpliceAI score. Only available for sequence variants in this table. | C\|CEP152\|0.00\|0.00\|0.00\|0.00\|-1\|-7\|16\|-7 |
+| spliceai2_impact | We have parsed the SpliceAI2 scores into the format DG:<SCORE>@<DIST>\|DL:<SCORE>@<DIST>\|AG:<SCORE>@<DIST>\|AL:<SCORE>@<DIST>. Each score ranges from 0 to 1 and can be interpreted as the probability of the variant being splice-altering. In the [manuscript](https://assets.illumina.com/content/dam/illumina-marketing/images/genomics-research/articles/spliceai2/SpliceAI2.pdf), a detailed characterization is provided for 0.1 (high recall), 0.25 (balance of precision and recall), and 0.5 (high precision) cutoffs. Delta position conveys information about the location where splicing changes relative to the variant position (positive values are downstream of the variant, negative values are upstream). In the example, SpliceAI2 predicts an acceptor gain 98 bases downstream of the variant with a 0.02 probability of being splice-altering (next column). NA\|NA\|NA\|NA indicates that the variant is not predicted to impact splicing. Only available for sequence variants in this table. | DG:0.0@-1340\|DL:0.0@-157\|AG:0.02@98\|AL:0.0@304 |
+| spliceai2_score | The SpliceAI2 score of a variant, defined as the maximum of (donor_gain_delta_score_0, donor_loss_delta_score_0, acceptor_gain_delta_score_0, acceptor_loss_delta_score_0), ranges from 0 to 1 and can be interpreted as the probability of the variant being splice-altering. Only available for sequence variants in this table. | 0.02 |
 | promoterAI_score | promoterAI score. Only available for sequence variants in this table. | . |
 | Nucleotide_change_ensembl | Ensembl HGVS. Only available for sequence variants in this table. | ENST00000325747.9:c.1755T\>G |
 | `GT_abstracted_<sample>` | Genotype for phased variants is represented as ‘ref\|alt’ or ‘alt\|ref’ to facilitate a quick visual check for compound heterozygosity. For unphased variants, genotypes are left as is (e.g. T/A). | ref\|alt |

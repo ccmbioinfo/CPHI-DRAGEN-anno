@@ -24,6 +24,7 @@ from shared import (
     select_primary_csq,
     value_as_float,
     value_as_text,
+    parse_spliceai2, 
 )
 
 
@@ -222,6 +223,8 @@ def row_for_record(record, csq_records, primary, samples, order_map):
     variation = select_consequence(primary, order_map) if primary is not None else ""
     gnomad_af_grpmax = value_as_float(get_info_value(record, "gnomad_af_grpmax"))
 
+    spliceai2_impact, spliceai2_score = parse_spliceai2(record)
+
     row = {
         "Chrom": record.chrom,
         "Pos": record.pos,
@@ -236,7 +239,8 @@ def row_for_record(record, csq_records, primary, samples, order_map):
         "Ensembl_gene_id": select_ensembl_gene_id(csq_records, primary),
         "Gnomad_af_grpmax": -1 if gnomad_af_grpmax is None else gnomad_af_grpmax,
         "Cadd_score": value_as_text(get_info_value(record, "CADD_phred")),
-        "SpliceAI_score": value_as_text(get_info_value(record, "spliceai_score")),
+        "spliceai2_impact": spliceai2_impact,
+        "spliceai2_score": spliceai2_score,
         "promoterAI_score": value_as_text(get_info_value(record, "promoterAI")),
         "PS": record_ps(record, samples),
         "Nucleotide_change_ensembl": primary.get("HGVSc", "") if primary is not None else "",
@@ -274,7 +278,8 @@ def fieldnames(samples):
         "Ensembl_gene_id",
         "Gnomad_af_grpmax",
         "Cadd_score",
-        "SpliceAI_score",
+        "spliceai2_impact",
+        "spliceai2_score",
         "promoterAI_score",
         "PS",
         "Nucleotide_change_ensembl",
