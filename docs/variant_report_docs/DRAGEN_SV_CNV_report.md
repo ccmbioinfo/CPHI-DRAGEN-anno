@@ -15,6 +15,7 @@ The SV/CNV annotation and report generation pipeline was adapted from the PacBio
   - Sample support fields are DRAGEN FORMAT fields (`GT`, `PR`, `SR`, `VF`, `GQ`, `FS`, `DQ`, `DN`, `CN`) rather than PacBio long-read genotype/read-depth and phasing fields
   - `CPHI-DRAGEN-anno` converts inversion-like BND records to `INV` before SV annotation
   - Long `GENE_NAME` and `ENSEMBL_GENE` values are continued in dynamically numbered columns rather than truncated
+  - Duplicate HPO term names are reported once with the highest match score across impacted genes
 
 ## Summary
 
@@ -104,7 +105,7 @@ The SV and CNV reports share most columns. Columns that are SV-only or CNV-only 
 | `clingen_region _curation` | ClinGen genomic disease region curation | ClinGen | 10p13 population region (DGV\_Gold\_Standard\_ June\_2021\_gssvL10668) |
 | `clingen_region` | ClinGen genomic disease region coordinates | ClinGen | 10:13217247-13218742 |
 | `sample_SV_clingen_ region_perc_overlap` | Percent of ClinGen region overlapped by sample SV/CNV | Generated value | 98.9 |
-| `HPO` | HPO terms from the supplied HPO file associated with impacted genes; only present if an HPO file is added in the config | Phenotips-style input HPO table | nan |
+| `HPO` | HPO terms associated with impacted genes; only present if an HPO file is added in the config. A term associated with multiple genes is reported once with its highest exact or indirect match score. | Phenotips-style input HPO table | Cataract (1.0), Ataxia (0.8) |
 | `sampleID_zyg` | Sample zygosity summary. For CNVs, this is derived with CNV-aware logic and may include `hemi` on sex chromosomes. | Generated value from DRAGEN VCF | het |
 | `sampleID_GT` | Sample genotype from FORMAT field | DRAGEN VCF FORMAT | 0/1 |
 | `sampleID_PR_alt` | Alternate paired-read support count (`PR` alt value). Present in SV report; excluded from final CNV report. | DRAGEN VCF FORMAT | 4 |

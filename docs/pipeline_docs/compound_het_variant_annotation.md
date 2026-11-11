@@ -2,7 +2,7 @@
 
 Madeline Couse
 
-**Version 2026-08**
+**Version 2026-11**
 
 ## Changelog
 
@@ -73,7 +73,7 @@ CH algorithm inputs:
 
 CH algorithm outputs:
 
-  - ‘wgs.coding’ report CSV with two additional columns, ‘CH\_variant\_types’ and ‘CH\_status’, that indicate if a gene contains at least one pair of heterozygous variants in *trans* in the proband, and what type of variants are in the gene.
+  - ‘wgs.coding’ report CSV with two additional columns, ‘CH\_variant\_types’ and ‘CH\_status’, that indicate if a gene contains at least one pair of heterozygous variants in *trans* in the proband, and what type of variants are in the gene. The final small variant reports also include `HPO_terms`, `HPO_additional`, and `HPO_count`.
   - SV report CSV with two additional columns, ‘CH\_variant\_types’ and ‘CH\_status’, as above.
   - CNV report CSV with two additional columns, ‘CH\_variant\_types’ and ‘CH\_status’, as above.
   - A ‘\<family\>\_compound\_het\_variants’ CSV that comprises all sequence variants, SVs, and CNVs that are heterozygous in the proband, with gene CH status annotated (see Table 1). Sequence variants are annotated with gnomAD AF, CADD score, SpliceAI score, and ClinVar. Refer to this table to view CH status for all genes. If there is only one sequence variant in a gene that is annotated as CH in the ‘wgs.coding’ report, refer to this table to see additional variant(s) in the gene (e.g a deep intronic variant that would not be included in the ‘wgs.coding’ report). Note – SVs and CNVs that overlap multiple genes will be spread over multiple rows, with one gene per row.

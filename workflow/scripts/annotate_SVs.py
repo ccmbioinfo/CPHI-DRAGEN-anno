@@ -179,6 +179,18 @@ def merge_full_split_annos(annotsv_df):
     return annotsv_merge
 
 
+def keep_best_hpo_scores(terms):
+    """Deduplicate scored HPO terms, keeping the highest score per term."""
+    best_terms = {}
+    for term in terms:
+        term = term.strip()
+        name, score = term.rsplit(" (", 1)
+        score = float(score.rstrip(")"))
+        if name not in best_terms or score > best_terms[name][0]:
+            best_terms[name] = (score, term)
+    return [term for _, term in best_terms.values()]
+
+
 def add_hpo(hpo, gene):
     if pd.isna(gene):
         return "."
@@ -203,7 +215,7 @@ def add_hpo(hpo, gene):
     if len(terms) == 0:
         return "nan"
     elif "HPO Match Score" in hpo.columns:
-        return ", ".join(terms)
+        return ", ".join(keep_best_hpo_scores(terms))
     else:
         terms = ",".join(terms)
         terms = ", ".join(

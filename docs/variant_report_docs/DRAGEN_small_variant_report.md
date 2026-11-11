@@ -2,11 +2,11 @@
 
 Kristin Kernohan, Sergey Naumenko, Christian Marshall, Arun Ramani, Madeline Couse
 
-**Version 2026-08**
+**Version 2026-11**
 
 ## Changelog
 
-Adapted from [crg2 pipeline](https://github.com/ccmbioinfo/crg2) for GRCh38 DRAGEN v4.4 genomes. Updated small-variant filtering and report generation from CRE/GEMINI/R to slivar and Python.
+Adapted from [crg2 pipeline](https://github.com/ccmbioinfo/crg2) for GRCh38 DRAGEN v4.4 genomes. Updated small-variant filtering and report generation from CRE/GEMINI/R to slivar and Python. Updated the HPO column descriptions to reflect multigene HPO annotation.
 
 ## Summary
 
@@ -185,6 +185,9 @@ Single-value columns are based on the primary VEP annotation/transcript chosen, 
 | `Variation_all` | All VEP consequences represented across annotations | VEP | missense_variant,splice_region_variant |
 | `Refseq_change_all` | All available RefSeq nucleotide and protein changes | VEP | NM_001042492.3:c.463C>T:p.Leu155Phe |
 | `Constraint_all` | Compact gnomAD constraint summaries for all Ensembl transcripts | gnomAD v4.1.1 | ENST00000374632\|lof=0.07\|mis=0.20\|pli=1 |
+| `HPO_terms` | HPO terms associated with the selected primary `Ensembl_gene_id`. Each term is reported once with its highest match score across all genes overlapped by the variant. | Phenotips-style input HPO table | Cataract (1.0), Seizure (1.0) |
+| `HPO_additional` | HPO terms contributed only by genes in `Ensembl_gene_id_all` other than the selected primary gene. Each term is reported once with its highest match score. | Phenotips-style input HPO table | Ataxia (0.8) |
+| `HPO_count` | Number of distinct HPO terms associated with the selected primary `Ensembl_gene_id`; additional genes do not contribute to this count. | Phenotips-style input HPO table | 2 |
 
 
 \*These annotations only appear in panel, panel-flank, and wgs.high.impact reports for WGS
