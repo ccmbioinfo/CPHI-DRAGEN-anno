@@ -697,8 +697,9 @@ def parse_snpeff(snpeff_df, variant_type):
                         l.append("NA")
         variant_list_all.append(";".join(set(variant_list)))
         impact_list_all.append(";".join(set(impact_list)))
-        gene_list_all.append(";".join(set(gene_list)))
-        ens_gene_list_all.append(";".join(set(ens_gene_list)))
+        # Preserve annotation order so gene and CH status ordering is reproducible.
+        gene_list_all.append(";".join(dict.fromkeys(gene_list)))
+        ens_gene_list_all.append(";".join(dict.fromkeys(ens_gene_list)))
     snpeff_df["IMPACT"] = impact_list_all
     snpeff_df["GENE_NAME"] = gene_list_all
     snpeff_df["ENSEMBL_GENE"] = ens_gene_list_all
