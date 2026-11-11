@@ -225,6 +225,27 @@ def build_info_item(csq):
     return f"{gene}:exon{exon}:{csq.get('HGVSc', '')}:{csq.get('HGVSp', '')}".replace("%3D", "=")
 
 
+def compact_protein_domains(value, max_pdb_structures=5):
+    """Keep all domain annotations but only a few unique PDB structures."""
+    other_domains = []
+    pdb_structures = {}
+    for entry in str(value).split("&"):
+        if entry.startswith("PDB-ENSP_mappings:"):
+            mapping = entry.split(":", 1)[1]
+            pdb_id = mapping.split(".", 1)[0]
+            pdb_structures.setdefault(pdb_id, entry)
+        else:
+            other_domains.append(entry)
+
+    kept_pdb = list(pdb_structures.values())[:max_pdb_structures]
+    omitted = len(pdb_structures) - len(kept_pdb)
+    if omitted:
+        kept_pdb.append(
+            f"PDB-ENSP_mappings:[...{omitted} additional structures truncated...]"
+        )
+    return "&".join(other_domains + kept_pdb)
+
+
 # Keep only the c./p. suffix so it can be paired with the chosen RefSeq accession.
 def split_hgvs_suffix(value):
     if not has_value(value):
@@ -922,7 +943,7 @@ def main():
                 row["Ensembl_transcript_id"] = primary_tx
                 set_if_column_present(row, "AA_position", replace_slashes(primary.get("Protein_position", "")))
                 set_if_column_present(row, "Exon", replace_slashes(primary.get("EXON", "")))
-                set_if_column_present(row, "Protein_domains", primary.get("DOMAINS", ""))
+                set_if_column_present(row, "Protein_domains", compact_protein_domains(primary.get("DOMAINS", "")),)
                 set_if_column_present(row, "Sift_score", parse_vep_score(primary.get("SIFT", "")) or "None")
                 set_if_column_present(row, "Polyphen_score", parse_vep_score(primary.get("PolyPhen", "")) or "None")
                 row["CSQ_biotype"] = primary.get("BIOTYPE", "")

@@ -6,7 +6,7 @@ Kristin Kernohan, Sergey Naumenko, Christian Marshall, Arun Ramani, Madeline Cou
 
 ## Changelog
 
-Adapted from [crg2 pipeline](https://github.com/ccmbioinfo/crg2) for GRCh38 DRAGEN v4.4 genomes. Updated small-variant filtering and report generation from CRE/GEMINI/R to slivar and Python. Updated the HPO column descriptions to reflect multigene HPO annotation.
+Adapted from [crg2 pipeline](https://github.com/ccmbioinfo/crg2) for GRCh38 DRAGEN v4.4 genomes. Updated small-variant filtering and report generation from CRE/GEMINI/R to slivar and Python. Updated the `Protein_domains` and HPO column descriptions to reflect report size limits and multigene HPO annotation.
 
 ## Summary
 
@@ -135,7 +135,7 @@ Single-value columns are based on the primary VEP annotation/transcript chosen, 
 | `rsIDs` | Variant IDs (dbSNP) | VEP | rs28936395 |
 | `AA_position` | Amino-acid position for the selected primary annotation | VEP | 679/987 |
 | `Exon` | Exon number for the selected primary annotation | VEP | 3/5 |
-| `Protein_domains` | Protein-domain annotation for the selected primary annotation | VEP | Pkinase,Pkinase_Tyr |
+| `Protein_domains` | Protein-domain annotation for the selected primary annotation. All non-PDB domain annotations are retained. Up to five unique PDB structures are retained from `PDB-ENSP_mappings`; if more are present, a marker reports how many additional structures were truncated. | VEP | `Pkinase,Pkinase_Tyr&PDB-ENSP_mappings:1fha.A&PDB-ENSP_mappings:[...3 additional structures truncated...]` |
 | `Gnomad_oe_lof_score` | Observed/expected LOF (o/e); lower suggests LOF intolerance | [gnomAD v4.1 constraint TSV](https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/constraint/gnomad.v4.1.constraint_metrics.tsv) | 0.07 |
 | `Gnomad_oe_ci_lower` | Lower bound of 90% CI for o/e | [gnomAD v4.1 constraint TSV](https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/constraint/gnomad.v4.1.constraint_metrics.tsv)  | 0.719 |
 | `Gnomad_oe_ci_upper` | LOEUF upper bound (90% CI); lower indicates more constraint | [gnomAD v4.1 constraint TSV](https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/constraint/gnomad.v4.1.constraint_metrics.tsv)  | 1.23 |
