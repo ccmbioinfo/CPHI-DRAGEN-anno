@@ -14,7 +14,7 @@ Adapted from the long-read [crg2-pacbio pipeline](https://github.com/ccmbioinfo/
 
 For SNVs/indels, variants are first filtered by the gnomAD filtering allele frequency (less than 1%). We are interested in rare nonsynonymous variants as well as rare synonymous/noncoding (deep intronic, UTR) variants that may be damaging. So, when determining gene compound heterozygous (CH) status in the ‘wgs.coding’ report, we also consider rare genic synonymous/noncoding variants with the following filter:
 
-  - SpliceAI2 \>= 0.1 OR CADD \>= 10 OR abs(promoterAI) \>= 0.1 OR indel without CADD score (indels do not receive SpliceAI scores, and only common indels are scored by CADD)
+  - SpliceAI2 \>= 0.1 OR CADD \>= 10 OR abs(promoterAI) \>= 0.1 OR indel without CADD score (indels do not receive SpliceAI2 scores, and only common indels are scored by CADD)
 
 These synonymous/noncoding variants do not appear in the ‘wgs.coding’ report (unless they are in ClinVar) but are still considered in the CH status determination. Note that though variants that VEP has annotated as having the impact ‘intergenic\_variant’ are not considered in the CH status determination, those annotated as ‘upstream\_gene\_variant’ and ‘downstream\_gene\_variant’ are. VEP annotates variants within 5kb upstream or downstream as ‘upstream\_gene\_variant’ and ‘downstream\_gene\_variant’ respectively.
 
