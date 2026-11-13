@@ -206,7 +206,6 @@ def add_hpo(hpo, gene):
             try:
                 term = str(hpo[hpo["Gene ID"] == g]["Features"].values[0])
                 term = term.replace("; ", ";").split(";")
-                term = list(set(term))
                 for t in term:
                     if t not in terms:
                         terms.append(t)
@@ -736,9 +735,9 @@ def parse_snpeff(snpeff_df, variant_type):
                 except:
                     for l in [variant_list, impact_list, gene_list, ens_gene_list]:
                         l.append("NA")
-        variant_list_all.append(";".join(set(variant_list)))
-        impact_list_all.append(";".join(set(impact_list)))
-        # Preserve annotation order so gene and CH status ordering is reproducible.
+        # Preserve SnpEff annotation order so report fields are reproducible.
+        variant_list_all.append(";".join(dict.fromkeys(variant_list)))
+        impact_list_all.append(";".join(dict.fromkeys(impact_list)))
         gene_list_all.append(";".join(dict.fromkeys(gene_list)))
         ens_gene_list_all.append(";".join(dict.fromkeys(ens_gene_list)))
     snpeff_df["IMPACT"] = impact_list_all

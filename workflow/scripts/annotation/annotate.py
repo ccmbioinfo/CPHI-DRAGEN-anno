@@ -317,9 +317,9 @@ def annotate_OMIM(loci_ensembl: pd.DataFrame, omim: pd.DataFrame) -> pd.DataFram
 
 def gene_set(genes: str) -> str:
     """
-    Reduce semi-colon separated gene identifiers to unique gene identifiers
+    Reduce semi-colon separated gene identifiers to unique identifiers in input order
     """
-    genes = ";".join(list(set(genes.split(";"))))
+    genes = ";".join(dict.fromkeys(genes.split(";")))
 
     return genes
 
