@@ -120,7 +120,7 @@ CH status determination
 
 Annotate variant reports with CH status
 
-13. Add per-gene CH status and variant type(s) to small variant reports, SV, and CNV reports as ‘CH\_variant\_types’ and ‘CH\_status’ columns. For SVs/CNVs overlapping multiple genes, the per-gene status and variant type(s) will be delimited by the ‘|’ symbol. If an SV is annotated as ‘intergenic\_variant’ by SnpEff, or is present in gnomAD at greater than 1% frequency, the CH\_status is ‘.’. Note that rare variants annotated against genes with an ‘upstream\_variant’ or ‘downstream\_variant’ impact ARE included in the CH status determination.
+13.  Add per-gene CH status and variant type(s) to small variant reports, SV, and CNV reports as ‘CH\_variant\_types’ and ‘CH\_status’ columns. For SVs/CNVs overlapping multiple genes, the per-gene status and variant type(s) will be delimited by the ‘|’ symbol. To keep the DRAGEN SV/CNV reports legible, genes with a FALSE CH status and their corresponding CH\_variant\_types value are omitted from these two columns; TRUE and UNKNOWN genes are retained. If no genes remain, both columns are reported as ‘.’. FALSE results remain available in the family compound heterozygosity table. If an SV is annotated as ‘intergenic\_variant’ by SnpEff, or is present in gnomAD at greater than 1% frequency, the CH\_status is ‘.’. Note that rare variants annotated against genes with an ‘upstream\_variant’ or ‘downstream\_variant’ impact ARE included in the CH status determination.
 
 | Column | Description | Example |
 | --- | --- | --- |
