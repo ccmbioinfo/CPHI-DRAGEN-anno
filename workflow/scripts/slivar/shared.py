@@ -425,3 +425,37 @@ def get_sample_gq(sample_data):
     if gq is None:
         return ""
     return str(gq)
+
+
+# Build the report SpliceAI2_impact and SpliceAI2_score fields.
+def parse_spliceai2(record):
+    summary_score = get_info_value(record, "spliceai2_summary_score")
+
+    if not has_value(summary_score):
+        # No SpliceAI record for this variant. A real max score of 0 is reported as 0 below.
+        return "NA|NA|NA|NA", "."
+
+    source_fields = [
+        "DG_score", "DG_dist", "DL_score", "DL_dist", "AG_score", "AG_dist",
+        "AL_score", "AL_dist"]
+
+    # Repeated INFO values might be a tuple. In that case, select the index
+    # corresponding to the largest summary_score, and select the constituent
+    # scores and corresponding distances that match that index.
+
+    # Roughly follows the SpliceAI parsing used by postfilter.py
+    if isinstance(summary_score, tuple):
+        max_score = max(float(score) for score in summary_score)
+        max_index = summary_score.index(str(max_score))
+        constituents = {
+            field: get_info_value(record, field)[max_index] for field in source_fields}
+    else:
+        max_score = float(summary_score)
+        constituents = {field: get_info_value(record, field) for field in source_fields}
+
+    impact = "|".join(
+        f"{t}:{constituents[t + '_score']}@{constituents[t + '_dist']}"
+        for t in ["DG", "DL", "AG", "AL"])
+
+    return impact, str(max_score)
+
