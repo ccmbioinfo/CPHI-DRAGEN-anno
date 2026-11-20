@@ -11,6 +11,35 @@ from datetime import date
 import io
 import sys
 
+EXCEL_CELL_CHAR_LIMIT = 30000 # Set a little bit lower than actual limit
+
+def split_long_columns(df, columns):
+    """Split long semicolon delimited values across multiple Excel columns that do not break."""
+    for column in columns:
+        split_values = []
+        for value in df[column].astype(str):
+            chunks = [""]
+            for item in value.split(";"):
+                # If a previous chunk exists, add the Gene to that chunk first
+                combined = f"{chunks[-1]};{item}" if chunks[-1] else item
+                # If a chunk is greater than the limit, create a new one
+                if chunks[-1] and len(combined) > EXCEL_CELL_CHAR_LIMIT:
+                    chunks.append(item)
+                else:
+                    chunks[-1] = combined
+            split_values.append(chunks)
+        # Find the maximum number of additional columns needed based on the largest row
+        for index in range(1, max((len(parts) for parts in split_values), default=1)):
+            df.insert(
+                df.columns.get_loc(column) + index,
+                f"{column}_{index + 1}",
+                # For empty columns add a "." instead
+                [parts[index] if index < len(parts) else "." for parts in split_values],
+            )
+        df[column] = [parts[0] for parts in split_values]
+    return df
+
+
 def rename_SV_cols(annotsv_df):
     annotsv_df.rename(
         columns={
@@ -150,6 +179,18 @@ def merge_full_split_annos(annotsv_df):
     return annotsv_merge
 
 
+def keep_best_hpo_scores(terms):
+    """Deduplicate scored HPO terms, keeping the highest score per term."""
+    best_terms = {}
+    for term in terms:
+        term = term.strip()
+        name, score = term.rsplit(" (", 1)
+        score = float(score.rstrip(")"))
+        if name not in best_terms or score > best_terms[name][0]:
+            best_terms[name] = (score, term)
+    return [term for _, term in best_terms.values()]
+
+
 def add_hpo(hpo, gene):
     if pd.isna(gene):
         return "."
@@ -165,7 +206,6 @@ def add_hpo(hpo, gene):
             try:
                 term = str(hpo[hpo["Gene ID"] == g]["Features"].values[0])
                 term = term.replace("; ", ";").split(";")
-                term = list(set(term))
                 for t in term:
                     if t not in terms:
                         terms.append(t)
@@ -174,7 +214,7 @@ def add_hpo(hpo, gene):
     if len(terms) == 0:
         return "nan"
     elif "HPO Match Score" in hpo.columns:
-        return ", ".join(terms)
+        return ", ".join(keep_best_hpo_scores(terms))
     else:
         terms = ",".join(terms)
         terms = ", ".join(
@@ -695,10 +735,11 @@ def parse_snpeff(snpeff_df, variant_type):
                 except:
                     for l in [variant_list, impact_list, gene_list, ens_gene_list]:
                         l.append("NA")
-        variant_list_all.append(";".join(set(variant_list)))
-        impact_list_all.append(";".join(set(impact_list)))
-        gene_list_all.append(";".join(set(gene_list)))
-        ens_gene_list_all.append(";".join(set(ens_gene_list)))
+        # Preserve SnpEff annotation order so report fields are reproducible.
+        variant_list_all.append(";".join(dict.fromkeys(variant_list)))
+        impact_list_all.append(";".join(dict.fromkeys(impact_list)))
+        gene_list_all.append(";".join(dict.fromkeys(gene_list)))
+        ens_gene_list_all.append(";".join(dict.fromkeys(ens_gene_list)))
     snpeff_df["IMPACT"] = impact_list_all
     snpeff_df["GENE_NAME"] = gene_list_all
     snpeff_df["ENSEMBL_GENE"] = ens_gene_list_all
@@ -844,19 +885,6 @@ def add_clingen_regions(annotsv_df, clingen_regions_df):
         annotsv_df["clingen_region"] = "."
         annotsv_df["sample_SV_clingen_region_perc_overlap"] = "."
     return annotsv_df
-
-def shorten_gene_list(value):
-    if pd.isna(value):
-        return value
-    s = str(value).strip()
-    if s in {".", "", "NA", "nan"}:
-        return s
-
-    genes = [g.strip() for g in s.split(";") if g.strip()]
-    if len(genes) <= 2:
-        return s
-
-    return f"{genes[0]};[...truncated...];{genes[-1]}"
 
 def add_BND_structure(svtype, info, alt):
     if svtype == "BND":
@@ -1130,13 +1158,6 @@ def main(
     # add clingen region curations
     df_merge = add_clingen_regions(df_merge, clingen_regions)
 
-    # if SVLEN is greater than 500,000 reduce the size of "GENE_NAME" and "ENSEMBL_GENE" to include only the first and last
-    svlen_numeric = pd.to_numeric(df_merge["SVLEN"], errors="coerce")
-    long_sv_mask = svlen_numeric.abs() > 500000
-
-    for col in ["GENE_NAME", "ENSEMBL_GENE"]:
-        df_merge.loc[long_sv_mask, col] = df_merge.loc[long_sv_mask, col].apply(shorten_gene_list)
-
     # define columns to be included in report
     hpo_cols = ["HPO"] if isinstance(hpo, pd.DataFrame) else []
 
@@ -1225,6 +1246,7 @@ def main(
     df_merge = df_merge.replace("nan", ".")
     df_merge = df_merge.fillna(".")
     df_merge = df_merge.drop_duplicates()
+    df_merge = split_long_columns(df_merge, ["GENE_NAME", "ENSEMBL_GENE"])
     today = date.today()
     today = today.strftime("%Y-%m-%d")
     df_merge.to_csv(f"{prefix}.{variant_type.lower()}.csv", index=False)

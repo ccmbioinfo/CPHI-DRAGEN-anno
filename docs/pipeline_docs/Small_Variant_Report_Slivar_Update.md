@@ -1,6 +1,6 @@
 # Small-variant report update (CRE/GEMINI to slivar)
 
-**Version 2026-08**
+**Version 2026-11**
 
 ## Overview
 
@@ -107,7 +107,8 @@ Most established columns remain. The additions below provide context that was pr
 | **Column** | **Comment** |
 | --- | --- |
 | CSQ_biotype, CSQ_impact | New columns showing the biotype and VEP impact category of the selected primary annotation. |
-| Gene_all, Ensembl_gene_id_all, Ensembl_transcript_id_all, Variation_all, Info_all, Refseq_change_all | New companions to the corresponding primary columns; preserve all gene, transcript, and consequence. |
+| Gene_all, Ensembl_gene_id_all, Ensembl_transcript_id_all, Variation_all, Refseq_change_all | New companions to the corresponding primary columns; preserve all gene, transcript, and consequence. |
+| Info_all | Formatted annotation summaries for the five highest ranked transcripts per overlapping gene. |
 | CSQ_biotype_all, CSQ_impact_all, Sift_score_all, Polyphen_score_all, Constraint_all | New transcript-context summaries; individual constraint columns still describe the primary transcript. |
 | Gene_description_all, omim_phenotype_all, omim_inheritance_all, Orphanet_all | Replace the respective Gene_description, omim_phenotype, omim_inheritance, and Orphanet columns and collect annotations across Gene_all. |
 
